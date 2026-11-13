@@ -60,10 +60,10 @@ Se usa `docs` y no `feat` porque nada de esto está implementado todavía. Despu
 
 | Campo | Desarrollo del equipo |
 |---|---|
-| Repositorio | __________ |
-| Rama | __________ |
-| Carpeta | `docs/narrativa/` |
-| Commit y enlace | __________ |
+| Repositorio | <https://github.com/Rippons/Bata-Blanca-Hospital-de-Pillbox> |
+| Rama | `main` |
+| Carpeta | [`docs/narrativa/`](https://github.com/Rippons/Bata-Blanca-Hospital-de-Pillbox/tree/main/docs/narrativa) |
+| Commit y enlace | `e1d9684` · <https://github.com/Rippons/Bata-Blanca-Hospital-de-Pillbox/commit/e1d9684acf245955c459266b05c998bd284e6a84> |
 | Integrante que verificó el acceso | __________ |
 | Cambio pendiente y justificación | Descargar los cuerpos base de MetroCity (v1) y hacer las batas recoloreadas (AS-01 a AS-04); conseguir licencias de AS-08, AS-09, AS-11 y AS-14 antes de integrarlos al build |
 
@@ -79,7 +79,7 @@ Se usa `docs` y no `feat` porque nada de esto está implementado todavía. Despu
 | Nodos reales; nombres propios distinguidos de clases; eventos y estados | Sí | 05, secciones 2–4 |
 | Assets con uso, archivo, origen, licencia, responsable y pendientes | Sí | 05, sección 5 |
 | Personajes y reglas consistentes; historia → RF → escena → prueba | Sí | este README |
-| Editables, exportaciones, README, commit publicado y enlaces | Por ajustar (falta el push) | Actividad F |
+| Editables, exportaciones, README, commit publicado y enlaces | Sí (falta anotar quién verificó el acceso) | Actividad F |
 | Distinguen propuesta de implementación | Sí | todos los archivos |
 
 **Cierre del equipo.** Mejora prioritaria: implementar `paciente.gd` y el panel de diagnóstico (V02–V03), porque todo el nivel depende de ese ciclo. Responsable de consolidarla: __________. Archivo o escena afectada: `escenas/paciente.tscn`, `escenas/hud.tscn`.
