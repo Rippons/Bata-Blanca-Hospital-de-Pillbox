@@ -6,6 +6,7 @@ El Dr. **Walter Vega** empieza como interno en el Hospital de Pillbox. Cada día
 
 ![Casa de Walter](docs/captura_casa.png)
 ![Urgencias](docs/captura_hospital.png)
+![Recepción](docs/captura_recepcion.png)
 ![Pasillo del hospital](docs/captura_pasillo.png)
 
 ## Cómo abrirlo
@@ -40,7 +41,7 @@ El Dr. **Walter Vega** empieza como interno en el Hospital de Pillbox. Cada día
 - No ir al hospital antes del mediodía cuenta como falta (−15). Quedarse despierto hasta las 2:00 AM hace que Walter se duerma donde esté.
 
 **Hospital** (varias salas conectadas)
-- **Recepción** con Marta → **Pasillo** con cinco puertas: **1 Urgencias**, **2 Vestidor** (casilleros con batas y ducha del personal), **3 Cafetería** (almuerzo y máquina de snacks), **4 Dirección** (el Dr. Salgado comenta tu reputación) y **5 Consultorios** (cerrado hasta ser Residente).
+- **Recepción** con Marta, sala de espera, sofás, plantas y máquina de snacks → **Pasillo** (sillas contra la pared, letreros y piso azul con paneles) con cinco puertas: **1 Urgencias**, **2 Vestidor** (casilleros con batas y ducha del personal), **3 Cafetería** (almuerzo y máquina de snacks), **4 Dirección** (el Dr. Salgado comenta tu reputación) y **5 Consultorios** (cerrado hasta ser Residente).
 - Los pacientes siguen empeorando aunque Walter esté en otra sala; el altavoz lo llama a urgencias cuando llega alguien.
 - Llegan 3-4 pacientes por día a horas distintas. Desde el día 2 puede llegar un caso grave.
 - Ciclo: **examinar → elegir diagnóstico → tomar el insumo del botiquín → aplicarlo**. Un diagnóstico errado baja la estabilidad; si llega a 0, el paciente se transfiere (−5).
@@ -59,7 +60,7 @@ arte/      assets MetroCity (JIK-A-4) · créditos en arte/CREDITOS.md
 docs/      documentación del taller de narrativa
 ```
 
-Las salas se construyen por código en `construir()` (muebles, zonas interactuables y colisiones), así que para mover un mueble basta con cambiar su posición en `casa.gd` o `hospital.gd`. En el hospital, cada sala vive en su propia zona del mundo (`SALAS` en `hospital.gd`) y las puertas mueven a Walter y a la cámara entre ellas.
+Las salas se construyen por código en `construir()` (muebles, zonas interactuables y colisiones), así que para mover un mueble basta con cambiar su posición en `casa.gd` o `hospital.gd`. En el hospital, cada sala vive en su propia zona del mundo (`SALAS` en `hospital.gd`) y las puertas mueven a Walter y a la cámara entre ellas. El campo `interior` de cada sala define el tamaño real del cuarto: el vestidor, la cafetería y la dirección son pequeños y quedan enmarcados en la pantalla.
 
 **Personajes:** `personaje.gd` arma cada persona con capas de MetroCity (cuerpo con 6 tonos de piel + ropa + pelo), con caminata de 6 cuadros en 4 direcciones. Para crear un NPC basta con `npc(piel, ropa, hoja_pelo, fila_pelo, posición)`.
 

@@ -9,22 +9,32 @@ const HOME := "res://arte/interior/Home/"
 const MISC := HOSP + "Miscellaneous-Sheet.png"
 const PARED := 66.0
 
+## Cada sala: origen en el mundo, tamaño de la vista (cámara) e «interior»: el
+## rectángulo real del cuarto (pared + piso). Las salas pequeñas quedan enmarcadas.
 const SALAS := {
-	"recepcion": {"nombre": "Recepción", "origen": Vector2(0, 0), "tam": Vector2(480, 270)},
-	"pasillo": {"nombre": "Pasillo", "origen": Vector2(0, 1000), "tam": Vector2(960, 270)},
-	"urgencias": {"nombre": "Urgencias", "origen": Vector2(0, 2000), "tam": Vector2(480, 270)},
-	"vestidor": {"nombre": "Vestidor", "origen": Vector2(0, 3000), "tam": Vector2(480, 270)},
-	"cafeteria": {"nombre": "Cafetería", "origen": Vector2(0, 4000), "tam": Vector2(480, 270)},
-	"direccion": {"nombre": "Dirección", "origen": Vector2(0, 5000), "tam": Vector2(480, 270)},
-	"consultorios": {"nombre": "Consultorios", "origen": Vector2(0, 6000), "tam": Vector2(480, 270)},
+	"recepcion": {"nombre": "Recepción", "origen": Vector2(0, 0), "tam": Vector2(480, 270),
+		"interior": Rect2(0, 18, 480, 252)},
+	"pasillo": {"nombre": "Pasillo", "origen": Vector2(0, 1000), "tam": Vector2(960, 270),
+		"interior": Rect2(0, 18, 960, 196)},
+	"urgencias": {"nombre": "Urgencias", "origen": Vector2(0, 2000), "tam": Vector2(480, 270),
+		"interior": Rect2(0, 18, 480, 252), "entrada": Vector2(28, 90)},
+	"vestidor": {"nombre": "Vestidor", "origen": Vector2(0, 3000), "tam": Vector2(480, 270),
+		"interior": Rect2(112, 40, 256, 180), "entrada": Vector2(340, 112)},
+	"cafeteria": {"nombre": "Cafetería", "origen": Vector2(0, 4000), "tam": Vector2(480, 270),
+		"interior": Rect2(104, 40, 272, 186), "entrada": Vector2(128, 112)},
+	"direccion": {"nombre": "Dirección", "origen": Vector2(0, 5000), "tam": Vector2(480, 270),
+		"interior": Rect2(120, 40, 240, 180), "entrada": Vector2(334, 112)},
+	"consultorios": {"nombre": "Consultorios", "origen": Vector2(0, 6000), "tam": Vector2(480, 270),
+		"interior": Rect2(0, 18, 480, 252)},
 }
+const ALTO_PARED := 48.0
 ## Puertas del pasillo: [id de sala, x de la puerta en el pasillo, cartel, x de la puerta dentro del área]
 const PUERTAS_PASILLO := [
-	["urgencias", 130.0, "1 · URGENCIAS", 28.0],
-	["vestidor", 300.0, "2 · VESTIDOR", 440.0],
-	["cafeteria", 470.0, "3 · CAFETERÍA", 40.0],
-	["direccion", 640.0, "4 · DIRECCIÓN", 440.0],
-	["consultorios", 810.0, "5 · CONSULTORIOS", 0.0],
+	["urgencias", 120.0, "1 · URGENCIAS", 28.0],
+	["vestidor", 300.0, "2 · VESTIDOR", 340.0],
+	["cafeteria", 480.0, "3 · CAFETERÍA", 128.0],
+	["direccion", 660.0, "4 · DIRECCIÓN", 334.0],
+	["consultorios", 840.0, "5 · CONSULTORIOS", 0.0],
 ]
 const CAMILLAS_X := [150.0, 214.0, 278.0]
 const CAMILLA_Y := 116.0
@@ -122,76 +132,143 @@ func construir() -> void:
 	origen = Vector2.ZERO
 
 
+var _piso_y := 0.0    # y donde empieza el piso de la sala en construcción
+
+
 func _empezar_sala(id: String, piso: Rect2) -> Texture2D:
 	var s: Dictionary = SALAS[id]
 	origen = s["origen"]
 	var tam: Vector2 = s["tam"]
+	var r: Rect2 = s["interior"]
 	var tiles := textura(HOSP + "TilesHospital.png")
-	suelo(Rect2(0, PARED, tam.x, tam.y - PARED), tiles, piso)
-	suelo(Rect2(0, ALTO_HUD, tam.x, PARED - ALTO_HUD), tiles, Rect2(16, 80, 48, 48))
-	suelo_color(Rect2(0, 0, tam.x, ALTO_HUD), Color("1b2430"))
-	muros_borde(PARED - ALTO_HUD, tam)
+	_piso_y = r.position.y + ALTO_PARED
+	suelo_color(Rect2(0, 0, tam.x, tam.y), Color("1b2430"))
+	suelo(Rect2(r.position.x, _piso_y, r.size.x, r.end.y - _piso_y), tiles, piso)
+	suelo(Rect2(r.position.x, r.position.y, r.size.x, ALTO_PARED), tiles, Rect2(16, 80, 48, 48))
+	if r.size.x < tam.x:      # sala pequeña: marco alrededor
+		var marco := Color("8e99a6")
+		suelo_color(Rect2(r.position.x - 3, r.position.y - 3, r.size.x + 6, 3), marco)
+		suelo_color(Rect2(r.position.x - 3, r.end.y, r.size.x + 6, 3), marco)
+		suelo_color(Rect2(r.position.x - 3, r.position.y, 3, r.size.y), marco)
+		suelo_color(Rect2(r.end.x, r.position.y, 3, r.size.y), marco)
+	elif r.end.y < tam.y:     # pasillo: zócalo inferior
+		suelo_color(Rect2(r.position.x, r.end.y, r.size.x, 3), Color("8e99a6"))
+	solido_rect(Rect2(r.position.x, r.position.y - 10, r.size.x, ALTO_PARED + 6))   # pared
+	solido_rect(Rect2(r.position.x - 10, r.position.y, 10, r.size.y))               # izquierda
+	solido_rect(Rect2(r.end.x, r.position.y, 10, r.size.y))                         # derecha
+	solido_rect(Rect2(r.position.x, r.end.y, r.size.x, 10))                         # abajo
 	return tiles
+
+
+## Decoración de pared (sin colisión). «x» centro, «base» y de apoyo.
+func deco(region: Rect2, x: float, base: float, hoja := MISC) -> void:
+	mueble(hoja, region, Vector2(x, base), false)
 
 
 ## Puerta de regreso al pasillo (en la pared superior) de cada área.
 func _puerta_al_pasillo(x: float, sala: String) -> void:
-	mueble(HOSP + "DoorsHospital-Sheet.png", Rect2(662, 30, 36, 50), Vector2(x, PARED), false)
-	zona("volver_%s" % sala, "Volver al pasillo", Rect2(x - 20, PARED, 40, 18))
+	mueble(HOSP + "DoorsHospital-Sheet.png", Rect2(662, 30, 36, 50), Vector2(x, _piso_y), false)
+	zona("volver_%s" % sala, "Volver al pasillo", Rect2(x - 20, _piso_y, 40, 18))
 
 
 # --- Construcción de cada sala ---------------------------------------------------------
 func _construir_recepcion() -> void:
 	var tiles := _empezar_sala("recepcion", Rect2(48, 176, 16, 16))
-	suelo(Rect2(60, 186, 360, 60), tiles, Rect2(32, 160, 16, 16))
+	# piso: borde azul con paneles blancos, como en el pasillo
+	suelo(Rect2(0, 66, 480, 204), tiles, Rect2(32, 160, 16, 16))
+	suelo(Rect2(16, 82, 176, 112), tiles, Rect2(48, 176, 16, 16))
+	suelo(Rect2(288, 82, 176, 112), tiles, Rect2(48, 176, 16, 16))
+	suelo(Rect2(16, 210, 176, 44), tiles, Rect2(48, 176, 16, 16))
+	suelo(Rect2(288, 210, 176, 44), tiles, Rect2(48, 176, 16, 16))
+	# pared: ventanas, letreros, cruz, TV y panel informativo
 	mueble(HOSP + "DoorsHospital-Sheet.png", Rect2(87, 17, 65, 63), Vector2(240, PARED), false)
 	zona("ir_pasillo", "Ir al pasillo (áreas)", Rect2(212, PARED, 56, 18))
-	cartel("PASILLO · ÁREAS", Vector2(276, 46), Color("1e5a8a"))
-	mueble(MISC, Rect2(2993, 18, 30, 33), Vector2(110, 58), false)
-	cartel("HOSPITAL DE PILLBOX", Vector2(320, 28), Color("1e5a8a"))
-	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(20, 104), true, 10)
-	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(460, 104), true, 10)
+	deco(Rect2(1839, 33, 34, 14), 296, 52)
+	cartel("PASILLO · ÁREAS", Vector2(276, 26), Color("1e5a8a"))
+	for x in [36.0, 84.0, 396.0, 444.0]:
+		deco(Rect2(270, 15, 36, 40), x, 62, HOME + "Windows-Sheet.png")
+	deco(Rect2(2993, 18, 30, 33), 150, 64)
+	cartel("HOSPITAL DE PILLBOX", Vector2(116, 24), Color("1e5a8a"))
+	deco(Rect2(1583, 33, 34, 14), 346, 52)
+	deco(Rect2(2103, 36, 18, 10), 190, 46)
+	# mostrador con Marta, monitor y papeles
 	npc(1, "fucsia", Personaje.PELOS2, 0, Vector2(240, 140))
 	mueble(MISC, Rect2(2819, 15, 122, 45), Vector2(240, 176), true, 30)
+	deco(Rect2(569, 21, 14, 18), 206, 150)
+	deco(Rect2(1209, 23, 12, 16), 276, 148)
 	zona("recepcionista", "Hablar con Marta (recepción)", Rect2(190, 176, 100, 16))
-	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(90, 222), true, 12)
-	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(390, 222), true, 12)
-	npc(4, "casual_rojo", Personaje.PELOS, 3, Vector2(78, 214))
+	# sala de espera izquierda
+	mueble(HOME + "LivingRoom1-Sheet.png", Rect2(24, 501, 48, 26), Vector2(56, 112), true, 14)
+	mueble(HOME + "LivingRoom1-Sheet.png", Rect2(24, 501, 48, 26), Vector2(120, 112), true, 14)
+	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(70, 176), true, 12)
+	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(140, 176), true, 12)
+	mueble(MISC, Rect2(824, 4, 14, 50), Vector2(10, 196), true, 40)
+	mueble(MISC, Rect2(54, 18, 20, 30), Vector2(40, 236), true, 12)
+	mueble(HOME + "Miscellaneous-Sheet.png", Rect2(591, 35, 35, 21), Vector2(88, 136), true, 10)
+	npc(4, "casual_rojo", Personaje.PELOS, 3, Vector2(58, 168))
+	npc(2, "overol", Personaje.PELOS2, 3, Vector2(126, 104))
+	# lado derecho: dispensador, máquina, plantas y más sillas
+	mueble(MISC, Rect2(1333, 20, 22, 27), Vector2(470, 110), true, 12)
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(996, 0, 24, 48), Vector2(440, 112), true, 26, Color("ffcc80"))
+	cartel("SNACKS", Vector2(428, 112), Color("6b3e00"))
+	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(340, 176), true, 12)
+	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(410, 176), true, 12)
+	mueble(HOME + "LivingRoom1-Sheet.png", Rect2(24, 501, 48, 26), Vector2(352, 112), true, 14)
+	npc(0, "rosa", Personaje.PELOS, 5, Vector2(400, 168))
+	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(316, 112), true, 6)
+	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(166, 236), true, 6)
+	for pos in [Vector2(20, 104), Vector2(194, 104), Vector2(286, 104), Vector2(186, 248), Vector2(294, 248), Vector2(462, 248)]:
+		mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), pos, true, 8)
+	# salida a la calle
 	suelo_color(Rect2(208, 258, 64, 12), Color("6b4a2b"))
 	cartel("SALIDA", Vector2(229, 259), Color("f5e6c8"))
 	zona("calle", "Salir a la calle", Rect2(208, 248, 64, 22))
 
 
 func _construir_pasillo() -> void:
-	var tiles := _empezar_sala("pasillo", Rect2(48, 176, 16, 16))
-	# franja inferior: pared baja con un paso hacia recepción
-	suelo(Rect2(0, 206, 960, 64), tiles, Rect2(16, 80, 48, 48))
-	solido_rect(Rect2(100, 202, 860, 68))
-	solido_rect(Rect2(0, 230, 100, 40))
-	suelo(Rect2(30, 206, 60, 24), tiles, Rect2(32, 160, 16, 16))
-	cartel("← RECEPCIÓN", Vector2(32, 212), Color("1e5a8a"))
-	zona("ir_recepcion", "Volver a recepción", Rect2(30, 206, 60, 24))
+	var tiles := _empezar_sala("pasillo", Rect2(32, 160, 16, 16))
+	# paneles blancos sobre el piso azul (como el ejemplo)
+	for i in 6:
+		suelo(Rect2(16 + i * 160, 98, 128, 100), tiles, Rect2(48, 176, 16, 16))
 	for p in PUERTAS_PASILLO:
 		var x: float = p[1]
 		var cerrada: bool = p[0] == "consultorios"
 		mueble(HOSP + "DoorsHospital-Sheet.png", Rect2(662, 30, 36, 50), Vector2(x, PARED), false, -1.0,
 			Color(0.6, 0.6, 0.6) if cerrada else Color.WHITE)
-		cartel(p[2], Vector2(x + 22, 40), Color("777777") if cerrada else Color("1e5a8a"))
+		cartel(p[2], Vector2(x + 21, 22), Color("777777") if cerrada else Color("1e5a8a"))
 		var etiqueta := "Consultorios (cerrado)" if cerrada else "Entrar: %s" % SALAS[p[0]]["nombre"]
 		zona("puerta_%s" % p[0], etiqueta, Rect2(x - 20, PARED, 40, 18))
-	mueble(MISC, Rect2(185, 12, 14, 35), Vector2(215, 92), true, 6)
-	for x in [385.0, 555.0, 725.0]:
-		mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(x, 100), true, 10)
+	# entre puertas: sillas contra la pared y letreros (como el ejemplo)
+	var letreros := [Rect2(1583, 33, 34, 14), Rect2(1711, 33, 34, 14), Rect2(1455, 33, 34, 14), Rect2(1839, 33, 34, 14)]
+	for i in 4:
+		var xm: float = (PUERTAS_PASILLO[i][1] + PUERTAS_PASILLO[i + 1][1]) / 2.0
+		mueble(MISC, Rect2(929, 15, 62, 25), Vector2(xm, 92), true, 12)
+		deco(letreros[i], xm, 52)
+	deco(Rect2(2103, 36, 18, 10), 60, 46)
+	deco(Rect2(1982, 41, 9, 7), 150, 48)
+	deco(Rect2(1209, 23, 12, 16), 330, 50)
+	deco(Rect2(1982, 41, 9, 7), 690, 48)
+	deco(Rect2(2103, 36, 18, 10), 900, 46)
+	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(28, 90), true, 6)
+	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(932, 90), true, 6)
+	mueble(MISC, Rect2(185, 12, 14, 35), Vector2(560, 196), true, 6)
+	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(944, 200), true, 8)
+	# paso a recepción en la pared de abajo
+	suelo_color(Rect2(30, 211, 60, 8), Color("6b4a2b"))
+	cartel("↓ RECEPCIÓN", Vector2(36, 220), Color("9fc4e8"))
+	zona("ir_recepcion", "Volver a recepción", Rect2(30, 196, 60, 18))
 	npc(2, "rosa", Personaje.PELOS, 2, Vector2(560, 160), Vector2.LEFT)
+	npc(5, "enfermera", Personaje.PELOS2, 4, Vector2(250, 150), Vector2.RIGHT)
 
 
 func _construir_urgencias() -> void:
 	_empezar_sala("urgencias", Rect2(48, 176, 16, 16))
 	_puerta_al_pasillo(28, "urgencias")
-	mueble(MISC, Rect2(2993, 18, 30, 33), Vector2(214, 58), false)
-	cartel("URGENCIAS", Vector2(234, 30), Color("1e5a8a"))
+	deco(Rect2(2993, 18, 30, 33), 330, 58)
+	cartel("URGENCIAS", Vector2(350, 30), Color("1e5a8a"))
 	for i in 3:
 		var x: float = CAMILLAS_X[i]
+		deco(Rect2(295, 21, 52, 23), x, 60)
 		mueble(HOSP + "BedHospital-Sheet.png", Rect2(19, 7, 26, 42), Vector2(x, CAMILLA_Y), true, 30)
 		mueble(MISC, Rect2(185, 12, 14, 35), Vector2(x + 20, CAMILLA_Y - 14), true, 6)
 		zona("camilla%d" % i, "Camilla %d" % (i + 1), Rect2(x - 16, CAMILLA_Y - 8, 32, 24))
@@ -202,57 +279,70 @@ func _construir_urgencias() -> void:
 	zona("botiquin_rojo", "Botiquín rojo", Rect2(406, 86, 28, 26))
 	cartel("ROJO", Vector2(412, 96), Color("b71c1c"))
 	mueble(MISC, Rect2(1075, 24, 25, 17), Vector2(456, 92), true, 8)
+	deco(Rect2(1209, 23, 12, 16), 360, 50)
+	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(64, 90), true, 6)
 	npc(3, "enfermera", Personaje.PELOS, 6, Vector2(110, 204))
 	mueble(MISC, Rect2(2563, 15, 122, 45), Vector2(110, 236), true, 30)
+	deco(Rect2(569, 21, 14, 18), 84, 214)
 	zona("lucia", "Hablar con Lucía", Rect2(60, 236, 100, 16))
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(330, 222), true, 12)
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(410, 222), true, 12)
+	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(462, 250), true, 8)
 
 
 func _construir_vestidor() -> void:
 	_empezar_sala("vestidor", Rect2(32, 160, 16, 16))
-	_puerta_al_pasillo(440, "vestidor")
-	cartel("VESTIDOR DEL PERSONAL", Vector2(160, 30), Color("1e5a8a"))
-	for i in 6:
-		mueble(HOME + "Cupboard-Sheet.png", Rect2(470, 7, 20, 41), Vector2(150 + i * 24, 100), true, 16, Color("b7c7d8"))
-	zona("casillero", "Casillero (cambiarse)", Rect2(136, 84, 148, 30))
-	mueble(HOME + "Kitchen1-Sheet.png", Rect2(409, 15, 46, 33), Vector2(210, 180), true, 18, Color("8d9aa8"))
-	mueble(HOME + "Bathroom-Sheet.png", Rect2(323, 13, 26, 50), Vector2(30, 104), true, 36)
-	mueble(HOME + "Bathroom-Sheet.png", Rect2(323, 13, 26, 50), Vector2(62, 104), true, 36)
-	zona("ducha_hospital", "Ducha del personal (15 min)", Rect2(14, 92, 64, 28))
-	mueble(HOME + "Bathroom-Sheet.png", Rect2(35, 24, 26, 28), Vector2(360, 86), true, 14)
+	_puerta_al_pasillo(340, "vestidor")
+	cartel("VESTIDOR DEL PERSONAL", Vector2(160, 26), Color("9fc4e8"))
+	mueble(HOME + "Bathroom-Sheet.png", Rect2(323, 13, 26, 50), Vector2(132, 132), true, 34)
+	mueble(HOME + "Bathroom-Sheet.png", Rect2(323, 13, 26, 50), Vector2(162, 132), true, 34)
+	zona("ducha_hospital", "Ducha del personal (15 min)", Rect2(116, 120, 62, 28))
+	for i in 5:
+		mueble(HOME + "Cupboard-Sheet.png", Rect2(470, 7, 20, 41), Vector2(202 + i * 22, 126), true, 16, Color("b7c7d8"))
+	zona("casillero", "Casillero (cambiarse)", Rect2(190, 112, 112, 30))
+	mueble(HOME + "Bathroom-Sheet.png", Rect2(35, 24, 26, 28), Vector2(304, 112), true, 12)
+	mueble(HOME + "Kitchen1-Sheet.png", Rect2(409, 15, 46, 33), Vector2(240, 196), true, 18, Color("8d9aa8"))
+	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(124, 214), true, 6)
+	mueble(HOME + "Flowers-Sheet.png", Rect2(89, 23, 14, 23), Vector2(356, 214), true, 6)
+	npc(1, "uniforme", Personaje.PELOS, 7, Vector2(290, 180), Vector2.LEFT)
 
 
 func _construir_cafeteria() -> void:
 	_empezar_sala("cafeteria", Rect2(96, 176, 32, 32))
-	_puerta_al_pasillo(40, "cafeteria")
-	cartel("CAFETERÍA", Vector2(200, 30), Color("1e5a8a"))
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(607, 20, 34, 35), Vector2(170, 100), true, 20)
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(128, 21, 33, 34), Vector2(204, 100), true, 20)
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(223, 21, 33, 34), Vector2(237, 100), true, 20)
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(996, 0, 24, 48), Vector2(268, 104), true, 28)
-	zona("almuerzo", "Almorzar (20 min)", Rect2(150, 96, 130, 26))
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(996, 0, 24, 48), Vector2(440, 104), true, 28, Color("ffcc80"))
-	zona("snacks", "Máquina de snacks", Rect2(426, 98, 30, 24))
-	for pos in [Vector2(150, 190), Vector2(320, 190)]:
+	_puerta_al_pasillo(128, "cafeteria")
+	cartel("CAFETERÍA", Vector2(216, 26), Color("9fc4e8"))
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(607, 20, 34, 35), Vector2(184, 124), true, 20)
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(128, 21, 33, 34), Vector2(218, 124), true, 20)
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(223, 21, 33, 34), Vector2(251, 124), true, 20)
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(996, 0, 24, 48), Vector2(282, 128), true, 26)
+	deco(Rect2(1583, 33, 34, 14), 218, 74)
+	zona("almuerzo", "Almorzar (20 min)", Rect2(166, 120, 130, 26))
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(996, 0, 24, 48), Vector2(354, 128), true, 26, Color("ffcc80"))
+	zona("snacks", "Máquina de snacks", Rect2(340, 122, 30, 24))
+	for pos in [Vector2(170, 200), Vector2(300, 200)]:
 		mueble(HOME + "Kitchen1-Sheet.png", Rect2(409, 15, 46, 33), pos, true, 22)
 		mueble(HOME + "Kitchen1-Sheet.png", Rect2(42, 7, 12, 25), pos + Vector2(-30, -4), false)
 		mueble(HOME + "Kitchen1-Sheet.png", Rect2(232, 9, 14, 23), pos + Vector2(30, -4), false)
-	npc(0, "naranja", Personaje.PELOS, 4, Vector2(286, 186), Vector2.RIGHT)
+	npc(0, "naranja", Personaje.PELOS, 4, Vector2(266, 196), Vector2.RIGHT)
+	mueble(HOME + "Flowers-Sheet.png", Rect2(89, 23, 14, 23), Vector2(116, 220), true, 6)
 
 
 func _construir_direccion() -> void:
 	_empezar_sala("direccion", Rect2(96, 144, 32, 32))
-	suelo(Rect2(176, 120, 128, 80), textura(HOME + "Carpet-Sheet.png"), Rect2(128, 0, 64, 64))
-	_puerta_al_pasillo(440, "direccion")
-	cartel("DIRECCIÓN · DR. ARTURO SALGADO", Vector2(290, 30), Color("1e5a8a"))
-	mueble(HOME + "Cupboard-Sheet.png", Rect2(270, 20, 36, 43), Vector2(60, 96), true, 16)
-	mueble(HOME + "Cupboard-Sheet.png", Rect2(334, 29, 36, 34), Vector2(100, 96), true, 16)
-	mueble(HOME + "Paintings1-Sheet.png", Rect2(1, 0, 30, 32), Vector2(240, 56), false)
-	npc(4, "uniforme", Personaje.PELOS, 1, Vector2(240, 136))
-	mueble(HOME + "LivingRoom-Sheet.png", Rect2(25, 15, 46, 30), Vector2(240, 172), true, 18)
-	zona("salgado", "Hablar con el Dr. Salgado", Rect2(204, 172, 72, 18))
-	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(400, 104), true, 10)
+	suelo(Rect2(192, 138, 96, 72), textura(HOME + "Carpet-Sheet.png"), Rect2(128, 0, 64, 64))
+	_puerta_al_pasillo(334, "direccion")
+	cartel("DIRECCIÓN · DR. ARTURO SALGADO", Vector2(164, 26), Color("9fc4e8"))
+	mueble(HOME + "Cupboard-Sheet.png", Rect2(270, 20, 36, 43), Vector2(146, 124), true, 16)
+	mueble(HOME + "Cupboard-Sheet.png", Rect2(334, 29, 36, 34), Vector2(184, 124), true, 16)
+	deco(Rect2(1, 0, 30, 32), 240, 80, HOME + "Paintings1-Sheet.png")
+	deco(Rect2(526, 15, 36, 40), 284, 84, HOME + "Windows-Sheet.png")
+	npc(4, "uniforme", Personaje.PELOS, 1, Vector2(240, 162))
+	mueble(HOME + "LivingRoom-Sheet.png", Rect2(25, 15, 46, 30), Vector2(240, 192), true, 18)
+	deco(Rect2(569, 21, 14, 18), 228, 178)
+	zona("salgado", "Hablar con el Dr. Salgado", Rect2(204, 192, 72, 18))
+	mueble(HOME + "LivingRoom1-Sheet.png", Rect2(233, 97, 15, 46), Vector2(134, 210), true, 30)
+	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(346, 214), true, 8)
+	mueble(HOME + "Lights-Sheet.png", Rect2(152, 0, 16, 32), Vector2(306, 128), true, 6)
 
 
 # --- Entrada al hospital -------------------------------------------------------------
@@ -391,9 +481,7 @@ func interactuar(id: String) -> void:
 		if destino == "consultorios":
 			hud.mostrar("Consultorios externos: se abrirán cuando seas Residente.")
 		else:
-			for p in PUERTAS_PASILLO:
-				if p[0] == destino:
-					await ir_a_sala(destino, Vector2(p[3], 90))
+			await ir_a_sala(destino, SALAS[destino]["entrada"])
 	elif id.begins_with("volver_"):
 		var desde := id.substr(7)
 		for p in PUERTAS_PASILLO:
@@ -401,7 +489,7 @@ func interactuar(id: String) -> void:
 				await ir_a_sala("pasillo", Vector2(p[1], 90))
 	else:
 		match id:
-			"ir_pasillo": await ir_a_sala("pasillo", Vector2(60, 186))
+			"ir_pasillo": await ir_a_sala("pasillo", Vector2(60, 180))
 			"ir_recepcion": await ir_a_sala("recepcion", Vector2(240, 92))
 			"calle": hud.mostrar("Tu turno termina a las 7:30 PM. Son las %s." % Juego.hora_texto())
 			"recepcionista": _marta()
