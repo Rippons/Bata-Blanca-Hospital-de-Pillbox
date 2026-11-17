@@ -329,7 +329,7 @@ func _construir_cafeteria() -> void:
 
 func _construir_direccion() -> void:
 	_empezar_sala("direccion", Rect2(96, 144, 32, 32))
-	suelo(Rect2(192, 138, 96, 72), textura(HOME + "Carpet-Sheet.png"), Rect2(128, 0, 64, 64))
+	suelo(Rect2(208, 144, 64, 64), textura(HOME + "Carpet-Sheet.png"), Rect2(128, 0, 64, 64))   # una sola alfombra
 	_puerta_al_pasillo(334, "direccion")
 	cartel("DIRECCIÓN · DR. ARTURO SALGADO", Vector2(164, 26), Color("9fc4e8"))
 	mueble(HOME + "Cupboard-Sheet.png", Rect2(270, 20, 36, 43), Vector2(146, 124), true, 16)
