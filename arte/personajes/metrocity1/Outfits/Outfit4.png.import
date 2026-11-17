@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bp85v84iynkxs"
-path="res://.godot/imported/Suit.png-c66d0927da6957921488812ca78cdc5e.ctex"
+uid="uid://c3y62kgbk88gu"
+path="res://.godot/imported/Outfit4.png-171a243b3d073da962245595ef5ed4d2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://arte/personajes/Suit.png"
-dest_files=["res://.godot/imported/Suit.png-c66d0927da6957921488812ca78cdc5e.ctex"]
+source_file="res://arte/personajes/metrocity1/Outfits/Outfit4.png"
+dest_files=["res://.godot/imported/Outfit4.png-171a243b3d073da962245595ef5ed4d2.ctex"]
 
 [params]
 

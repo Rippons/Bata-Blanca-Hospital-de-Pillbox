@@ -58,15 +58,35 @@ func _ready() -> void:
 	print("== Día 1: hospital")
 	var hosp = get_tree().current_scene
 	ok(hosp.name == "Hospital", "llega al hospital")
+	ok(hosp.sala_actual == "recepcion", "aparece en la recepción")
 	ok(Juego.minutos < Juego.INICIO_TURNO, "llega puntual (%s)" % Juego.hora_texto())
 	ok(Juego.racha_puntual == 1, "racha puntual = 1")
+	await esperar(0.6)
+	await captura("hospital_recepcion")
+	await hosp.interactuar("ir_pasillo")
+	ok(hosp.sala_actual == "pasillo", "recepción → pasillo")
+	hosp.walter.position = hosp.SALAS["pasillo"]["origen"] + Vector2(520, 150)
+	await esperar(0.6)
+	await captura("hospital_pasillo")
+	for area in ["vestidor", "cafeteria", "direccion"]:
+		await hosp.interactuar("puerta_" + area)
+		ok(hosp.sala_actual == area, "pasillo → " + area)
+		hosp.walter.position = hosp.SALAS[area]["origen"] + Vector2(240, 150)
+		await esperar(0.5)
+		await captura("hospital_" + area)
+		await hosp.interactuar("volver_" + area)
+		ok(hosp.sala_actual == "pasillo", area + " → pasillo")
+	await hosp.interactuar("puerta_consultorios")
+	ok(hosp.sala_actual == "pasillo", "consultorios está cerrado")
+	await hosp.interactuar("puerta_urgencias")
+	ok(hosp.sala_actual == "urgencias", "pasillo → urgencias (primera puerta)")
 	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
 	await esperar(0.3)
 	var p = hosp.pacientes[0]
 	ok(p != null, "llega el primer paciente a la camilla 1")
-	hosp.walter.position = Vector2(150, 136)
-	await esperar(0.3)
-	await captura("hospital_paciente")
+	hosp.walter.position = hosp.SALAS["urgencias"]["origen"] + Vector2(150, 136)
+	await esperar(0.5)
+	await captura("hospital_urgencias")
 	var rep: int = Juego.reputacion
 	var falso: String = p.caso["falsos"][0]
 	var est: float = p.estabilidad

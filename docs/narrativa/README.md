@@ -65,7 +65,7 @@ Se usa `docs` y no `feat` porque nada de esto está implementado todavía. Despu
 | Carpeta | [`docs/narrativa/`](https://github.com/Rippons/Bata-Blanca-Hospital-de-Pillbox/tree/main/docs/narrativa) |
 | Commit y enlace | `e1d9684` · <https://github.com/Rippons/Bata-Blanca-Hospital-de-Pillbox/commit/e1d9684acf245955c459266b05c998bd284e6a84> |
 | Integrante que verificó el acceso | __________ |
-| Cambio pendiente y justificación | Descargar los cuerpos base de MetroCity (v1) y hacer las batas recoloreadas (AS-01 a AS-04); conseguir licencias de AS-08, AS-09, AS-11 y AS-14 antes de integrarlos al build |
+| Cambio pendiente y justificación | Conseguir licencias de AS-08, AS-09, AS-11 y AS-14 antes de integrarlos al build |
 
 ## Lista de chequeo (8.8)
 

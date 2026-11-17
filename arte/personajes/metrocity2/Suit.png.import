@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://6vaftw2sd5u4"
-path="res://.godot/imported/Hair.png-80d5a96a0b2c2be0ae447b2d6ab7f3cb.ctex"
+uid="uid://5olesvq27xsa"
+path="res://.godot/imported/Suit.png-8d55421a6b5e81e7416807e3279511a8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://arte/personajes/Hair.png"
-dest_files=["res://.godot/imported/Hair.png-80d5a96a0b2c2be0ae447b2d6ab7f3cb.ctex"]
+source_file="res://arte/personajes/metrocity2/Suit.png"
+dest_files=["res://.godot/imported/Suit.png-8d55421a6b5e81e7416807e3279511a8.ctex"]
 
 [params]
 

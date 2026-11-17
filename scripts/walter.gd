@@ -4,7 +4,8 @@ extends CharacterBody2D
 
 signal objetivo_cambiado(objetivo: Interactuable)
 
-var figura: PersonaDibujo
+var figura: Personaje
+var camara: Camera2D
 var detector: Area2D
 var objetivo: Interactuable
 var bloqueado := false
@@ -21,9 +22,16 @@ func _ready() -> void:
 	forma.position = Vector2(0, -2)
 	add_child(forma)
 
-	figura = PersonaDibujo.new()
-	figura.color_pelo = Color("2b1a10")
+	figura = Personaje.new()
+	figura.piel = 0
+	figura.pelo_hoja = Personaje.PELOS
+	figura.pelo_fila = 0
 	add_child(figura)
+
+	camara = Camera2D.new()
+	camara.position = Vector2(0, -12)
+	add_child(camara)
+	limitar_camara(Rect2(0, 0, 480, 270))
 
 	detector = Area2D.new()
 	detector.collision_layer = 0
@@ -72,19 +80,22 @@ func _buscar_objetivo() -> void:
 		objetivo_cambiado.emit(objetivo)
 
 
-## Cambia colores según la ropa, la bata y el olor.
+## La cámara no sale del rectángulo de la sala actual.
+func limitar_camara(r: Rect2) -> void:
+	camara.limit_left = int(r.position.x)
+	camara.limit_top = int(r.position.y)
+	camara.limit_right = int(r.end.x)
+	camara.limit_bottom = int(r.end.y)
+	camara.reset_smoothing()
+
+
+## Cambia la ropa según Juego.ropa, la bata sucia y el olor.
 func actualizar_aspecto() -> void:
-	match Juego.ropa:
-		"pijama":
-			figura.color_ropa = Color("8fb3e0")
-			figura.color_pantalon = Color("6d8fc0")
-		_:
-			figura.color_ropa = Color("d8cfae") if Juego.bata_sucia() else Color("f4f4f4")
-			figura.color_pantalon = Color("4a6fa5")
-	if Juego.huele_muy_mal():
-		figura.olor = 2
-	elif Juego.huele_mal():
-		figura.olor = 1
-	else:
-		figura.olor = 0
-	figura.queue_redraw()
+	var olor := 2 if Juego.huele_muy_mal() else (1 if Juego.huele_mal() else 0)
+	var tinte := Color("e6d6a8") if (Juego.ropa == "uniforme" and Juego.bata_sucia()) else Color.WHITE
+	if figura.ropa == Juego.ropa and figura.olor == olor and figura.tinte_ropa == tinte:
+		return
+	figura.ropa = Juego.ropa
+	figura.olor = olor
+	figura.tinte_ropa = tinte
+	figura.aplicar()

@@ -202,7 +202,7 @@ func llegar_al_hospital() -> Array:
 			notas.append("Dr. Salgado: «%d días seguidos puntual. Así me gusta». (+5 reputación)" % racha_puntual)
 	if ropa == "pijama":
 		sumar_reputacion(-3)
-		notas.append("Lucía: «¡Doctor, vino en pijama!». Ve al casillero a ponerte una bata. (−3 reputación)")
+		notas.append("Lucía: «¡Doctor, vino en pijama!». En el vestidor (2.ª puerta del pasillo) hay batas. (−3 reputación)")
 	elif bata_sucia():
 		sumar_reputacion(-1)
 		notas.append("Lucía: «Esa bata ya pide lavadora, doctor». (−1 reputación)")
