@@ -2,7 +2,7 @@
 
 Juego 2D de vista cenital en **Godot 4.5** · Diseño Multimedia y Videojuegos · FESC.
 
-El Dr. **Walter Vega** empieza como interno en el Hospital de Pillbox. Cada día se levanta en su casa, se prepara, trabaja su turno de 7:30 AM a 7:30 PM y vuelve a casa a descansar. Cómo cuide su rutina tiene consecuencias en el hospital.
+El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada día se levanta en su casa, se prepara, trabaja su turno de 7:30 AM a 7:30 PM y vuelve a casa a descansar. Cómo cuide su rutina tiene consecuencias en el hospital.
 
 ![Casa de Walter](docs/captura_casa.png)
 ![Urgencias](docs/captura_hospital.png)
@@ -45,12 +45,12 @@ El Dr. **Walter Vega** empieza como interno en el Hospital de Pillbox. Cada día
 - **Recepción** con Erina, sala de espera, sofás, plantas y máquina de snacks → **Pasillo** (sillas contra la pared, letreros y piso azul con paneles) con cinco puertas: **1 Urgencias**, **2 Vestidor** (casilleros con batas y ducha del personal), **3 Cafetería** (almuerzo y máquina de snacks), **4 Dirección** (el Dr. Salgado comenta tu reputación) y **5 Consultorios** (cerrado hasta ser Residente).
 - Los pacientes siguen empeorando aunque Walter esté en otra sala; el altavoz lo llama a urgencias cuando llega alguien.
 - Llega un paciente cada 40-70 minutos de juego (unos 12 por turno). Puede llegar un caso grave, más seguido desde el día 2.
-- Ciclo: **examinar → elegir diagnóstico → tomar el insumo del botiquín → aplicarlo**. Un diagnóstico errado baja la estabilidad; si llega a 0, el paciente se transfiere (−5).
+- Ciclo: **el paciente cuenta qué le pasó → examinar con una herramienta (termómetro, estetoscopio, tensiómetro, otoscopio, linterna, glucómetro o palpar) → elegir diagnóstico → tomar el insumo del botiquín → aplicarlo**. Hay 11 casos (herida, fiebre, esguince, deshidratación, otitis, asma, presión alta, azúcar baja, astilla en el ojo, alergia grave y golpe de calor); en los graves el paciente no puede hablar y lo cuenta Lucía. Un diagnóstico errado baja la estabilidad; si llega a 0, el paciente se transfiere (−5).
 - Lucía, en la enfermería de urgencias, da pistas sobre qué insumo usar.
 
 **Personas, diálogos y sonido**
-- 14 NPC con nombre propio y diálogos (E para hablar). Todos caminan por su zona, menos las enfermeras de mostrador (Erina en recepción y Lucía en urgencias).
-- Policías: **Alejandro Reyes** (entrada), **Jaiden Mendoza** (urgencias) y **John McClane** (pasillo). También: Dr. Salgado, Dr. Ramírez, Paola, Kevin, Sofía, Doña Gloria, Don Ernesto, Samuel y Don Pedro.
+- 19 NPC con nombre propio y diálogos (E para hablar). Todos caminan por su zona, menos las enfermeras de mostrador (Erina en recepción y Lucía en urgencias).
+- Policías: **Alejandro Reyes** (entrada), **Jaiden Mendoza** (urgencias) y **John McClane** (pasillo). Médicos: **Dr. Maximiliano Brown** (urgencias), **Dr. Máximo Stone** y **Dr. Enzo Escobar** (pasillo), **Dr. Zacarías Flores** y Dr. Ramírez (vestidor), **Dr. Wilder Noctis** (cafetería, el más perezoso) y el Dr. Salgado (dirección). También: Paola, el camillero **Cristian Daniel**, Sofía, Doña Gloria, Don Ernesto, Samuel y Don Pedro.
 - Los textos se escriben letra por letra con un sonidito de voz retro distinto para cada personaje; E salta o avanza.
 - Música tranquila en el hospital y otra, más hogareña, en la casa. Efectos: altavoz, puertas, alarma, acierto y error.
 

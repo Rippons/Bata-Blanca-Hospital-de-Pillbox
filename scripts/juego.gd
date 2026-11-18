@@ -203,7 +203,7 @@ func llegar_al_hospital() -> Array:
 		racha_puntual = 0
 		var castigo := 5 if tarde <= 30 else 10
 		sumar_reputacion(-castigo)
-		notas.append("Dr. Salgado: «Vega, llegó %d minutos tarde. El turno empieza a las 7:30». (−%d reputación)" % [tarde, castigo])
+		notas.append("Dr. Salgado: «Pinkman, llegó %d minutos tarde. El turno empieza a las 7:30». (−%d reputación)" % [tarde, castigo])
 	else:
 		racha_puntual += 1
 		if racha_puntual % 5 == 0:

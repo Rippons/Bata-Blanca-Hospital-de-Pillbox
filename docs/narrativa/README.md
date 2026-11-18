@@ -7,7 +7,7 @@
 
 ## Idea del juego
 
-El Dr. **Walter Vega** empieza como médico interno en el **Hospital de Pillbox**. Atendiendo casos cada vez menos básicos y ayudando a sus compañeros, gana reputación y confianza para tomar **capacitaciones** que lo hacen subir de rango y elegir especialidad. Su meta final es convertirse en **director del Hospital de Pillbox**. Este taller documenta solo el primer nivel: la primera guardia en urgencias, que termina con su ascenso a **Residente**.
+El Dr. **Walter Pinkman** empieza como médico interno en el **Hospital de Pillbox**. Atendiendo casos cada vez menos básicos y ayudando a sus compañeros, gana reputación y confianza para tomar **capacitaciones** que lo hacen subir de rango y elegir especialidad. Su meta final es convertirse en **director del Hospital de Pillbox**. Este taller documenta solo el primer nivel: la primera guardia en urgencias, que termina con su ascenso a **Residente**.
 
 ## Archivos
 

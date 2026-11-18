@@ -2,7 +2,7 @@ class_name Personaje
 extends Node2D
 ## Personaje armado por capas con los sprites de MetroCity (JIK-A-4):
 ## sombra + cuerpo (tono de piel) + ropa + pelo.
-## Cada hoja tiene 24 columnas de 32×32: 0-5 abajo, 6-11 derecha, 12-17 arriba, 18-23 izquierda.
+## Cada hoja tiene 24 columnas de 32×32: 0-5 abajo, 6-11 izquierda, 12-17 arriba, 18-23 derecha.
 ## El origen (0, 0) está en los pies.
 
 const BASE := "res://arte/personajes/"
@@ -16,8 +16,8 @@ const OUTFIT := BASE + "metrocity1/Outfits/Outfit%d.png"  # 1..6, una fila
 
 ## Ropa predefinida: [hoja, fila]
 const ROPAS := {
-	"uniforme": [TRAJES, 0],
-	"pijama": [TRAJES, 2],
+	"uniforme": [TRAJES, 2],    # uniforme médico azul
+	"pijama": [TRAJES, 0],      # camiseta blanca y pantalón oscuro
 	"enfermera": [TRAJES, 3],
 	"rosa": [TRAJES, 1],
 	"fucsia": [TRAJES, 4],
@@ -45,6 +45,7 @@ var _ropa: Sprite2D
 var _pelo: Sprite2D
 var _efecto: Node2D
 var _cuadro := 0.0
+var _col_dir := 0             # columna base de la dirección actual
 var _texturas := {}
 
 
@@ -122,10 +123,15 @@ func caminar(moviendo: bool, delta: float) -> void:
 	_actualizar_cuadro()
 
 
+## Dirección con un margen, para que no parpadee entre dos direcciones en diagonal.
 func _columna_base() -> int:
-	if absf(mirando.x) > absf(mirando.y):
-		return 6 if mirando.x > 0.0 else 18
-	return 12 if mirando.y < 0.0 else 0
+	var horizontal := absf(mirando.x) > absf(mirando.y) * 1.25
+	var vertical := absf(mirando.y) > absf(mirando.x) * 1.25
+	if horizontal:
+		_col_dir = 18 if mirando.x > 0.0 else 6
+	elif vertical:
+		_col_dir = 12 if mirando.y < 0.0 else 0
+	return _col_dir
 
 
 func _actualizar_cuadro() -> void:
@@ -136,4 +142,5 @@ func _actualizar_cuadro() -> void:
 	_cuerpo.region_rect = Rect2(x, piel * 32.0, 32, 32)
 	_ropa.region_rect = Rect2(x, int(_ropa.get_meta("fila", 0)) * 32.0, 32, 32)
 	_pelo.region_rect = Rect2(x, pelo_fila * 32.0, 32, 32)
+	_pelo.visible = ropa != "policia"     # la gorra de policía ya cubre la cabeza
 	_sombra.visible = not acostado

@@ -1,6 +1,6 @@
 class_name Walter
 extends CharacterBody2D
-## Dr. Walter Vega, el personaje del jugador.
+## Dr. Walter Pinkman, el personaje del jugador.
 
 signal objetivo_cambiado(objetivo: Interactuable)
 

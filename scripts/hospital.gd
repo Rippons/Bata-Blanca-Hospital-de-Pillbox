@@ -39,28 +39,74 @@ const PUERTAS_PASILLO := [
 const CAMILLAS_X := [150.0, 214.0, 278.0]
 const CAMILLA_Y := 116.0
 
+## Casos clínicos. «historias»: lo que cuenta el paciente (varias versiones).
+## Los graves no pueden hablar: lo cuenta Lucía («relato»). «herramienta» revela el «hallazgo».
 const CASOS := [
-	{"diagnostico": "Herida superficial", "signos": "Corte en la palma de la mano, sangrado leve. Está consciente y tranquilo.",
+	{"diagnostico": "Herida superficial", "signos": "Corte en la palma de la mano, sangrado leve.",
+	 "historias": [["Estaba picando cebolla y se me resbaló el cuchillo.", "Sangra un poquito, pero me asusté mucho."],
+		["Me corté abriendo una lata de atún, doctor. ¡Qué vergüenza!"]],
+	 "herramienta": "Linterna", "hallazgo": "Corte limpio y poco profundo, sin nada adentro.",
 	 "falsos": ["Fractura", "Quemadura"], "insumo": "Vendaje", "deterioro": 0.25, "premio": 10, "inicial": 85.0, "grave": false},
-	{"diagnostico": "Fiebre alta", "signos": "Temperatura de 39,5 °C, escalofríos y mucho cansancio.",
-	 "falsos": ["Reacción alérgica", "Esguince"], "insumo": "Antipirético", "deterioro": 0.4, "premio": 10, "inicial": 80.0, "grave": false},
-	{"diagnostico": "Esguince de tobillo", "signos": "Tobillo hinchado, le duele al apoyar. Se lo torció jugando fútbol.",
+	{"diagnostico": "Fiebre alta", "signos": "Cara roja, escalofríos y mucho cansancio.",
+	 "historias": [["Desde anoche tengo escalofríos y me duele todo el cuerpo."],
+		["Mi mamá dice que estoy ardiendo, pero yo tengo frío.", "¿Eso es normal, doctor?"]],
+	 "herramienta": "Termómetro", "hallazgo": "Temperatura de 39,5 °C.",
+	 "falsos": ["Reacción alérgica", "Esguince de tobillo"], "insumo": "Antipirético", "deterioro": 0.4, "premio": 10, "inicial": 80.0, "grave": false},
+	{"diagnostico": "Esguince de tobillo", "signos": "Tobillo hinchado y morado.",
+	 "historias": [["Estaba jugando fútbol, pisé mal y sonó un «crac».", "Ahora no puedo apoyar el pie."],
+		["Me bajé mal del bus y se me dobló el tobillo."]],
+	 "herramienta": "Palpar", "hallazgo": "Duele al tocar, pero el hueso está en su lugar.",
 	 "falsos": ["Fractura expuesta", "Fiebre alta"], "insumo": "Férula", "deterioro": 0.25, "premio": 10, "inicial": 85.0, "grave": false},
-	{"diagnostico": "Deshidratación", "signos": "Boca seca, mareo. Ha vomitado varias veces desde anoche.",
+	{"diagnostico": "Deshidratación", "signos": "Boca seca, ojos hundidos y mareo.",
+	 "historias": [["Vomité toda la noche y hoy no aguanto ni el agua.", "Me mareo cada vez que me paro."]],
+	 "herramienta": "Tensiómetro", "hallazgo": "Presión baja (90/60) y pulso rápido.",
 	 "falsos": ["Herida superficial", "Reacción alérgica"], "insumo": "Suero oral", "deterioro": 0.5, "premio": 10, "inicial": 75.0, "grave": false},
-	{"diagnostico": "Reacción alérgica grave", "signos": "Ronchas en brazos y cuello, le cuesta respirar. Comió algo con maní hace 10 minutos.",
-	 "falsos": ["Fiebre alta", "Deshidratación"], "insumo": "Epinefrina", "deterioro": 1.0, "premio": 15, "inicial": 60.0, "grave": true},
+	{"diagnostico": "Otitis", "signos": "Se toca el oído y tiene algo de fiebre.",
+	 "historias": [["Me duele muchísimo el oído derecho desde ayer.", "Casi no pude dormir, doctor."],
+		["Me metí a la piscina el fin de semana y ahora me duele el oído."]],
+	 "herramienta": "Otoscopio", "hallazgo": "Tímpano rojo e inflamado.",
+	 "falsos": ["Herida superficial", "Presión alta"], "insumo": "Gotas para el oído", "deterioro": 0.3, "premio": 10, "inicial": 85.0, "grave": false},
+	{"diagnostico": "Crisis de asma", "signos": "Respira rápido y se le oye un silbido.",
+	 "historias": [["Subí corriendo las escaleras y me empezó a silbar el pecho.", "Se me quedó el inhalador en la casa."]],
+	 "herramienta": "Estetoscopio", "hallazgo": "Silbidos (sibilancias) en ambos pulmones.",
+	 "falsos": ["Fiebre alta", "Deshidratación"], "insumo": "Inhalador", "deterioro": 0.6, "premio": 10, "inicial": 75.0, "grave": false},
+	{"diagnostico": "Presión alta", "signos": "Cara roja y dolor de cabeza fuerte.",
+	 "historias": [["Me duele la nuca y veo como lucecitas.", "Hoy se me olvidó la pastilla de la presión."]],
+	 "herramienta": "Tensiómetro", "hallazgo": "Presión de 170/100.",
+	 "falsos": ["Azúcar baja", "Otitis"], "insumo": "Medicamento para la presión", "deterioro": 0.4, "premio": 10, "inicial": 80.0, "grave": false},
+	{"diagnostico": "Azúcar baja", "signos": "Sudor frío, temblor y algo de confusión.",
+	 "historias": [["Soy diabético y no alcancé a desayunar.", "Estoy sudando y me tiemblan las manos."]],
+	 "herramienta": "Glucómetro", "hallazgo": "Glucosa en 52 mg/dL: muy baja.",
+	 "falsos": ["Presión alta", "Fiebre alta"], "insumo": "Glucosa oral", "deterioro": 0.6, "premio": 10, "inicial": 75.0, "grave": false},
+	{"diagnostico": "Cuerpo extraño en el ojo", "signos": "Ojo rojo y lloroso; no lo puede abrir.",
+	 "historias": [["Estaba lijando una mesa y me entró algo al ojo.", "¡No puedo dejar de llorar!"]],
+	 "herramienta": "Linterna", "hallazgo": "Una astilla pequeña sobre el ojo derecho.",
+	 "falsos": ["Otitis", "Reacción alérgica"], "insumo": "Lavado de ojos", "deterioro": 0.3, "premio": 10, "inicial": 85.0, "grave": false},
+	{"diagnostico": "Reacción alérgica grave", "signos": "Ronchas, labios hinchados; casi no puede respirar.",
+	 "historias": [], "relato": "Comió algo con maní hace diez minutos y se le está cerrando la garganta. ¡No puede hablar!",
+	 "herramienta": "Estetoscopio", "hallazgo": "Silbidos fuertes: la vía aérea se está cerrando.",
+	 "falsos": ["Crisis de asma", "Deshidratación"], "insumo": "Epinefrina", "deterioro": 1.0, "premio": 15, "inicial": 60.0, "grave": true},
+	{"diagnostico": "Golpe de calor", "signos": "Piel muy caliente y seca; está desorientado.",
+	 "historias": [], "relato": "Lo trajeron de una obra: estuvo horas bajo el sol y se desmayó. Apenas responde.",
+	 "herramienta": "Termómetro", "hallazgo": "Temperatura de 41 °C.",
+	 "falsos": ["Azúcar baja", "Otitis"], "insumo": "Suero intravenoso frío", "deterioro": 0.9, "premio": 15, "inicial": 60.0, "grave": true},
 ]
+const HERRAMIENTAS := ["Termómetro", "Estetoscopio", "Tensiómetro", "Otoscopio", "Linterna", "Glucómetro", "Palpar"]
 ## Nombres de pacientes (no se repiten en el día ni con los NPC del hospital)
 const NOMBRES := ["Don Ramiro", "Teresa", "Andrés", "Doña Carmen", "Julio", "Valentina", "Don Héctor", "Camila",
 	"Mateo", "Rosa", "Felipe", "Laura", "Daniela", "Tomás", "Isabel", "Martín", "Natalia", "Don Jorge",
 	"Lucas", "Mariana", "Esteban", "Doña Inés", "Simón", "Gabriela"]
-const INSUMOS_A := ["Vendaje", "Antipirético", "Suero oral", "Férula"]
+const INSUMOS_A := ["Vendaje", "Antipirético", "Suero oral", "Férula", "Inhalador", "Gotas para el oído",
+	"Glucosa oral", "Lavado de ojos", "Medicamento para la presión"]
+const INSUMOS_ROJO := ["Epinefrina", "Suero intravenoso frío"]
 const CONSEJOS := [
 	"Lucía: «Las heridas se cubren con vendaje; la fiebre baja con antipirético».",
 	"Lucía: «Si alguien se torció algo, inmovilízalo con una férula».",
 	"Lucía: «Vómito y mareo… eso es deshidratación: suero oral».",
 	"Lucía: «La epinefrina está en el botiquín rojo. Solo para alergias graves».",
+	"Lucía: «Primero examine: el termómetro, el tensiómetro o el glucómetro no mienten».",
+	"Lucía: «Si le duele el oído, mire con el otoscopio. Si le silba el pecho, use el estetoscopio».",
+	"Lucía: «Un golpe de calor se trata con suero frío del botiquín rojo, y rápido».",
 	"Lucía: «Si te equivocas de diagnóstico, el paciente empeora. Lee bien los signos».",
 	"Lucía: «Si no desayunaste, la cafetería es la tercera puerta del pasillo».",
 ]
@@ -75,6 +121,8 @@ class Paciente extends Node2D:
 	var estado := "diagnosticar"     # diagnosticar | tratar | alta
 	var fallos := 0
 	var se_quejo := false
+	var conto_historia := false
+	var examinado := false
 	var figura: Personaje
 
 	class Sabana extends Node2D:
@@ -284,9 +332,17 @@ func _construir_pasillo() -> void:
 		["Voy corriendo a llevar unas muestras al laboratorio.", "¡Ánimo en su primer mes, doctor!"],
 		["Si necesita una bata, en el vestidor hay de repuesto."],
 	])
-	persona("Kevin", 3, "overol", Personaje.PELOS, 5, Vector2(420, 170), Rect2(200, 112, 500, 80), [
+	persona("Cristian Daniel", 3, "overol", Personaje.PELOS, 5, Vector2(420, 170), Rect2(200, 112, 500, 80), [
 		["Llevo diez años de camillero. Me conozco cada baldosa de este pasillo.", "La tercera de la izquierda está floja, ojo."],
 		["Si un paciente no puede caminar, me llaman a mí. ¡Rápido como un rayo!"],
+	])
+	persona("Dr. Máximo Stone", 5, "uniforme", Personaje.PELOS, 3, Vector2(340, 170), Rect2(260, 112, 300, 80), [
+		["Stone, traumatología. Si llega alguien con un esguince: férula y reposo.", "Y nada de volver a la cancha en una semana."],
+		["Este pasillo es más largo que mis turnos, y eso es mucho decir."],
+	])
+	persona("Dr. Enzo Escobar", 2, "uniforme", Personaje.PELOS2, 2, Vector2(620, 150), Rect2(560, 112, 360, 80), [
+		["Enzo Escobar, medicina interna. ¿Ya almorzó? Aquí se le olvida a uno comer.", "Un médico con hambre se equivoca más."],
+		["Para el azúcar baja, el glucómetro es su mejor amigo."],
 	])
 	persona("Sofía", 2, "rosa", Personaje.PELOS, 2, Vector2(760, 170), Rect2(600, 112, 330, 80), [
 		["Busco los consultorios, pero dice «cerrado».", "Ah, ¿solo abren cuando hay residentes? Qué lástima."],
@@ -321,6 +377,11 @@ func _construir_urgencias() -> void:
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(330, 222), true, 12)
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(410, 222), true, 12)
 	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(462, 250), true, 8)
+	persona("Dr. Maximiliano Brown", 0, "uniforme", Personaje.PELOS, 0, Vector2(200, 170), Rect2(130, 150, 140, 40), [
+		["Maximiliano Brown, de urgencias. Si se le complica un caso, pregúnteme.", "Y lea los signos con calma: el apuro hace equivocarse."],
+		["El tensiómetro no miente, Pinkman. Úselo."],
+		["Si un paciente no puede hablar, pregúntele a Lucía qué pasó."],
+	])
 	persona("Jaiden Mendoza", 3, "policia", Personaje.PELOS2, 2, Vector2(300, 170), Rect2(250, 150, 200, 40), [
 		["Agente Jaiden Mendoza. Traje a un herido hace un rato.", "Usted haga su trabajo, doctor; yo me quedo por si acaso."],
 		["El café de la cafetería es lo único que me mantiene despierto."],
@@ -346,6 +407,10 @@ func _construir_vestidor() -> void:
 		["Ramírez, de cirugía. Acabo de salir de una operación de cuatro horas.", "Consejo: báñese antes del turno. Los pacientes lo notan."],
 		["El Dr. Salgado empezó como interno, igual que usted."],
 	])
+	persona("Dr. Zacarías Flores", 4, "uniforme", Personaje.PELOS2, 4, Vector2(220, 170), Rect2(186, 150, 160, 56), [
+		["Zacarías Flores. Siempre dejo una bata limpia en el casillero.", "Uno nunca sabe cuándo le van a estornudar encima."],
+		["¿Primer mes? Tranquilo, el primero es el más duro."],
+	])
 
 
 func _construir_cafeteria() -> void:
@@ -368,6 +433,13 @@ func _construir_cafeteria() -> void:
 		["Aquí el almuerzo es sagrado, doctor.", "Pruebe la sopa: la hace Doña Luz desde hace veinte años."],
 		["Vengo todos los días aunque no esté enfermo. ¡Por la comida!"],
 	])
+	var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS, 6, Vector2(300, 176), Rect2(270, 160, 80, 40), [
+		["¡Te juro que mañana sí trabajaré, Walter, promesa de garrita!"],
+		["Shh… estoy en mi descanso. Llevo en mi descanso desde las ocho.", "¿Qué hora es? No me digas, prefiero no saberlo."],
+		["Si Salgado pregunta, estoy atendiendo a un paciente… en la cafetería.", "El paciente soy yo: tengo hambre crónica."],
+		["Una siestita de cinco minutos y vuelvo.", "Bueno… de cincuenta."],
+	])
+	wilder.velocidad = 9.0
 	mueble(HOME + "Flowers-Sheet.png", Rect2(89, 23, 14, 23), Vector2(116, 220), true, 6)
 
 
@@ -403,7 +475,7 @@ func al_entrar() -> void:
 	_generar_agenda()
 	_ultimo_minuto = Juego.minutos
 	var notas := Juego.llegar_al_hospital()
-	hud.mostrar("Erina: «Buenos días, Dr. Vega. Las áreas están por el pasillo; urgencias es la primera puerta».", 4.5)
+	hud.mostrar("Erina: «Buenos días, Dr. Pinkman. Las áreas están por el pasillo; urgencias es la primera puerta».", 4.5)
 	for nota in notas:
 		hud.mostrar(nota, 4.5)
 	walter.actualizar_aspecto()
@@ -479,7 +551,7 @@ func _llegadas() -> void:
 		refrescar_aviso()
 		Juego.sonido("altavoz", 1.0, -8.0 if sala_actual != "urgencias" else -16.0)
 		if sala_actual != "urgencias":
-			hud.mostrar("Altavoz: «Dr. Walter Vega, se le necesita en urgencias%s»." % (" de inmediato" if a["caso"]["grave"] else ""), 4.0)
+			hud.mostrar("Altavoz: «Dr. Walter Pinkman, se le necesita en urgencias%s»." % (" de inmediato" if a["caso"]["grave"] else ""), 4.0)
 		elif a["caso"]["grave"]:
 			hud.mostrar("Lucía: «¡Doctor, urgente! %s en la camilla %d, le cuesta respirar»." % [p.nombre, libre + 1], 4.0)
 		else:
@@ -546,7 +618,7 @@ func interactuar(id: String) -> void:
 			"calle": hud.mostrar("Tu turno termina a las 7:30 PM. Son las %s." % Juego.hora_texto())
 			"recepcionista": await hablar_con("Erina")
 			"botiquin": await _botiquin(INSUMOS_A, "Botiquín")
-			"botiquin_rojo": await _botiquin(["Epinefrina"], "Botiquín rojo")
+			"botiquin_rojo": await _botiquin(INSUMOS_ROJO, "Botiquín rojo")
 			"casillero": await _casillero()
 			"ducha_hospital": await _ducha()
 			"almuerzo": await _almorzar()
@@ -577,9 +649,37 @@ func _camilla(i: int) -> void:
 		Juego.sumar_reputacion(-1)
 		hud.mostrar("%s: «Uf, doctor… ¿usted se bañó?». (−1 reputación)" % p.nombre)
 	if p.estado == "diagnosticar":
+		# 1) El paciente cuenta qué le pasó (los graves no pueden: lo cuenta Lucía)
+		if not p.conto_historia:
+			p.conto_historia = true
+			if p.caso["historias"].is_empty():
+				await hud.dialogo("Lucía", [p.caso["relato"]])
+			else:
+				await hud.dialogo(p.nombre, p.caso["historias"].pick_random())
+			if not is_instance_valid(p) or pacientes[i] != p:
+				return
+		# 2) Examinar con una herramienta
+		if not p.examinado:
+			var herr: Array = HERRAMIENTAS.duplicate()
+			herr.append("Ir directo al diagnóstico")
+			var h: int = await hud.elegir("Examinar a %s" % p.nombre, "Signos: %s\n¿Con qué lo examinas?" % p.caso["signos"], herr)
+			if h < 0 or not is_instance_valid(p) or pacientes[i] != p:
+				return
+			if h < HERRAMIENTAS.size():
+				Juego.pasar_tiempo(2)
+				if herr[h] == p.caso["herramienta"]:
+					p.examinado = true
+					Juego.sonido("seleccion", 1.3, -10.0)
+				else:
+					hud.mostrar("Con %s no encuentras nada raro. Prueba otra cosa." % herr[h].to_lower())
+					return
+		# 3) Diagnóstico
+		var texto := "Signos: %s" % p.caso["signos"]
+		if p.examinado:
+			texto += "\n%s: %s" % [p.caso["herramienta"], p.caso["hallazgo"]]
 		var opciones: Array = [p.caso["diagnostico"]] + p.caso["falsos"]
 		opciones.shuffle()
-		var r: int = await hud.elegir("Examinar a %s" % p.nombre, "Signos: " + p.caso["signos"], opciones)
+		var r: int = await hud.elegir("Diagnóstico de %s" % p.nombre, texto, opciones)
 		if r < 0 or not is_instance_valid(p) or pacientes[i] != p:
 			return
 		if opciones[r] == p.caso["diagnostico"]:
@@ -691,7 +791,7 @@ func _dialogo_lucia() -> Array:
 
 
 func _dialogo_salgado() -> Array:
-	var l := ["Vega. Lleva %d de reputación." % Juego.reputacion,
+	var l := ["Pinkman. Lleva %d de reputación." % Juego.reputacion,
 		"%d día(s) seguidos puntual y %d retraso(s)." % [Juego.racha_puntual, Juego.retrasos]]
 	if Juego.reputacion >= 30:
 		l.append("Va por buen camino para su primera capacitación. Siga así.")

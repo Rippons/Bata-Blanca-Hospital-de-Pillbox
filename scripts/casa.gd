@@ -111,7 +111,7 @@ func al_entrar() -> void:
 			_sonar_alarma()
 		if Juego.dia == 1 and Juego.ultimo_resumen == "":
 			despertador.sonando = true
-			hud.mostrar("Día 1. Eres el Dr. Walter Vega, médico interno del Hospital de Pillbox.", 4.5)
+			hud.mostrar("Día 1. Eres el Dr. Walter Pinkman, médico interno del Hospital de Pillbox.", 4.5)
 			hud.mostrar("Tu turno empieza a las 7:30 AM. Báñate, desayuna, vístete y sal de casa.", 5.0)
 			hud.mostrar("Muévete con WASD o flechas · E para interactuar y hablar · Mantén Tab para acelerar el tiempo.", 5.0)
 		else:

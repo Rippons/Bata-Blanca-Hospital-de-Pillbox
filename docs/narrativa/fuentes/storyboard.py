@@ -39,7 +39,7 @@ def V01(ax):
     camilla(ax,5.5,1.0,1,'Don Ramiro',0.8)
     fig_person(ax,3.1,1.0,'Walter',bata=True); fig_person(ax,5.4,4.6,'Dr. Salgado',bata=True)
     flecha(ax,1.9,0.9,0.6,0)
-    bocadillo(ax,0.4,5.6,'Salgado: «Bienvenido a Pillbox, Vega. Si haces bien tu guardia, el tablón se abre para ti».',w=3.6)
+    bocadillo(ax,0.4,5.6,'Salgado: «Bienvenido a Pillbox, Pinkman. Si haces bien tu guardia, el tablón se abre para ti».',w=3.6)
 def V02(ax):
     hud(ax,'Atiende a Don Ramiro (camilla 1)','0','Interno')
     camilla(ax,0.6,3.0,1,'Don Ramiro',0.7)

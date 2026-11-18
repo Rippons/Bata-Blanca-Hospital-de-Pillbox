@@ -20,7 +20,7 @@
 
 ## 2. Premisa de toda la campaña (contexto, no se implementa en este nivel)
 
-Walter Vega empieza como **médico interno** en el Hospital de Pillbox. Su meta de largo plazo es llegar a **director del hospital**. Cada nivel es una guardia; al resolver casos cada vez menos básicos y cumplir requisitos de reputación y confianza, puede tomar una **capacitación** que lo hace subir de rango y lo orienta a una especialidad.
+Walter Pinkman empieza como **médico interno** en el Hospital de Pillbox. Su meta de largo plazo es llegar a **director del hospital**. Cada nivel es una guardia; al resolver casos cada vez menos básicos y cumplir requisitos de reputación y confianza, puede tomar una **capacitación** que lo hace subir de rango y lo orienta a una especialidad.
 
 | Rango | Cómo se alcanza | Nivel previsto |
 |---|---|---|
@@ -39,8 +39,8 @@ Walter Vega empieza como **médico interno** en el Hospital de Pillbox. Su meta 
 | Campo | Desarrollo del equipo |
 |---|---|
 | **Nombre del juego y nivel elegido** | *Bata Blanca: Hospital de Pillbox* — Nivel 1 «La primera guardia». |
-| **Logline** | Cuando la sala de urgencias del Hospital de Pillbox se satura en su primera guardia, el interno Walter Vega debe estabilizar a sus pacientes pese a los insumos limitados y al tiempo que corre en cada camilla, para evitar que los casos sean transferidos a otro médico y perder la oportunidad de su primera capacitación. |
-| **Protagonista / rol controlado** | Nombre: **Dr. Walter Vega**, médico interno. Capacidades: moverse por la sala, **examinar** pacientes, **elegir diagnóstico**, **tomar y aplicar insumos** de los botiquines, **hablar y ayudar** a compañeros. Límites: no puede atender a dos pacientes a la vez, solo carga **un insumo** a la vez y no puede abrir el botiquín rojo sin el código. |
+| **Logline** | Cuando la sala de urgencias del Hospital de Pillbox se satura en su primera guardia, el interno Walter Pinkman debe estabilizar a sus pacientes pese a los insumos limitados y al tiempo que corre en cada camilla, para evitar que los casos sean transferidos a otro médico y perder la oportunidad de su primera capacitación. |
+| **Protagonista / rol controlado** | Nombre: **Dr. Walter Pinkman**, médico interno. Capacidades: moverse por la sala, **examinar** pacientes, **elegir diagnóstico**, **tomar y aplicar insumos** de los botiquines, **hablar y ayudar** a compañeros. Límites: no puede atender a dos pacientes a la vez, solo carga **un insumo** a la vez y no puede abrir el botiquín rojo sin el código. |
 | **Objetivo verificable** | Se considera alcanzado cuando el sistema registra `caso_andres_resuelto = true` **y** `reputacion >= 30`; entonces se habilita el tablón y, al elegir una capacitación, `rango = "Residente"`. |
 | **Motivación / cambio esperado** | Desea demostrarle al Dr. Salgado que merece subir de rango. Al final comprende que **no puede solo**: el caso más grave se resuelve porque antes ayudó a Lucía (código del botiquín rojo). |
 | **Conflicto y obstáculo** | Se oponen **la saturación de urgencias y el deterioro de los pacientes**: cada paciente tiene una barra de estabilidad que baja con el tiempo, y los insumos son limitados. El jugador lo enfrenta priorizando a quién atender, diagnosticando bien al primer intento y no desperdiciando insumos. No hay villano. |
@@ -69,7 +69,7 @@ Walter Vega empieza como **médico interno** en el Hospital de Pillbox. Su meta 
 
 ## 5. Nombres definitivos (no cambiar entre documentos)
 
-- Personajes: **Walter Vega**, **Lucía Mendoza**, **Arturo Salgado**, **Don Ramiro**, **Teresa**, **Andrés**.
+- Personajes: **Walter Pinkman**, **Lucía Mendoza**, **Arturo Salgado**, **Don Ramiro**, **Teresa**, **Andrés**.
 - Lugares/objetos: **Hospital de Pillbox**, sala de urgencias, **botiquín A**, **botiquín rojo**, **carro de medicamentos**, **tablón de capacitaciones**.
 - Variables de estado: `intro_vista`, `caso_ramiro_resuelto`, `caso_teresa_resuelto`, `triaje_firmado`, `ayuda_lucia`, `botiquin_rojo_abierto`, `caso_andres_resuelto`, `reputacion`, `confianza`, `rango`, `especialidad`.
 - Escenas narrativas: **ESC-01** «La primera guardia» (intro) y **ESC-02** «La ambulancia» (clímax).

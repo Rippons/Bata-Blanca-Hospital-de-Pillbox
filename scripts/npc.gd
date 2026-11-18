@@ -14,6 +14,7 @@ var figura: Personaje
 var hablando := false
 var zona_hablar: Interactuable
 
+var mirada_base := Vector2.DOWN   # hacia dónde mira cuando está quieto (p. ej. el mostrador)
 var _objetivo := Vector2.ZERO
 var _espera := 0.0
 var _atascado := 0.0
@@ -45,6 +46,7 @@ func _ready() -> void:
 	add_child(zona_hablar)
 	_espera = randf_range(0.5, 3.0)
 	_objetivo = position
+	figura.mirando = mirada_base
 
 
 func _physics_process(delta: float) -> void:
@@ -59,15 +61,17 @@ func _physics_process(delta: float) -> void:
 			_nuevo_objetivo()
 		return
 	var hacia := _objetivo - position
-	if hacia.length() < 3.0:
+	if hacia.length() < 2.0:
 		_espera = randf_range(1.5, 5.0)
 		velocity = Vector2.ZERO
 		figura.caminar(false, delta)
 		return
-	velocity = hacia.normalized() * velocidad
+	# Camina en tramos rectos (primero en x, luego en y): sin zigzag ni giros raros.
+	var dir := Vector2(signf(hacia.x), 0.0) if absf(hacia.x) > 1.5 else Vector2(0.0, signf(hacia.y))
+	velocity = dir * velocidad
 	var antes := position
 	move_and_slide()
-	figura.mirando = hacia
+	figura.mirando = dir
 	figura.caminar(true, delta)
 	if position.distance_to(antes) < velocidad * delta * 0.3:
 		_atascado += delta
@@ -103,5 +107,8 @@ func hablar(hud: HUD, walter_pos: Vector2) -> void:
 	else:
 		frases = ["…"]
 	await hud.dialogo(nombre, frases)
+	if quieto:
+		figura.mirando = mirada_base      # vuelve a mirar hacia su mostrador
+		figura.caminar(false, 0.0)
 	hablando = false
 	_espera = randf_range(1.0, 2.5)

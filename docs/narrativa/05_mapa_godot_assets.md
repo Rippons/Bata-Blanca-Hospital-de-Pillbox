@@ -216,7 +216,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if EstadoPartida.flags["intro_vista"] or not body.is_in_group("jugador"):
 		return
 	EstadoPartida.flags["intro_vista"] = true
-	texto.text = "Salgado: Bienvenido a Pillbox, Vega. Hoy cubres urgencias con Lucía."
+	texto.text = "Salgado: Bienvenido a Pillbox, Pinkman. Hoy cubres urgencias con Lucía."
 	texto.show()
 	objetivo.text = "Objetivo: Atiende a Don Ramiro (camilla 1)"
 ```
