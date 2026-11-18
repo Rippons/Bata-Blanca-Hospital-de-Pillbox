@@ -25,7 +25,8 @@ var lbl_aviso: Label
 var panel_menu: PanelContainer
 var lbl_menu_titulo: Label
 var lbl_menu_texto: Label
-var caja_botones: VBoxContainer
+var caja_botones: GridContainer
+var _aviso_texto := ""
 
 var _cola_mensajes: Array = []
 var _mostrando := false
@@ -71,6 +72,8 @@ func _process(_delta: float) -> void:
 	_poner_barra("Higiene", Juego.higiene)
 	_poner_barra("Energía", Juego.energia)
 	_poner_barra("Hambre", Juego.hambre)
+	# El aviso «E: …» se oculta mientras hay un diálogo o un menú abierto
+	lbl_aviso.visible = _aviso_texto != "" and not ocupado()
 
 
 # --- Checklist ----------------------------------------------------------------
@@ -85,8 +88,9 @@ func poner_lista(titulo: String, tareas: Array) -> void:
 
 # --- Aviso de interacción -------------------------------------------------------
 func poner_aviso(texto: String) -> void:
+	_aviso_texto = texto
 	lbl_aviso.text = ("E: " + texto) if texto != "" else ""
-	lbl_aviso.visible = texto != ""
+	lbl_aviso.visible = texto != "" and not ocupado()
 
 
 # --- Mensajes (cola) -------------------------------------------------------------
@@ -207,16 +211,28 @@ func elegir(titulo: String, texto: String, opciones: Array) -> int:
 	for b in _botones:
 		b.queue_free()
 	_botones.clear()
+	# Menús largos (botiquín, herramientas) en dos columnas para que quepan en pantalla
+	var dos_columnas := opciones.size() > 5
+	caja_botones.columns = 2 if dos_columnas else 1
+	var ancho := 316.0 if dos_columnas else 220.0
+	lbl_menu_texto.custom_minimum_size = Vector2(ancho, 0)
 	for i in opciones.size():
 		var b := Button.new()
-		b.text = "%d. %s" % [i + 1, opciones[i]]
+		b.text = "%d. %s" % [(i + 1) % 10, opciones[i]]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_font_size_override("font_size", 8)
+		b.custom_minimum_size = Vector2(156 if dos_columnas else 220, 0)
+		b.clip_text = true
 		b.pressed.connect(_on_opcion.bind(i))
 		caja_botones.add_child(b)
 		_botones.append(b)
 	panel_menu.visible = true
+	panel_menu.modulate.a = 0.0
+	await get_tree().process_frame
 	panel_menu.reset_size()
-	panel_menu.position = Vector2((480 - panel_menu.size.x) / 2.0, (250 - panel_menu.size.y) / 2.0)
+	var tam := panel_menu.size
+	panel_menu.position = Vector2(round((480 - tam.x) / 2.0), clampf(round((250 - tam.y) / 2.0), 20.0, maxf(20.0, 268.0 - tam.y)))
+	panel_menu.modulate.a = 1.0
 	if not _botones.is_empty():
 		_botones[0].grab_focus()
 	var indice: int = await opcion_elegida
@@ -247,6 +263,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if k >= KEY_1 and k <= KEY_9 and k - KEY_1 < _botones.size():
 			get_viewport().set_input_as_handled()
 			_on_opcion(k - KEY_1)
+		elif k == KEY_0 and _botones.size() >= 10:
+			get_viewport().set_input_as_handled()
+			_on_opcion(9)
 		elif k == KEY_ESCAPE:
 			get_viewport().set_input_as_handled()
 			_on_opcion(-1)
@@ -416,11 +435,12 @@ func _crear_menu() -> void:
 	lbl_menu_texto = _label("", 8)
 	lbl_menu_texto.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl_menu_texto.custom_minimum_size = Vector2(220, 0)
-	caja_botones = VBoxContainer.new()
-	caja_botones.add_theme_constant_override("separation", 2)
+	caja_botones = GridContainer.new()
+	caja_botones.add_theme_constant_override("h_separation", 4)
+	caja_botones.add_theme_constant_override("v_separation", 2)
 	v.add_child(lbl_menu_titulo)
 	v.add_child(lbl_menu_texto)
 	v.add_child(caja_botones)
-	var ayuda := _label("Números 1-9 o clic · Esc cancela", 7)
+	var ayuda := _label("Números (1-9, 0) o clic · Esc cancela", 7)
 	ayuda.add_theme_color_override("font_color", Color(1, 1, 1, 0.5))
 	v.add_child(ayuda)
