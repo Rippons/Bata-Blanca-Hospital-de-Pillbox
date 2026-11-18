@@ -178,6 +178,10 @@ func _ready() -> void:
 	Juego.respuestas_auto = [0]
 	await casa.interactuar("comer")
 	ok(Juego.cenado_hoy, "cenó")
+	var h0: float = Juego.horas_estudio
+	Juego.respuestas_auto = [1, 0]
+	await casa.interactuar("escritorio")
+	ok(Juego.horas_estudio >= h0 + 1.0, "estudiar 1 hora suma horas de estudio (%.1f h)" % Juego.horas_estudio)
 	Juego.respuestas_auto = [1]
 	await casa.interactuar("armario")
 	ok(Juego.ropa == "pijama", "pijama puesta")
@@ -210,6 +214,27 @@ func _ready() -> void:
 	ok(Juego.reputacion <= rep3 - 10, "retraso + pijama + olor bajan reputación (%d → %d)" % [rep3, Juego.reputacion])
 	await esperar(0.5)
 	await captura("hospital_tarde")
+
+	print("== Capacitación y ascenso")
+	var h2 = get_tree().current_scene
+	Juego.respuestas_auto = ["Cerrar"]
+	await h2.interactuar("tablon")
+	ok(Juego.rango == "Interno", "sin requisitos no se puede ascender")
+	Juego.reputacion = 90
+	Juego.horas_estudio = 5.0
+	Juego.dias_trabajados = 3
+	ok(Juego.puede_ser_residente(), "con 90 de reputación, 5 h y 3 turnos se cumplen los requisitos")
+	Juego.respuestas_auto = ["Pediatría"]
+	await h2.interactuar("tablon")
+	ok(Juego.rango == "Residente" and Juego.especialidad == "Pediatría", "asciende a Residente de Pediatría")
+	ok(Casos.casos_leves().any(func(c): return c["diagnostico"] == "Bronquiolitis"), "llegan casos de Pediatría")
+	ok(Casos.insumos_botiquin().has("Nebulización"), "el botiquín tiene los insumos de la especialidad")
+	await h2.interactuar("ir_pasillo")
+	await h2.interactuar("puerta_consultorios")
+	ok(h2.sala_actual == "consultorios", "el consultorio se abre al ser Residente")
+	h2.walter.position = h2.SALAS["consultorios"]["origen"] + Vector2(300, 170)
+	await esperar(0.5)
+	await captura("consultorio")
 
 	print("== Carga de partida")
 	var dia_guardado: int = Juego.dia

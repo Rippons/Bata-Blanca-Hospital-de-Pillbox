@@ -24,8 +24,8 @@ const SALAS := {
 		"interior": Rect2(104, 40, 272, 186), "entrada": Vector2(128, 112)},
 	"direccion": {"nombre": "Dirección", "origen": Vector2(0, 5000), "tam": Vector2(480, 270),
 		"interior": Rect2(120, 40, 240, 180), "entrada": Vector2(334, 112)},
-	"consultorios": {"nombre": "Consultorios", "origen": Vector2(0, 6000), "tam": Vector2(480, 270),
-		"interior": Rect2(0, 18, 480, 252)},
+	"consultorios": {"nombre": "Consultorio", "origen": Vector2(0, 6000), "tam": Vector2(480, 270),
+		"interior": Rect2(112, 40, 256, 180), "entrada": Vector2(340, 112)},
 }
 const ALTO_PARED := 48.0
 ## Puertas del pasillo: [id de sala, x de la puerta en el pasillo, cartel, x de la puerta dentro del área]
@@ -34,71 +34,18 @@ const PUERTAS_PASILLO := [
 	["vestidor", 300.0, "2 · VESTIDOR", 340.0],
 	["cafeteria", 480.0, "3 · CAFETERÍA", 128.0],
 	["direccion", 660.0, "4 · DIRECCIÓN", 334.0],
-	["consultorios", 840.0, "5 · CONSULTORIOS", 0.0],
+	["consultorios", 840.0, "5 · CONSULTORIOS", 340.0],
 ]
 const CAMILLAS_X := [150.0, 214.0, 278.0]
 const CAMILLA_Y := 116.0
 
-## Casos clínicos. «historias»: lo que cuenta el paciente (varias versiones).
-## Los graves no pueden hablar: lo cuenta Lucía («relato»). «herramienta» revela el «hallazgo».
-const CASOS := [
-	{"diagnostico": "Herida superficial", "signos": "Corte en la palma de la mano, sangrado leve.",
-	 "historias": [["Estaba picando cebolla y se me resbaló el cuchillo.", "Sangra un poquito, pero me asusté mucho."],
-		["Me corté abriendo una lata de atún, doctor. ¡Qué vergüenza!"]],
-	 "herramienta": "Linterna", "hallazgo": "Corte limpio y poco profundo, sin nada adentro.",
-	 "falsos": ["Fractura", "Quemadura"], "insumo": "Vendaje", "deterioro": 0.25, "premio": 10, "inicial": 85.0, "grave": false},
-	{"diagnostico": "Fiebre alta", "signos": "Cara roja, escalofríos y mucho cansancio.",
-	 "historias": [["Desde anoche tengo escalofríos y me duele todo el cuerpo."],
-		["Mi mamá dice que estoy ardiendo, pero yo tengo frío.", "¿Eso es normal, doctor?"]],
-	 "herramienta": "Termómetro", "hallazgo": "Temperatura de 39,5 °C.",
-	 "falsos": ["Reacción alérgica", "Esguince de tobillo"], "insumo": "Antipirético", "deterioro": 0.4, "premio": 10, "inicial": 80.0, "grave": false},
-	{"diagnostico": "Esguince de tobillo", "signos": "Tobillo hinchado y morado.",
-	 "historias": [["Estaba jugando fútbol, pisé mal y sonó un «crac».", "Ahora no puedo apoyar el pie."],
-		["Me bajé mal del bus y se me dobló el tobillo."]],
-	 "herramienta": "Palpar", "hallazgo": "Duele al tocar, pero el hueso está en su lugar.",
-	 "falsos": ["Fractura expuesta", "Fiebre alta"], "insumo": "Férula", "deterioro": 0.25, "premio": 10, "inicial": 85.0, "grave": false},
-	{"diagnostico": "Deshidratación", "signos": "Boca seca, ojos hundidos y mareo.",
-	 "historias": [["Vomité toda la noche y hoy no aguanto ni el agua.", "Me mareo cada vez que me paro."]],
-	 "herramienta": "Tensiómetro", "hallazgo": "Presión baja (90/60) y pulso rápido.",
-	 "falsos": ["Herida superficial", "Reacción alérgica"], "insumo": "Suero oral", "deterioro": 0.5, "premio": 10, "inicial": 75.0, "grave": false},
-	{"diagnostico": "Otitis", "signos": "Se toca el oído y tiene algo de fiebre.",
-	 "historias": [["Me duele muchísimo el oído derecho desde ayer.", "Casi no pude dormir, doctor."],
-		["Me metí a la piscina el fin de semana y ahora me duele el oído."]],
-	 "herramienta": "Otoscopio", "hallazgo": "Tímpano rojo e inflamado.",
-	 "falsos": ["Herida superficial", "Presión alta"], "insumo": "Gotas para el oído", "deterioro": 0.3, "premio": 10, "inicial": 85.0, "grave": false},
-	{"diagnostico": "Crisis de asma", "signos": "Respira rápido y se le oye un silbido.",
-	 "historias": [["Subí corriendo las escaleras y me empezó a silbar el pecho.", "Se me quedó el inhalador en la casa."]],
-	 "herramienta": "Estetoscopio", "hallazgo": "Silbidos (sibilancias) en ambos pulmones.",
-	 "falsos": ["Fiebre alta", "Deshidratación"], "insumo": "Inhalador", "deterioro": 0.6, "premio": 10, "inicial": 75.0, "grave": false},
-	{"diagnostico": "Presión alta", "signos": "Cara roja y dolor de cabeza fuerte.",
-	 "historias": [["Me duele la nuca y veo como lucecitas.", "Hoy se me olvidó la pastilla de la presión."]],
-	 "herramienta": "Tensiómetro", "hallazgo": "Presión de 170/100.",
-	 "falsos": ["Azúcar baja", "Otitis"], "insumo": "Medicamento para la presión", "deterioro": 0.4, "premio": 10, "inicial": 80.0, "grave": false},
-	{"diagnostico": "Azúcar baja", "signos": "Sudor frío, temblor y algo de confusión.",
-	 "historias": [["Soy diabético y no alcancé a desayunar.", "Estoy sudando y me tiemblan las manos."]],
-	 "herramienta": "Glucómetro", "hallazgo": "Glucosa en 52 mg/dL: muy baja.",
-	 "falsos": ["Presión alta", "Fiebre alta"], "insumo": "Glucosa oral", "deterioro": 0.6, "premio": 10, "inicial": 75.0, "grave": false},
-	{"diagnostico": "Cuerpo extraño en el ojo", "signos": "Ojo rojo y lloroso; no lo puede abrir.",
-	 "historias": [["Estaba lijando una mesa y me entró algo al ojo.", "¡No puedo dejar de llorar!"]],
-	 "herramienta": "Linterna", "hallazgo": "Una astilla pequeña sobre el ojo derecho.",
-	 "falsos": ["Otitis", "Reacción alérgica"], "insumo": "Lavado de ojos", "deterioro": 0.3, "premio": 10, "inicial": 85.0, "grave": false},
-	{"diagnostico": "Reacción alérgica grave", "signos": "Ronchas, labios hinchados; casi no puede respirar.",
-	 "historias": [], "relato": "Comió algo con maní hace diez minutos y se le está cerrando la garganta. ¡No puede hablar!",
-	 "herramienta": "Estetoscopio", "hallazgo": "Silbidos fuertes: la vía aérea se está cerrando.",
-	 "falsos": ["Crisis de asma", "Deshidratación"], "insumo": "Epinefrina", "deterioro": 1.0, "premio": 15, "inicial": 60.0, "grave": true},
-	{"diagnostico": "Golpe de calor", "signos": "Piel muy caliente y seca; está desorientado.",
-	 "historias": [], "relato": "Lo trajeron de una obra: estuvo horas bajo el sol y se desmayó. Apenas responde.",
-	 "herramienta": "Termómetro", "hallazgo": "Temperatura de 41 °C.",
-	 "falsos": ["Azúcar baja", "Otitis"], "insumo": "Suero intravenoso frío", "deterioro": 0.9, "premio": 15, "inicial": 60.0, "grave": true},
-]
-const HERRAMIENTAS := ["Termómetro", "Estetoscopio", "Tensiómetro", "Otoscopio", "Linterna", "Glucómetro", "Palpar"]
+const CASOS := Casos.CASOS
+const HERRAMIENTAS := Casos.HERRAMIENTAS
 ## Nombres de pacientes (no se repiten en el día ni con los NPC del hospital)
 const NOMBRES := ["Don Ramiro", "Teresa", "Andrés", "Doña Carmen", "Julio", "Valentina", "Don Héctor", "Camila",
 	"Mateo", "Rosa", "Felipe", "Laura", "Daniela", "Tomás", "Isabel", "Martín", "Natalia", "Don Jorge",
 	"Lucas", "Mariana", "Esteban", "Doña Inés", "Simón", "Gabriela"]
-const INSUMOS_A := ["Vendaje", "Antipirético", "Suero oral", "Férula", "Inhalador", "Gotas para el oído",
-	"Glucosa oral", "Lavado de ojos", "Medicamento para la presión"]
-const INSUMOS_ROJO := ["Epinefrina", "Suero intravenoso frío"]
+const INSUMOS_ROJO := Casos.INSUMOS_ROJO
 const CONSEJOS := [
 	"Lucía: «Las heridas se cubren con vendaje; la fiebre baja con antipirético».",
 	"Lucía: «Si alguien se torció algo, inmovilízalo con una férula».",
@@ -164,7 +111,20 @@ class Paciente extends Node2D:
 		draw_string(ThemeDB.fallback_font, Vector2(-w / 2 - 8, y - 3), t, HORIZONTAL_ALIGNMENT_CENTER, w + 16, 6, Color(0.1, 0.1, 0.1))
 
 
+## Tablón de corcho con papeles (capacitaciones), dibujado por código.
+class Tablon extends Node2D:
+	func _draw() -> void:
+		draw_rect(Rect2(-24, -34, 48, 30), Color("6b4a2b"))
+		draw_rect(Rect2(-22, -32, 44, 26), Color("c8955a"))
+		var papeles := [[Rect2(-19, -30, 12, 10), Color("fdf6e3")], [Rect2(-5, -29, 10, 12), Color("fff3b0")],
+			[Rect2(7, -30, 12, 9), Color("dff0ff")], [Rect2(-17, -18, 14, 9), Color("ffe0e0")], [Rect2(2, -16, 15, 8), Color("fdf6e3")]]
+		for p in papeles:
+			draw_rect(p[0], p[1])
+			draw_circle(p[0].position + Vector2(p[0].size.x / 2.0, 1.5), 1.2, Color("c0392b"))
+
+
 var sala_actual := "recepcion"
+var _puerta_consultorios: Node2D
 var pacientes: Array = [null, null, null]
 var agenda: Array = []          # [{hora, caso, nombre}]
 var _ultimo_minuto := 0.0
@@ -182,6 +142,7 @@ func construir() -> void:
 	_construir_vestidor()
 	_construir_cafeteria()
 	_construir_direccion()
+	_construir_consultorio()
 	origen = Vector2.ZERO
 
 
@@ -301,17 +262,26 @@ func _construir_pasillo() -> void:
 	for p in PUERTAS_PASILLO:
 		var x: float = p[1]
 		var cerrada: bool = p[0] == "consultorios"
-		mueble(HOSP + "DoorsHospital-Sheet.png", Rect2(662, 30, 36, 50), Vector2(x, PARED), false, -1.0,
+		cerrada = cerrada and Juego.rango == "Interno"
+		var puerta := mueble(HOSP + "DoorsHospital-Sheet.png", Rect2(662, 30, 36, 50), Vector2(x, PARED), false, -1.0,
 			Color(0.6, 0.6, 0.6) if cerrada else Color.WHITE)
+		if p[0] == "consultorios":
+			_puerta_consultorios = puerta
 		cartel(p[2], Vector2(x + 21, 22), Color("777777") if cerrada else Color("1e5a8a"))
 		var etiqueta := "Consultorios (cerrado)" if cerrada else "Entrar: %s" % SALAS[p[0]]["nombre"]
 		zona("puerta_%s" % p[0], etiqueta, Rect2(x - 20, PARED, 40, 18))
 	# entre puertas: sillas contra la pared y letreros (como el ejemplo)
 	var letreros := [Rect2(1583, 33, 34, 14), Rect2(1711, 33, 34, 14), Rect2(1455, 33, 34, 14), Rect2(1839, 33, 34, 14)]
-	for i in 4:
+	for i in 3:
 		var xm: float = (PUERTAS_PASILLO[i][1] + PUERTAS_PASILLO[i + 1][1]) / 2.0
 		mueble(MISC, Rect2(929, 15, 62, 25), Vector2(xm, 92), true, 12)
 		deco(letreros[i], xm, 52)
+	# Tablón de capacitaciones entre la 4.ª y la 5.ª puerta
+	var tablon := Tablon.new()
+	tablon.position = Vector2(764, 62) + origen
+	mundo.add_child(tablon)
+	cartel("CAPACITACIONES", Vector2(742, 20), Color("6b3e00"))
+	zona("tablon", "Tablón de capacitaciones", Rect2(736, 66, 56, 26))
 	deco(Rect2(2103, 36, 18, 10), 60, 46)
 	deco(Rect2(1982, 41, 9, 7), 150, 48)
 	deco(Rect2(1209, 23, 12, 16), 330, 50)
@@ -485,6 +455,22 @@ func _construir_direccion() -> void:
 	mueble(HOME + "Lights-Sheet.png", Rect2(152, 0, 16, 32), Vector2(306, 128), true, 6)
 
 
+func _construir_consultorio() -> void:
+	_empezar_sala("consultorios", Rect2(48, 176, 16, 16))
+	_puerta_al_pasillo(340, "consultorios")
+	cartel("CONSULTORIO · DR. WALTER PINKMAN", Vector2(150, 26), Color("9fc4e8"))
+	mueble(HOSP + "BedHospital-Sheet.png", Rect2(19, 7, 26, 42), Vector2(146, 140), true, 30)
+	mueble(MISC, Rect2(185, 12, 14, 35), Vector2(168, 126), true, 6)
+	deco(Rect2(1, 0, 30, 32), 230, 80, HOME + "Paintings1-Sheet.png")
+	deco(Rect2(295, 21, 52, 23), 150, 80)
+	mueble(HOME + "Cupboard-Sheet.png", Rect2(270, 20, 36, 43), Vector2(290, 128), true, 16)
+	mueble(HOME + "LivingRoom-Sheet.png", Rect2(25, 15, 46, 30), Vector2(240, 196), true, 18)
+	mueble(HOME + "Kitchen1-Sheet.png", Rect2(138, 12, 12, 20), Vector2(240, 176), false)
+	deco(Rect2(569, 21, 14, 18), 252, 180)
+	zona("escritorio_consultorio", "Revisar historias clínicas (estudiar)", Rect2(212, 176, 56, 30))
+	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(350, 214), true, 8)
+
+
 # --- Entrada al hospital -------------------------------------------------------------
 func posicion_inicial() -> Vector2:
 	return Vector2(240, 240)
@@ -529,7 +515,7 @@ func ir_a_sala(destino: String, punto: Vector2) -> void:
 func _generar_agenda() -> void:
 	var nombres := NOMBRES.duplicate()
 	nombres.shuffle()
-	var leves := CASOS.filter(func(c): return not c["grave"])
+	var leves := Casos.casos_leves()
 	var graves := CASOS.filter(func(c): return c["grave"])
 	var hora := 7 * 60 + 45 + randi_range(0, 15)
 	var i := 0
@@ -626,8 +612,8 @@ func interactuar(id: String) -> void:
 		await _camilla(int(id.substr(7)))
 	elif id.begins_with("puerta_"):
 		var destino := id.substr(7)
-		if destino == "consultorios":
-			hud.mostrar("Consultorios externos: se abrirán cuando seas Residente.")
+		if destino == "consultorios" and Juego.rango == "Interno":
+			hud.mostrar("Consultorios externos: se abrirán cuando seas Residente. Mira el tablón de capacitaciones.")
 		else:
 			await ir_a_sala(destino, SALAS[destino]["entrada"])
 	elif id.begins_with("volver_"):
@@ -641,7 +627,7 @@ func interactuar(id: String) -> void:
 			"ir_recepcion": await ir_a_sala("recepcion", Vector2(240, 92))
 			"calle": hud.mostrar("Tu turno termina a las 7:30 PM. Son las %s." % Juego.hora_texto())
 			"recepcionista": await hablar_con("Erina")
-			"botiquin": await _botiquin(INSUMOS_A, "Botiquín")
+			"botiquin": await _botiquin(Casos.insumos_botiquin(), "Botiquín")
 			"botiquin_rojo": await _botiquin(INSUMOS_ROJO, "Botiquín rojo")
 			"casillero": await _casillero()
 			"ducha_hospital": await _ducha()
@@ -649,6 +635,8 @@ func interactuar(id: String) -> void:
 			"snacks": await _snacks()
 			"lucia": await hablar_con("Lucía")
 			"salgado": await hablar_con("Dr. Salgado")
+			"tablon": await _tablon()
+			"escritorio_consultorio": await _revisar_historias()
 	walter.actualizar_aspecto()
 
 
@@ -852,10 +840,13 @@ func _dialogo_lucia():
 func _dialogo_salgado():
 	var l := ["Pinkman. Lleva %d de reputación." % Juego.reputacion,
 		"%d día(s) seguidos puntual y %d retraso(s)." % [Juego.racha_puntual, Juego.retrasos]]
-	if Juego.reputacion >= 30:
-		l.append("Va por buen camino para su primera capacitación. Siga así.")
+	if Juego.rango != "Interno":
+		l.append("Como Residente de %s, espero mucho de usted. No me decepcione." % Juego.especialidad)
+	elif Juego.puede_ser_residente():
+		l.append("Ya cumple los requisitos. Vaya al tablón de capacitaciones del pasillo.")
 	else:
-		l.append("Necesita 30 de reputación para pensar en una capacitación.")
+		l.append("Para su primera capacitación necesita %d de reputación, %.0f horas de estudio y %d turnos." % [Juego.REQ_REPUTACION, Juego.REQ_HORAS_ESTUDIO, Juego.REQ_DIAS])
+		l.append("Revise el tablón del pasillo; ahí está todo.")
 	if Juego.huele_mal():
 		l.append("Y por favor… báñese. Un médico también se cuida a sí mismo.")
 	return {"lineas": l, "opciones": [
@@ -891,6 +882,50 @@ func _dialogo_wilder():
 		opciones.append({"texto": "Wilder, me debes una: atiende a un paciente.", "efecto": "favor_wilder"})
 	opciones.append({"texto": "Jaja, típico.", "amistad": 0, "respuesta": ["Típico y feliz, Walter."]})
 	return {"lineas": l, "opciones": opciones}
+
+
+# --- Capacitaciones ---------------------------------------------------------------
+func _tablon() -> void:
+	if Juego.rango != "Interno":
+		await hud.elegir("Tablón de capacitaciones",
+			"Ya eres %s de %s. Las próximas capacitaciones (Especialista) llegarán pronto." % [Juego.rango, Juego.especialidad], ["Cerrar"])
+		return
+	var lineas: Array = ["Primera capacitación: Interno → Residente"]
+	for r in Juego.requisitos_residente():
+		lineas.append(("[x] " if r[1] else "[ ] ") + r[0])
+	var texto := "\n".join(lineas)
+	if not Juego.puede_ser_residente():
+		texto += "\nEstudia en el escritorio de tu casa, atiende bien y sé puntual."
+		await hud.elegir("Tablón de capacitaciones", texto, ["Cerrar"])
+		return
+	var opciones: Array = Juego.ESPECIALIDADES.duplicate()
+	opciones.append("Todavía no")
+	var r: int = await hud.elegir("Tablón de capacitaciones", texto + "\n¡Cumples los requisitos! Elige tu especialidad:", opciones)
+	if r < 0 or r >= Juego.ESPECIALIDADES.size():
+		return
+	var esp: String = Juego.ESPECIALIDADES[r]
+	await _accion(60, "Capacitación en %s…\n1 hora después" % esp)
+	Juego.rango = "Residente"
+	Juego.especialidad = esp
+	Juego.sonido("exito", 1.0, -4.0)
+	await hud.dialogo("Dr. Salgado", ["¡Felicitaciones, Dr. Pinkman!", "Desde hoy es Residente de %s." % esp,
+		"Su consultorio ya está abierto: quinta puerta del pasillo.", "Y no se le suba a la cabeza: mañana a las 7:30, como siempre."])
+	if _puerta_consultorios:
+		_puerta_consultorios.modulate = Color.WHITE
+		for c in _puerta_consultorios.get_children():
+			c.modulate = Color.WHITE
+	interactuables["puerta_consultorios"].etiqueta = "Entrar: Consultorio"
+	refrescar_aviso()
+	hud.mostrar("Ahora eres Residente de %s. Llegarán casos nuevos de tu especialidad." % esp, 4.5)
+
+
+func _revisar_historias() -> void:
+	var r: int = await hud.elegir("Historias clínicas", "Revisar casos también cuenta como estudio (%.1f h)." % Juego.horas_estudio,
+		["Revisar 30 minutos", "Ahora no"])
+	if r == 0:
+		await _accion(30, "Revisando historias… 30 minutos después")
+		Juego.horas_estudio += 0.5
+		hud.mostrar("Repasaste casos. Horas de estudio: %.1f." % Juego.horas_estudio, 3.0)
 
 
 # --- Efectos de las respuestas -------------------------------------------------------
@@ -936,7 +971,7 @@ func efecto_npc(nombre: String, efecto: String) -> void:
 		if not Juego.una_vez_hoy("cristian_insumo"):
 			await hud.dialogo("Cristian Daniel", ["Ya le hice un mandado hoy, doctor. ¡Tengo más camillas que llevar!"])
 			return
-		var todos: Array = INSUMOS_A + INSUMOS_ROJO
+		var todos: Array = Casos.insumos_botiquin() + INSUMOS_ROJO
 		var r: int = await hud.elegir("¿Qué insumo te trae Cristian?", "", todos)
 		if r >= 0:
 			Juego.insumo_cargado = todos[r]

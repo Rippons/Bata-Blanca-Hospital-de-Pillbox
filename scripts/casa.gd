@@ -75,7 +75,7 @@ func construir() -> void:
 	mueble(HOME + "Cupboard-Sheet.png", Rect2(270, 20, 36, 43), Vector2(276, 96), true, 16)
 	mueble(HOME + "LivingRoom-Sheet.png", Rect2(25, 15, 46, 30), Vector2(256, 176), true, 14)
 	mueble(HOME + "Kitchen1-Sheet.png", Rect2(138, 12, 12, 20), Vector2(256, 190), false)
-	zona("escritorio", "Estudiar (próxima versión)", Rect2(228, 160, 56, 40))
+	zona("escritorio", "Estudiar", Rect2(228, 160, 56, 40))
 	mueble(HOME + "Lights-Sheet.png", Rect2(152, 0, 16, 32), Vector2(132, 196), true, 6)
 	cartel("CUARTO", Vector2(128, 238), Color(0, 0, 0, 0.45))
 
@@ -177,8 +177,7 @@ func interactuar(id: String) -> void:
 		"despertador": await _alarma()
 		"lavadora": await _lavar()
 		"cama": await _cama()
-		"escritorio":
-			hud.mostrar("Estudiar para las capacitaciones llegará en la próxima versión.")
+		"escritorio": await _estudiar()
 		"puerta": await _puerta()
 	walter.actualizar_aspecto()
 	_actualizar_lista()
@@ -257,6 +256,40 @@ func _alarma() -> void:
 	elif r == horas.size():
 		Juego.alarma_puesta = false
 		hud.mostrar("Quitaste la alarma.")
+
+
+func _estudiar() -> void:
+	var meta := "Llevas %.1f h de estudio (la capacitación pide %.0f h)." % [Juego.horas_estudio, Juego.REQ_HORAS_ESTUDIO]
+	if Juego.rango != "Interno":
+		meta = "Llevas %.1f h de estudio. Estudiar te mantiene al día como %s." % [Juego.horas_estudio, Juego.rango]
+	var r: int = await hud.elegir("Escritorio", meta + " Estudiar cansa un poco.",
+		["Estudiar 30 minutos", "Estudiar 1 hora", "Ahora no"])
+	if r != 0 and r != 1:
+		return
+	var horas := 0.5 if r == 0 else 1.0
+	await _accion(int(horas * 60), "Estudiando… %d minutos después" % int(horas * 60))
+	Juego.horas_estudio += horas
+	Juego.energia = maxf(Juego.energia - 6.0 * horas * 2.0, 0.0)
+	hud.mostrar("Estudiaste %s. Horas de estudio: %.1f." % ["30 minutos" if horas == 0.5 else "1 hora", Juego.horas_estudio], 3.0)
+	await _pregunta_repaso()
+
+
+## Pregunta de repaso con un caso al azar. Acertar suma media hora extra.
+func _pregunta_repaso() -> void:
+	var caso: Dictionary = Casos.CASOS.pick_random()
+	var opciones: Array = [caso["diagnostico"]] + caso["falsos"]
+	opciones.shuffle()
+	var texto := "Un paciente llega con: %s\n%s: %s\n¿Cuál es el diagnóstico?" % [caso["signos"], caso["herramienta"], caso["hallazgo"]]
+	var r: int = await hud.elegir("Pregunta de repaso", texto, opciones)
+	if r < 0:
+		return
+	if opciones[r] == caso["diagnostico"]:
+		Juego.horas_estudio += 0.5
+		Juego.sonido("exito", 1.0, -8.0)
+		hud.mostrar("¡Correcto! %s se trata con: %s. (+0,5 h de estudio)" % [caso["diagnostico"], caso["insumo"].to_lower()], 4.0)
+	else:
+		Juego.sonido("error", 1.0, -8.0)
+		hud.mostrar("No era eso: era %s, y se trata con %s." % [caso["diagnostico"].to_lower(), caso["insumo"].to_lower()], 4.5)
 
 
 func _lavar() -> void:

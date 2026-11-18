@@ -25,6 +25,15 @@ var ropa := "pijama"             # "pijama" | "uniforme"
 var turnos_bata := 0             # turnos desde la última lavada
 var reputacion := 0
 var rango := "Interno"
+var especialidad := ""
+var horas_estudio := 0.0
+var dias_trabajados := 0
+
+## Requisitos para tomar la primera capacitación y ser Residente
+const REQ_REPUTACION := 80
+const REQ_HORAS_ESTUDIO := 5.0
+const REQ_DIAS := 3
+const ESPECIALIDADES := ["Urgencias", "Pediatría", "Cirugía"]
 var racha_puntual := 0
 var retrasos := 0
 var alarma_puesta := false
@@ -141,6 +150,24 @@ func velocidad_walter() -> float:
 	if energia < 30.0:
 		return 52.0
 	return 72.0
+
+
+## Requisitos de la capacitación: lista de [texto, cumplido].
+func requisitos_residente() -> Array:
+	return [
+		["Reputación %d / %d" % [reputacion, REQ_REPUTACION], reputacion >= REQ_REPUTACION],
+		["Horas de estudio %.1f / %.0f" % [horas_estudio, REQ_HORAS_ESTUDIO], horas_estudio >= REQ_HORAS_ESTUDIO],
+		["Turnos trabajados %d / %d" % [dias_trabajados, REQ_DIAS], dias_trabajados >= REQ_DIAS],
+	]
+
+
+func puede_ser_residente() -> bool:
+	if rango != "Interno":
+		return false
+	for r in requisitos_residente():
+		if not r[1]:
+			return false
+	return true
 
 
 func sumar_reputacion(n: int) -> void:
@@ -265,6 +292,7 @@ func llegar_al_hospital() -> Array:
 
 func terminar_turno() -> void:
 	turno_terminado = true
+	dias_trabajados += 1
 	if ropa == "uniforme":
 		turnos_bata += 1
 
@@ -302,6 +330,9 @@ func nueva_partida() -> void:
 	amistad = {}
 	favores = {}
 	flags = {}
+	especialidad = ""
+	horas_estudio = 0.0
+	dias_trabajados = 0
 
 
 func hay_partida_guardada() -> bool:
@@ -315,6 +346,7 @@ func guardar() -> void:
 		"reputacion": reputacion, "rango": rango, "racha_puntual": racha_puntual,
 		"retrasos": retrasos, "hora_alarma": hora_alarma,
 		"amistad": amistad, "favores": favores, "flags": _flags_persistentes(),
+		"especialidad": especialidad, "horas_estudio": horas_estudio, "dias_trabajados": dias_trabajados,
 	}
 	var f := FileAccess.open(RUTA_GUARDADO, FileAccess.WRITE)
 	if f:
@@ -353,6 +385,9 @@ func cargar() -> bool:
 	racha_puntual = int(datos.get("racha_puntual", 0))
 	retrasos = int(datos.get("retrasos", 0))
 	hora_alarma = int(datos.get("hora_alarma", 360))
+	especialidad = str(datos.get("especialidad", ""))
+	horas_estudio = float(datos.get("horas_estudio", 0.0))
+	dias_trabajados = int(datos.get("dias_trabajados", 0))
 	amistad = datos.get("amistad", {})
 	favores = datos.get("favores", {})
 	flags = datos.get("flags", {})
