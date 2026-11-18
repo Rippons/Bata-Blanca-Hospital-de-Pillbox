@@ -340,11 +340,11 @@ func _construir_pasillo() -> void:
 		["Stone, traumatología. Si llega alguien con un esguince: férula y reposo.", "Y nada de volver a la cancha en una semana."],
 		["Este pasillo es más largo que mis turnos, y eso es mucho decir."],
 	])
-	persona("Dr. Enzo Escobar", 2, "uniforme", Personaje.PELOS, 6, Vector2(620, 150), Rect2(560, 112, 360, 80), [
+	persona("Dr. Enzo Escobar", 2, "uniforme", Personaje.PELOS, 7, Vector2(620, 150), Rect2(560, 112, 360, 80), [
 		["Enzo Escobar, medicina interna. ¿Ya almorzó? Aquí se le olvida a uno comer.", "Un médico con hambre se equivoca más."],
 		["Para el azúcar baja, el glucómetro es su mejor amigo."],
 	])
-	persona("Iván Rojas", 0, "enfermera", Personaje.PELOS, 4, Vector2(160, 160), Rect2(40, 112, 300, 80), [
+	persona("Diego Quiroz", 0, "enfermera", Personaje.PELOS, 4, Vector2(160, 160), Rect2(40, 112, 300, 80), [
 		["¡Aaay sí, señorita Sheyla, jaja, amo esa broma!", "…Ah, perdón, doctor. Pensé que era ella."],
 		["La señorita Sheyla me contó un chiste de un fémur que se fue de fiesta.", "¡Jaja! Bueno… uno tenía que estar ahí."],
 		["¿Ha visto a la señorita Sheyla hoy? Se ve… radiante. Jaja, ay."],
@@ -412,7 +412,7 @@ func _construir_vestidor() -> void:
 		["Ramírez, de cirugía. Acabo de salir de una operación de cuatro horas.", "Consejo: báñese antes del turno. Los pacientes lo notan."],
 		["El Dr. Salgado empezó como interno, igual que usted."],
 	])
-	persona("Dr. Zacarías Flores", 1, "uniforme", Personaje.PELOS, 7, Vector2(220, 170), Rect2(186, 150, 160, 56), [
+	persona("Dr. Zacarías Flores", 1, "uniforme", Personaje.PELOS, 6, Vector2(220, 170), Rect2(186, 150, 160, 56), [
 		["¿L-la oficial Dakota del LSPD vino hoy?", "N-no, por nada… solo preguntaba. Ejem."],
 		["¿Se me nota que estoy sudando? Es… es el calor del vestidor, s-sí."],
 		["Si ve a la señorita Dakota, no le diga que pregunté por ella, ¿sí?", "Bueno, sí dígale. ¡No! Mejor no. Ay, no sé, doctor."],

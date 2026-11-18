@@ -86,7 +86,7 @@ func _ready() -> void:
 	var p0: Vector2 = mc.position
 	await esperar(6.0)
 	ok(mc.position.distance_to(p0) > 3.0, "los NPC caminan (McClane se movió %.0f px)" % mc.position.distance_to(p0))
-	for nombre in ["Dr. Maximiliano Brown", "Dr. Máximo Stone", "Dr. Enzo Escobar", "Dr. Zacarías Flores", "Dr. Wilder Noctis", "Cristian Daniel", "Iván Rojas"]:
+	for nombre in ["Dr. Maximiliano Brown", "Dr. Máximo Stone", "Dr. Enzo Escobar", "Dr. Zacarías Flores", "Dr. Wilder Noctis", "Cristian Daniel", "Diego Quiroz"]:
 		ok(hosp.npcs.has(nombre), "NPC " + nombre)
 	await hosp.interactuar("npc:Dr. Wilder Noctis")
 	ok(not hosp.npcs["Alejandro Reyes"].figura._pelo.visible, "los policías no muestran pelo sobre la gorra")
