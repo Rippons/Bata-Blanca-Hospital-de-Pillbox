@@ -43,6 +43,8 @@ var cafetera := false           # desayuno completo en 10 min
 var cama_buena := false         # descansa 25 % más
 var mensajes: Array = []        # celular: {de, texto, opciones, leido, respondido}
 var semana := {"turnos": 0, "atendidos": 0, "transferidos": 0, "retrasos": 0}
+var derivados_semana := 0       # pacientes que Walter derivó por no estar seguro
+const LIMITE_DERIVADOS := 4     # con tantos en la semana, Salgado llama a Walter y a Noctis
 const PAGO_TURNO := {"Interno": 60, "Residente": 110}
 const ARRIENDO := 150
 var amistad := {}               # nombre del NPC -> 0..10
@@ -343,7 +345,7 @@ func efecto_mensaje(efecto: String) -> String:
 ## Evaluación del viernes: nota, comentario de Salgado, bono y sueldo.
 func evaluacion_semanal() -> Array:
 	var s := semana
-	var puntaje: int = int(s["atendidos"]) * 2 - int(s["transferidos"]) * 3 - int(s["retrasos"]) * 4
+	var puntaje: int = int(s["atendidos"]) * 2 - int(s["transferidos"]) * 3 - int(s["retrasos"]) * 4 - derivados_semana * 2
 	var nota := "Debe mejorar"
 	var bono_rep := 0
 	if puntaje >= 30:
@@ -359,7 +361,7 @@ func evaluacion_semanal() -> Array:
 	var sueldo: int = int(s["turnos"]) * pago_por_turno()
 	dinero += sueldo
 	var lineas := ["Pinkman, es viernes: hora de su evaluación semanal.",
-		"Turnos: %d · Pacientes atendidos: %d · Transferidos: %d · Retrasos: %d." % [s["turnos"], s["atendidos"], s["transferidos"], s["retrasos"]],
+		"Turnos: %d · Atendidos: %d · Transferidos: %d · Derivados: %d · Retrasos: %d." % [s["turnos"], s["atendidos"], s["transferidos"], derivados_semana, s["retrasos"]],
 		"Nota de la semana: %s. (%+d reputación)" % [nota, bono_rep],
 		"Su sueldo de la semana: $%d. Ya está en su cuenta." % sueldo]
 	match nota:
@@ -369,6 +371,8 @@ func evaluacion_semanal() -> Array:
 		_: lineas.append("Hay cosas por mejorar. Confío en usted.")
 	mensaje("Banco", "Pago de nómina: +$%d. Saldo: $%d." % [sueldo, dinero])
 	semana = {"turnos": 0, "atendidos": 0, "transferidos": 0, "retrasos": 0}
+	derivados_semana = 0
+	derivados_semana = 0
 	return lineas
 
 
@@ -452,6 +456,7 @@ func nueva_partida() -> void:
 	cama_buena = false
 	mensajes = [{"de": "Mamá", "texto": "¡Mucha suerte en tu primer día, mijo! Estoy muy orgullosa de ti.", "opciones": [], "leido": false, "respondido": false}]
 	semana = {"turnos": 0, "atendidos": 0, "transferidos": 0, "retrasos": 0}
+	derivados_semana = 0
 
 
 func hay_partida_guardada() -> bool:
@@ -467,7 +472,7 @@ func guardar() -> void:
 		"amistad": amistad, "favores": favores, "flags": _flags_persistentes(),
 		"especialidad": especialidad, "horas_estudio": horas_estudio, "dias_trabajados": dias_trabajados,
 		"dinero": dinero, "comida": comida, "cafetera": cafetera, "cama_buena": cama_buena,
-		"mensajes": mensajes, "semana": semana,
+		"mensajes": mensajes, "semana": semana, "derivados_semana": derivados_semana,
 	}
 	var f := FileAccess.open(RUTA_GUARDADO, FileAccess.WRITE)
 	if f:
@@ -513,6 +518,7 @@ func cargar() -> bool:
 	cama_buena = bool(datos.get("cama_buena", false))
 	mensajes = datos.get("mensajes", [])
 	semana = datos.get("semana", semana)
+	derivados_semana = int(datos.get("derivados_semana", 0))
 	horas_estudio = float(datos.get("horas_estudio", 0.0))
 	dias_trabajados = int(datos.get("dias_trabajados", 0))
 	amistad = datos.get("amistad", {})

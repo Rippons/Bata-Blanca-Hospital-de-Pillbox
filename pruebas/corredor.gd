@@ -126,6 +126,9 @@ func _ready() -> void:
 	await hosp.hablar_con(e0["nombre"])
 	var p = hosp.pacientes[0]
 	ok(p != null and hosp.espera.is_empty(), "Walter lo pasa a la camilla 1")
+	ok(p.figura.piel == e0["apariencia"]["piel"] and p.figura.ropa == e0["apariencia"]["ropa"] and p.figura.pelo_fila == e0["apariencia"]["pelo_fila"],
+		"en la camilla se ve igual que en la sala de espera")
+	ok(int(p.caso["premio"]) <= 6, "un paciente da como máximo %d de reputación" % int(p.caso["premio"]))
 	hosp.walter.position = hosp.SALAS["urgencias"]["origen"] + Vector2(150, 136)
 	await esperar(0.5)
 	await captura("hospital_urgencias")
@@ -152,7 +155,7 @@ func _ready() -> void:
 	await hosp.interactuar("botiquin_rojo" if p.caso["grave"] else "botiquin")
 	ok(Juego.insumo_cargado == p.caso["insumo"], "toma el insumo %s" % p.caso["insumo"])
 	await hosp.interactuar("camilla0")
-	ok(Juego.reputacion == rep + int(p.caso["premio"] / 2), "paciente estable, premio a la mitad por el fallo (rep %d)" % Juego.reputacion)
+	ok(Juego.reputacion == rep + 1, "paciente estable; con un fallo solo da +1 de reputación (rep %d)" % Juego.reputacion)
 	await esperar(3.0)
 	ok(hosp.pacientes[0] == null, "camilla liberada")
 	# Wilder: cubrirlo da un favor; cobrarlo hace que atienda a un paciente
@@ -170,6 +173,18 @@ func _ready() -> void:
 	await hosp.interactuar("npc:Dr. Wilder Noctis")
 	ok(hosp.atendidos == at0 + 1 and int(Juego.favores["Dr. Wilder Noctis"]) == 0, "Wilder paga el favor atendiendo a un paciente")
 	await esperar(2.5)
+	# Brown orienta y derivar suma al contador
+	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
+	await esperar(0.3)
+	hosp._pasar_a_camilla(hosp.espera[0], 1)
+	var q = hosp.pacientes[1]
+	Juego.respuestas_auto = ["Dr. Brown, ¿me orienta con %s?" % q.nombre]
+	await hosp.hablar_con("Dr. Maximiliano Brown")
+	ok(q.orientado, "el Dr. Brown orienta con un paciente")
+	var der0: int = Juego.derivados_semana
+	Juego.respuestas_auto = [0, q.caso["herramienta"], "Derivar a otro médico (no estoy seguro)"]
+	await hosp.interactuar("camilla1")
+	ok(hosp.pacientes[1] == null and Juego.derivados_semana == der0 + 1, "derivar libera la camilla y suma un derivado")
 	# Diego: responder cambia la amistad
 	var a_d: int = Juego.get_amistad("Diego Quiroz")
 	Juego.respuestas_auto = ["Jaja, eres terrible."]
@@ -178,6 +193,7 @@ func _ready() -> void:
 	# segundo paciente: se deja transferir
 	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
 	await esperar(0.3)
+	Juego.reputacion = 20
 	var rep2: int = Juego.reputacion
 	Juego.minutos += 1000.0
 	await esperar(0.3)
