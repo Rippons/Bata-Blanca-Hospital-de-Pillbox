@@ -44,7 +44,8 @@ const HERRAMIENTAS := Casos.HERRAMIENTAS
 ## Nombres de pacientes (no se repiten en el día ni con los NPC del hospital)
 const NOMBRES := ["Don Ramiro", "Teresa", "Andrés", "Doña Carmen", "Julio", "Valentina", "Don Héctor", "Camila",
 	"Mateo", "Rosa", "Felipe", "Laura", "Daniela", "Tomás", "Isabel", "Martín", "Natalia", "Don Jorge",
-	"Lucas", "Mariana", "Esteban", "Doña Inés", "Simón", "Gabriela"]
+	"Lucas", "Mariana", "Esteban", "Doña Inés", "Simón", "Gabriela", "Don Aurelio", "Paula", "Sebastián",
+	"Doña Marta", "Iván", "Luisa", "Don Fabio", "Carolina", "Andrea", "Don Rubén", "Manuela", "Óscar"]
 const INSUMOS_ROJO := Casos.INSUMOS_ROJO
 const CONSEJOS := [
 	"Lucía: «Las heridas se cubren con vendaje; la fiebre baja con antipirético».",
@@ -159,6 +160,19 @@ var atendidos := 0
 var transferidos := 0
 var derivados := 0
 
+# Eventos del día
+var evento_pico := -1.0
+var apagon := false
+var apagon_hora := -1.0
+var catelli_estado := ""         # "" | llamado | llego | arreglando
+var catelli_llega := 0.0
+var catelli_listo := 0.0
+var catelli_consejo := 0         # efecto del consejo de esta visita (-1, 0, +1)
+var llamado := ""                # "" | rendimiento | derivados
+var llamado_hora := -1.0
+var llamado_desde := 0.0
+var oscuridad: CanvasModulate
+
 
 func construir() -> void:
 	_construir_recepcion()
@@ -169,6 +183,9 @@ func construir() -> void:
 	_construir_direccion()
 	_construir_consultorio()
 	origen = Vector2.ZERO
+	oscuridad = CanvasModulate.new()
+	oscuridad.color = Color.WHITE
+	add_child(oscuridad)
 
 
 var _piso_y := 0.0    # y donde empieza el piso de la sala en construcción
@@ -322,6 +339,9 @@ func _construir_pasillo() -> void:
 	deco(Rect2(2103, 36, 18, 10), 900, 46)
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(28, 90), true, 6)
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(932, 90), true, 6)
+	var tablero := TableroElectrico.new()
+	tablero.position = origen + Vector2(900, 60)
+	mundo.add_child(tablero)
 	mueble(MISC, Rect2(185, 12, 14, 35), Vector2(560, 196), true, 6)
 	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(944, 200), true, 8)
 	# paso a recepción en la pared de abajo
@@ -443,6 +463,17 @@ func _construir_vestidor() -> void:
 	])
 	var zac := persona("Dr. Zacarías Flores", 1, "uniforme", Personaje.PELOS, 6, Vector2(220, 170), Rect2(186, 150, 160, 56))
 	zac.dialogo_dinamico = _dialogo_zacarias
+
+
+## Tablero eléctrico del pasillo (donde trabaja Paul Catelli).
+class TableroElectrico extends Node2D:
+	func _draw() -> void:
+		draw_rect(Rect2(-9, -30, 18, 24), Color("9aa3ad"))
+		draw_rect(Rect2(-9, -30, 18, 24), Color("5a6470"), false, 1.0)
+		draw_rect(Rect2(-6, -27, 12, 4), Color("f1c40f"))
+		draw_line(Vector2(-6, -27), Vector2(6, -23), Color.BLACK, 1.0)
+		for k in 3:
+			draw_rect(Rect2(-6 + k * 4.5, -19, 3, 8), Color("2c3e50"))
 
 
 ## Pizarra con el menú del día (dibujada por código).
@@ -627,6 +658,14 @@ func _generar_agenda() -> void:
 		agenda.append({"hora": hora, "caso": caso, "nombre": nombres[i]})
 		hora += randi_range(40, 70)
 		i += 1
+	# Evento «hora pico»: un accidente trae varios pacientes seguidos
+	if Juego.eventos_aleatorios and Juego.dia >= 2 and randf() < 0.3 and i + 4 <= nombres.size():
+		evento_pico = randi_range(10 * 60, 15 * 60)
+		for k in 4:
+			agenda.append({"hora": evento_pico + k * 6, "caso": leves.pick_random(), "nombre": nombres[i]})
+			i += 1
+		agenda.sort_custom(func(x, y): return x["hora"] < y["hora"])
+	_planear_eventos()
 
 
 # --- Bucle ---------------------------------------------------------------------
@@ -636,9 +675,10 @@ func _process(_delta: float) -> void:
 	walter.actualizar_aspecto()
 	var dm := Juego.minutos - _ultimo_minuto
 	_ultimo_minuto = Juego.minutos
+	_eventos()
 	_llegadas()
 	if dm > 0.0:
-		_deterioro(dm)
+		_deterioro(dm * (1.4 if apagon else 1.0))   # sin luz los monitores no ayudan
 	_actualizar_lista()
 	if Juego.minutos >= Juego.FIN_TURNO:
 		_terminar_turno()
@@ -777,6 +817,10 @@ func _actualizar_lista() -> void:
 		if p and p.estado != "alta":
 			var paso := "diagnosticar" if p.estado == "diagnosticar" else "tratar"
 			tareas.append(["%s: %s" % [p.nombre, paso], false])
+	if apagon:
+		tareas.append([("¡Sin luz! Avisar en dirección" if catelli_estado == "" else ("Esperar al electricista" if catelli_estado == "llamado" else "Hablar con Catelli (pasillo)" if catelli_estado == "llego" else "Catelli está arreglando")), false])
+	if llamado != "":
+		tareas.append(["¡Ir a la dirección!", false])
 	for e in espera:
 		tareas.append(["Espera: %s (%s)" % [e["nombre"], e["triaje"]], false])
 	if tareas.is_empty():
@@ -1070,6 +1114,9 @@ func _dialogo_lucia():
 
 
 func _dialogo_salgado():
+	var especial = _dialogo_salgado_eventos()
+	if not (especial is Dictionary and especial.is_empty()):
+		return especial
 	var l := ["Pinkman. Lleva %d de reputación." % Juego.reputacion,
 		"%d día(s) seguidos puntual y %d retraso(s)." % [Juego.racha_puntual, Juego.retrasos]]
 	if Juego.rango != "Interno":
@@ -1172,6 +1219,145 @@ func _revisar_historias() -> void:
 		await _accion(30, "Revisando historias… 30 minutos después")
 		Juego.horas_estudio += 0.5
 		hud.mostrar("Repasaste casos. Horas de estudio: %.1f." % Juego.horas_estudio, 3.0)
+
+
+# --- Eventos: hora pico, apagón y llamadas del director -----------------------------------
+func _planear_eventos() -> void:
+	if not Juego.eventos_aleatorios:
+		return
+	var calidad := int(Juego.flags.get("catelli_calidad", 0))
+	var prob_apagon := maxf(0.06, 0.30 - 0.06 * calidad)
+	if Juego.dia >= 2 and randf() < prob_apagon:
+		apagon_hora = randi_range(9 * 60, 16 * 60)
+	# El director llama cada 2 o 3 días para hablar del rendimiento
+	var ultima := int(Juego.flags.get("director_ultima_llamada", 0))
+	if Juego.dia >= 2 and Juego.dia - ultima >= randi_range(2, 3):
+		llamado_hora = randi_range(11 * 60, 17 * 60)
+
+
+func _eventos() -> void:
+	var m := Juego.minutos
+	if evento_pico > 0.0 and m >= evento_pico:
+		evento_pico = -1.0
+		Juego.sonido("altavoz", 0.9, -6.0)
+		hud.mostrar("Altavoz: «¡Atención! Accidente en la avenida: llegan varios heridos a urgencias»." , 4.5)
+	if apagon_hora > 0.0 and m >= apagon_hora and not apagon:
+		apagon_hora = -1.0
+		_iniciar_apagon()
+	if catelli_estado == "llamado" and m >= catelli_llega:
+		_llega_catelli()
+	if catelli_estado == "arreglando" and m >= catelli_listo:
+		_termina_arreglo()
+	if llamado_hora > 0.0 and m >= llamado_hora and llamado == "":
+		llamado_hora = -1.0
+		_llamar_a_direccion("rendimiento")
+	if Juego.flags.get("llamado_derivados", false) and llamado == "":
+		Juego.flags.erase("llamado_derivados")
+		_llamar_a_direccion("derivados")
+	if llamado == "rendimiento" and m - llamado_desde > 90.0:
+		llamado = ""
+		Juego.sumar_reputacion(-2)
+		hud.mostrar("Dr. Salgado (por el altavoz): «Pinkman, lo esperé y no vino». (−2 reputación)", 4.0)
+
+
+func _iniciar_apagon() -> void:
+	apagon = true
+	catelli_estado = ""
+	Juego.sonido("error", 0.5, -4.0)
+	create_tween().tween_property(oscuridad, "color", Color(0.32, 0.34, 0.48), 0.8)
+	hud.mostrar("¡Se fue la luz! Los monitores están apagados y los pacientes empeoran más rápido.", 4.5)
+	hud.mostrar("Lucía: «¡Doctor, avise en dirección para que llamen al electricista!»", 4.0)
+
+
+func _llega_catelli() -> void:
+	catelli_estado = "llego"
+	var o: Vector2 = SALAS["pasillo"]["origen"]
+	var c := persona("Paul Catelli", 2, "overol", Personaje.PELOS, 3, o + Vector2(880, 100), Rect2(), [], true)
+	c.position = o + Vector2(880, 100)
+	c.mirada_base = Vector2.DOWN
+	c.dialogo_dinamico = _dialogo_catelli
+	Juego.sonido("altavoz", 1.0, -8.0)
+	hud.mostrar("Altavoz: «Llegó el electricista, Paul Catelli. Está en el pasillo, junto al tablero»." , 4.0)
+
+
+func _termina_arreglo() -> void:
+	catelli_estado = ""
+	apagon = false
+	create_tween().tween_property(oscuridad, "color", Color.WHITE, 0.8)
+	Juego.sonido("exito", 0.8, -6.0)
+	hud.mostrar("Paul Catelli: «¡Listo! Luz como en Navidad. De nada, ¿eh? Nadie me da las gracias en este hospital»." , 4.5)
+	if npcs.has("Paul Catelli"):
+		_quitar_npc(npcs["Paul Catelli"])
+	# ¿Vuelve a fallar hoy? Depende de la calidad acumulada y del consejo de esta visita
+	var calidad := int(Juego.flags.get("catelli_calidad", 0))
+	var prob_falla := clampf(0.45 - 0.08 * calidad - 0.15 * catelli_consejo, 0.05, 0.7)
+	if randf() < prob_falla and Juego.minutos < Juego.FIN_TURNO - 120.0:
+		apagon_hora = Juego.minutos + randf_range(40.0, 90.0)
+		Juego.flags["catelli_fallo"] = true
+
+
+func _dialogo_catelli():
+	var otra_vez: bool = Juego.flags.get("catelli_fallo", false)
+	var l: Array
+	if otra_vez:
+		l = ["¿OTRA VEZ? ¡Carajo! Esto no fue mi culpa, ¿eh? Es el edificio, que es más viejo que Salgado.",
+			"Bueno, a ver qué hizo este tablero ahora…"]
+	else:
+		l = [["Paul Catelli, el mejor electricista de Pillbox. De nada por venir tan rápido.", "¡Maldita sea, qué porquería de cableado tienen aquí!"],
+			["¿Usted es el doctorcito que manda a llamar? Ya, ya, aquí está el experto.", "Este tablero es un desastre. Menos mal que vine yo."]].pick_random()
+	return {"lineas": l, "opciones": [
+		{"texto": "Revise todo el tablero, no solo el fusible.", "efecto": "catelli:1", "amistad": 0,
+			"respuesta": ["¿Me va a enseñar a mí? …Bueno, ya que lo dice, lo reviso todo. Pero porque yo quiero."]},
+		{"texto": "Use cables nuevos; los viejos están pelados.", "efecto": "catelli:1", "amistad": 0,
+			"respuesta": ["Cables nuevos… cuestan plata, doctor. Pero bueno, los pongo. Que lo pague Salgado."]},
+		{"texto": "Usted es el mejor electricista de Pillbox.", "efecto": "catelli:0", "amistad": 2,
+			"respuesta": ["¡POR FIN alguien con criterio en este hospital! Ya mismo lo arreglo."]},
+		{"texto": "Hágalo rápido y ya, tenemos pacientes.", "efecto": "catelli:-1", "amistad": -1,
+			"respuesta": ["¿Rápido? ¿Usted me está apurando a MÍ? Bueno, rápido será… después no se queje."]},
+	]}
+
+
+func _llamar_a_direccion(tipo: String) -> void:
+	llamado = tipo
+	llamado_desde = Juego.minutos
+	if tipo == "rendimiento":
+		Juego.flags["director_ultima_llamada"] = Juego.dia
+	Juego.sonido("altavoz", 1.0, -4.0)
+	if tipo == "derivados":
+		hud.mostrar("Altavoz: «Dr. Walter Pinkman y Dr. Wilder Noctis, preséntense en la dirección. ¡YA!»", 5.0)
+		var o: Vector2 = SALAS["direccion"]["origen"]
+		if not npcs.has("Dr. Wilder Noctis (llamado)"):
+			var w := persona("Dr. Wilder Noctis (llamado)", 1, "uniforme", Personaje.PELOS2, 3, o + Vector2(200, 214), Rect2(), [], true)
+			w.position = o + Vector2(200, 214)
+			w.mirada_base = Vector2.UP
+			w.dialogo_dinamico = func(): return ["Shh… Salgado está furioso. No me mires, Walter."]
+	else:
+		hud.mostrar("Altavoz: «Dr. Walter Pinkman, por favor preséntese en la dirección»." , 4.5)
+
+
+## Lo que dice Salgado si hay un apagón o un llamado pendiente ({} si no hay nada especial).
+func _dialogo_salgado_eventos():
+	if apagon and catelli_estado == "":
+		return {"lineas": ["¡Pinkman! Se fue la luz otra vez. Los monitores no sirven sin corriente."], "opciones": [
+			{"texto": "Llamemos al electricista, doctor.", "efecto": "llamar_catelli", "respuesta": ["Ya mismo llamo a Paul Catelli. Es… especial, pero hace su trabajo."]},
+			{"texto": "Primero reviso a los pacientes.", "amistad": 0, "respuesta": ["Bien, pero vuelva pronto: sin luz no aguantamos mucho."]},
+		]}
+	if llamado == "derivados":
+		return {"lineas": ["Pinkman. Noctis. Siéntense.", "%d pacientes derivados esta semana, Pinkman. ¿Usted es médico o recepcionista?" % Juego.derivados_semana,
+			"Y usted, Noctis… a usted ni lo voy a mirar."], "opciones": [
+			{"texto": "Tiene razón, doctor. Voy a mejorar.", "efecto": "regano:mejorar"},
+			{"texto": "No estaba seguro de los diagnósticos.", "efecto": "regano:inseguro"},
+			{"texto": "¡Fue culpa de Noctis!", "efecto": "regano:culpa"},
+		]}
+	if llamado == "rendimiento":
+		return {"lineas": ["Pase, Pinkman. Lo llamé para saber cómo le va.",
+			"Hoy lleva %d paciente(s) atendido(s), %d transferido(s) y %d derivado(s)." % [atendidos, transferidos, derivados],
+			"Dígame con sinceridad: ¿cómo se ha sentido?"], "opciones": [
+			{"texto": "Bien, aprendiendo mucho.", "amistad": 1, "efecto": "rendimiento:bien"},
+			{"texto": "Cansado, la verdad.", "amistad": 0, "efecto": "rendimiento:cansado"},
+			{"texto": "Con muchas ganas de ascender.", "amistad": 1, "efecto": "rendimiento:ascender"},
+		]}
+	return {}
 
 
 # --- Historias de personajes ------------------------------------------------------
@@ -1288,6 +1474,56 @@ func _dialogo_brown():
 
 # --- Efectos de las respuestas -------------------------------------------------------
 func efecto_npc(nombre: String, efecto: String) -> void:
+	if efecto == "llamar_catelli":
+		catelli_estado = "llamado"
+		catelli_llega = Juego.minutos + 20.0
+		catelli_consejo = 0
+		hud.mostrar("Salgado llamó a Paul Catelli. Llega en unos 20 minutos.", 3.0)
+		return
+	if efecto.begins_with("catelli:"):
+		catelli_consejo = int(efecto.substr(8))
+		Juego.flags["catelli_calidad"] = clampi(int(Juego.flags.get("catelli_calidad", 0)) + catelli_consejo, 0, 5)
+		catelli_estado = "arreglando"
+		catelli_listo = Juego.minutos + 30.0
+		Juego.flags.erase("catelli_fallo")
+		hud.mostrar("Paul Catelli se puso a trabajar en el tablero (30 min).", 3.0)
+		return
+	if efecto.begins_with("regano:"):
+		var tipo := efecto.substr(7)
+		await hud.dialogo("Dr. Wilder Noctis", ["¡Pero jefe, si yo ni atiendo pacientes! ¿Cómo voy a derivar?", "…Digo, sí atiendo. Muchísimos. Todo el día."])
+		match tipo:
+			"mejorar": await hud.dialogo("Dr. Salgado", ["Eso espero. Estudie, pregúntele a Brown y deje de pasarle sus pacientes a otros.", "(−3 reputación)"])
+			"inseguro": await hud.dialogo("Dr. Salgado", ["Para eso está el estudio, Pinkman, y para eso está el Dr. Brown.", "Dudar está bien. Derivar todo, no. (−3 reputación)"])
+			_:
+				Juego.cambiar_amistad("Dr. Wilder Noctis", -2)
+				await hud.dialogo("Dr. Salgado", ["¿Culpa de Noctis? Noctis no atiende ni el teléfono.", "Asuma sus errores, Pinkman. (−5 reputación)"])
+				Juego.sumar_reputacion(-2)
+		Juego.sumar_reputacion(-3)
+		Juego.derivados_semana = 0
+		llamado = ""
+		if npcs.has("Dr. Wilder Noctis (llamado)"):
+			_quitar_npc(npcs["Dr. Wilder Noctis (llamado)"])
+		return
+	if efecto.begins_with("rendimiento:"):
+		llamado = ""
+		Juego.flags["director_ultima_llamada"] = Juego.dia
+		match efecto.substr(12):
+			"bien": await hud.dialogo("Dr. Salgado", ["Me alegra. Así empezamos todos: aprendiendo.", "Siga así y pronto lo veo en el tablero de capacitaciones."])
+			"cansado":
+				var consejo := "Duerma bien y desayune; un médico cansado se equivoca."
+				if Juego.energia < 40.0:
+					consejo = "Se le nota. Tómese algo en la cafetería, y esta noche a dormir temprano."
+				await hud.dialogo("Dr. Salgado", ["Gracias por la sinceridad.", consejo])
+			_:
+				var reqs := Juego.requisitos_residente()
+				var faltan: Array = reqs.filter(func(r): return not r[1]).map(func(r): return r[0])
+				if Juego.rango != "Interno":
+					await hud.dialogo("Dr. Salgado", ["Ya es Residente. Las siguientes capacitaciones vendrán con el tiempo. Paciencia."])
+				elif faltan.is_empty():
+					await hud.dialogo("Dr. Salgado", ["Ya cumple todo. Vaya al tablón del pasillo."])
+				else:
+					await hud.dialogo("Dr. Salgado", ["Me gusta esa actitud. Le falta: " + ", ".join(faltan) + "."])
+		return
 	if efecto.begins_with("brown_orienta:"):
 		var p: Paciente = pacientes[int(efecto.substr(14))]
 		if p == null:

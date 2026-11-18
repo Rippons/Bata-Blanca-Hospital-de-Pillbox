@@ -69,6 +69,7 @@ var boost_hasta := -1.0          # bebida energética: camina más rápido hasta
 var respuestas_auto: Array = []  # usado por las pruebas automáticas
 var ultimo_resumen := ""         # cómo amaneció Walter (se muestra al despertar)
 var auto_dialogo := false        # pruebas: los diálogos no esperan a que se pulse E
+var eventos_aleatorios := true   # pruebas: se apaga para que todo sea predecible
 var tema: Theme
 
 # Audio

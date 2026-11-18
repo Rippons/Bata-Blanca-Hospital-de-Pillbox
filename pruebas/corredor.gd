@@ -33,6 +33,7 @@ func _ready() -> void:
 	print("== Día 1: mañana en casa")
 	Juego.nueva_partida()
 	Juego.auto_dialogo = true
+	Juego.eventos_aleatorios = false
 	await Juego.ir_a("res://escenas/casa.tscn", "Día 1 · Lunes")
 	await esperar(0.5)
 	var casa = get_tree().current_scene
@@ -255,8 +256,40 @@ func _ready() -> void:
 	await esperar(0.5)
 	await captura("hospital_tarde")
 
-	print("== Capacitación y ascenso")
+	print("== Eventos: apagón, Catelli, llamadas del director y hora pico")
 	var h2 = get_tree().current_scene
+	h2._iniciar_apagon()
+	await esperar(1.0)
+	ok(h2.apagon and h2.oscuridad.color.r < 0.5, "apagón: se oscurece el hospital")
+	Juego.respuestas_auto = ["Llamemos al electricista, doctor."]
+	await h2.hablar_con("Dr. Salgado")
+	ok(h2.catelli_estado == "llamado", "Salgado llama a Paul Catelli")
+	Juego.minutos = h2.catelli_llega + 1.0
+	await esperar(0.4)
+	ok(h2.npcs.has("Paul Catelli"), "Paul Catelli llega al pasillo")
+	Juego.respuestas_auto = ["Revise todo el tablero, no solo el fusible."]
+	await h2.hablar_con("Paul Catelli")
+	ok(h2.catelli_estado == "arreglando" and int(Juego.flags.get("catelli_calidad", 0)) == 1, "un buen consejo mejora el trabajo de Catelli")
+	Juego.minutos = h2.catelli_listo + 1.0
+	await esperar(1.2)
+	ok(not h2.apagon and not h2.npcs.has("Paul Catelli") and h2.oscuridad.color.r > 0.9, "vuelve la luz y Catelli se va")
+	Juego.derivados_semana = Juego.LIMITE_DERIVADOS
+	Juego.flags["llamado_derivados"] = true
+	await esperar(0.4)
+	ok(h2.llamado == "derivados" and h2.npcs.has("Dr. Wilder Noctis (llamado)"), "muchos derivados: llaman a Walter y a Noctis a la dirección")
+	var r_ll: int = Juego.reputacion
+	Juego.respuestas_auto = ["Tiene razón, doctor. Voy a mejorar."]
+	await h2.hablar_con("Dr. Salgado")
+	ok(h2.llamado == "" and Juego.derivados_semana == 0 and Juego.reputacion <= maxi(r_ll - 3, 0), "llamado de atención: −3 reputación")
+	h2._llamar_a_direccion("rendimiento")
+	Juego.respuestas_auto = ["Bien, aprendiendo mucho."]
+	await h2.hablar_con("Dr. Salgado")
+	ok(h2.llamado == "", "el director llama para hablar del rendimiento")
+	h2.evento_pico = Juego.minutos
+	await esperar(0.3)
+	ok(h2.evento_pico < 0.0, "hora pico: aviso de accidente")
+
+	print("== Capacitación y ascenso")
 	Juego.respuestas_auto = ["Cerrar"]
 	await h2.interactuar("tablon")
 	ok(Juego.rango == "Interno", "sin requisitos no se puede ascender")
