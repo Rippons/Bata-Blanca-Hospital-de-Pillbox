@@ -46,8 +46,15 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - **Recepción** con Erina, sala de espera, sofás, plantas y máquina de snacks → **Pasillo** (sillas contra la pared, letreros y piso azul con paneles) con cinco puertas: **1 Urgencias**, **2 Vestidor** (casilleros con batas y ducha del personal), **3 Cafetería** (almuerzo y máquina de snacks), **4 Dirección** (el Dr. Salgado comenta tu reputación) y **5 Consultorios** (cerrado hasta ser Residente).
 - Los pacientes siguen empeorando aunque Walter esté en otra sala; el altavoz lo llama a urgencias cuando llega alguien.
 - Llega un paciente cada 40-70 minutos de juego (unos 12 por turno). Puede llegar un caso grave, más seguido desde el día 2.
-- Ciclo: **el paciente cuenta qué le pasó → examinar con una herramienta (termómetro, estetoscopio, tensiómetro, otoscopio, linterna, glucómetro o palpar) → elegir diagnóstico → tomar el insumo del botiquín → aplicarlo**. Hay 11 casos (herida, fiebre, esguince, deshidratación, otitis, asma, presión alta, azúcar baja, astilla en el ojo, alergia grave y golpe de calor); en los graves el paciente no puede hablar y lo cuenta Lucía. Un diagnóstico errado baja la estabilidad; si llega a 0, el paciente se transfiere (−5).
+- Ciclo: **el paciente cuenta qué le pasó → examinar con una herramienta (termómetro, estetoscopio, tensiómetro, otoscopio, linterna, glucómetro o palpar) → elegir diagnóstico → tomar el insumo del botiquín → aplicarlo**. Hay 19 casos base (de herida y fiebre a migraña, gastritis, faringitis, picadura de abeja, golpe en la cabeza, alergia grave, golpe de calor o infarto) más 6 de especialidad; en los graves el paciente no puede hablar y lo cuenta Lucía. Cada paciente da +3 de reputación (graves +6); con un error, solo +1.
+- Si Walter no está seguro, puede **derivar** al paciente. Con 4 derivados en la semana, Salgado llama a Walter y a Noctis a la dirección. Lucía o el Dr. Brown orientan cuando Walter se equivoca, y Brown puede dar una pista (3 al día) o atender a un paciente (cuenta como derivado). Un diagnóstico errado baja la estabilidad; si llega a 0, el paciente se transfiere (−5).
 - Lucía, en la enfermería de urgencias, da pistas sobre qué insumo usar.
+
+**Eventos**
+- **Hora pico:** un accidente trae varios pacientes seguidos.
+- **Apagón:** el hospital se oscurece y los pacientes empeoran más rápido. Hay que avisar a Salgado para que llame al electricista **Paul Catelli**; tus consejos deciden si la luz vuelve a fallar y qué tan seguido se va.
+- **El director llama por el megáfono** cada pocos días para hablar del rendimiento.
+- **Cafetería:** bebida energética (1 por turno: +15 % de energía y más velocidad por 1 minuto) y Doña Luz en la barra.
 
 **Personas, diálogos y sonido**
 - 20 NPC con nombre propio y diálogos (E para hablar). Todos caminan por su zona, menos las enfermeras de mostrador (Erina en recepción y Lucía en urgencias).
@@ -59,7 +66,7 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - Muchas conversaciones terminan con respuestas para elegir. Cada NPC tiene un medidor de amistad (corazones junto a su nombre) que se guarda.
 - Con amistad: Lucía vigila a un paciente para que no empeore, Erina avisa qué trae el próximo paciente y Cristian Daniel trae un insumo. Cubrir a Wilder deja un favor que se cobra pidiéndole que atienda a un paciente.
 - A los pacientes se les puede calmar (empeoran más lento).
-- Historias por días: **Zacarías y la oficial Dakota** (tus consejos deciden si la invita a un café) y **Wilder y Salgado** (encubrirlo, delatarlo o no meterse; si lo encubres, termina trabajando en urgencias). Diego Quiroz molesta al interno Jinu Blake con lo de la señorita Sheyla.
+- Historias por días: **Zacarías y la oficial Dakota** (consejos, el café, el regalo para la cita… y quizá terminen de novios), **Wilder y Salgado** (encubrirlo o delatarlo; con una segunda oportunidad termina trabajando en urgencias y estudiando para ser Residente) y **Rhea Pawlak y Alejandro Reyes** (Rhea se cae de la moto y llega como paciente; Reyes te pide consejo desde el día 3, ella pregunta por él el día 5 y, si la animas, desde el día 7 viene a «reforzar la guardia» con él). Diego Quiroz molesta al interno Jinu Blake con lo de la señorita Sheyla.
 
 **Carrera: estudiar y ascender**
 - Escritorio de la casa: estudiar 30 min o 1 h, con una pregunta de repaso (acertar suma media hora).

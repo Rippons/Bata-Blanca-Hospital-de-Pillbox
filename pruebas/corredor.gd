@@ -333,6 +333,38 @@ func _ready() -> void:
 	Juego.dia += 1
 	await h2.hablar_con("Dr. Wilder Noctis")
 	ok(h2._wilder_redimido(), "Wilder: decide trabajar en urgencias")
+	Juego.dia += 1
+	Juego.respuestas_auto = ["Claro, te presto mis apuntes."]
+	await h2.hablar_con("Dr. Wilder Noctis")
+	ok(h2._etapa("wil") == 4, "Wilder: pide ayuda para estudiar")
+	Juego.dia += 1
+	await h2.hablar_con("Dr. Wilder Noctis")
+	ok(h2._etapa("wil") == 5, "Wilder: saca 4 de 5 en el repaso de Brown")
+	# Zacarías: regalo y cita
+	Juego.respuestas_auto = ["Llévale donas. A los policías les encantan."]
+	await h2.hablar_con("Dr. Zacarías Flores")
+	ok(h2._etapa("zac") == 4, "Zacarías: pide consejo para el regalo")
+	Juego.dia += 1
+	await h2.hablar_con("Dr. Zacarías Flores")
+	ok(Juego.flags.get("zac_novios", false), "Zacarías: con donas, él y Dakota son novios")
+	# Rhea Pawlak y Alejandro Reyes
+	ok(not h2._pawlak_de_guardia(7), "sin interés, Rhea no viene a hacer guardia")
+	Juego.dia = 3
+	Juego.flags["pawlak_conocida"] = true
+	Juego.respuestas_auto = ["Está bien. Pregúntale tú mismo cuando venga."]
+	await h2.hablar_con("Alejandro Reyes")
+	ok(Juego.flags.get("reyes_consejo", "") == "hablar", "día 3: Reyes pregunta por Rhea y pide consejo")
+	Juego.dia = 5
+	Juego.flags["pawlak_visitas"] = 1
+	Juego.respuestas_auto = ["Es buen tipo. Él también pregunta por ti."]
+	await h2._historia_pawlak()
+	ok(h2._pawlak_interes() == "si", "día 5: Rhea pregunta por Reyes y Walter la anima")
+	ok(h2._pawlak_de_guardia(7) and h2._pawlak_de_guardia(10), "desde el día 7, Rhea viene a hacer guardia con Reyes cada pocos días")
+	Juego.dia = 2
+	h2.agenda.clear()
+	h2._agenda_pawlak()
+	ok(h2.agenda.size() == 1 and h2.agenda[0]["nombre"] == "Rhea Pawlak", "el día 2 Rhea llega como paciente (caída en moto)")
+	h2.agenda.clear()
 	Juego.dia = dia_real
 
 	print("== Carga de partida")

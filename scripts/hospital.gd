@@ -287,13 +287,12 @@ func _construir_recepcion() -> void:
 		["Mi esposa dice que el turno de noche es peor. ¿Usted también hace noches?"],
 		["Traje arepas para todos los de urgencias. ¿Quiere una, doctor?"],
 	])
-	persona("Alejandro Reyes", 2, "policia", Personaje.PELOS, 0, Vector2(300, 222), Rect2(300, 196, 150, 50), [
-		["Agente Alejandro Reyes. Hoy me toca la guardia de la entrada.", "Si ve algo raro, me avisa. Para eso estamos."],
-		["Anoche trajimos a un muchacho que se cayó de la moto.", "Sin casco, claro. Siempre sin casco."],
-		["Mendoza está en urgencias y McClane anda por el pasillo. Yo cuido la puerta."],
-		["Hoy la ciudad está tranquila. Eso me pone más nervioso que cuando hay caos."],
-		["El café de la recepción es horrible. No le diga a Erina que dije eso."],
-	])
+	var reyes := persona("Alejandro Reyes", 2, "policia", Personaje.PELOS, 0, Vector2(300, 222), Rect2(300, 196, 150, 50))
+	reyes.dialogo_dinamico = _dialogo_reyes
+	if _pawlak_de_guardia(Juego.dia):
+		var rhea := persona("Rhea Pawlak", 0, "policia", Personaje.PELOS2, 0, Vector2(360, 230), Rect2(300, 200, 150, 46))
+		rhea.velocidad = 20.0
+		rhea.dialogo_dinamico = _dialogo_pawlak_guardia
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(316, 112), true, 6)
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(166, 236), true, 6)
 	for pos in [Vector2(20, 104), Vector2(194, 104), Vector2(286, 104), Vector2(186, 248), Vector2(294, 248), Vector2(462, 248)]:
@@ -665,6 +664,7 @@ func _generar_agenda() -> void:
 			agenda.append({"hora": evento_pico + k * 6, "caso": leves.pick_random(), "nombre": nombres[i]})
 			i += 1
 		agenda.sort_custom(func(x, y): return x["hora"] < y["hora"])
+	_agenda_pawlak()
 	_planear_eventos()
 
 
@@ -892,7 +892,9 @@ func _camilla(i: int) -> void:
 		# 1) El paciente cuenta qué le pasó (los graves no pueden: lo cuenta Lucía)
 		if not p.conto_historia:
 			p.conto_historia = true
-			if p.caso["historias"].is_empty():
+			if p.nombre == "Rhea Pawlak":
+				await _historia_pawlak()
+			elif p.caso["historias"].is_empty():
 				await hud.dialogo("Lucía", [p.caso["relato"]], -1.0, false)
 			else:
 				await hud.dialogo(p.nombre, p.caso["historias"].pick_random(), -1.0, false)
@@ -1404,8 +1406,41 @@ func _dialogo_zacarias():
 			Juego.sonido("exito", 1.0, -8.0)
 			return ["¡DOCTOR! ¡Lo hice!", "Le dije: «Oficial Dakota, ¿le gustaría tomar un café conmigo?».", "¡Y dijo que sí! ¡El sábado! ¡Gracias, gracias, gracias!"]
 		return ["Doctor… fui a hablarle a la oficial Dakota.", "Abrí la boca y dije: «Buenas tardes, oficial»… y salí corriendo.", "Bueno. Por lo menos ahora sabe que existo."]
-	# etapa 3: final
-	if Juego.flags.get("zac_final", "") == "bien":
+	var final_zac: String = Juego.flags.get("zac_final", "")
+	if e == 3 and _puede_avanzar("zac"):
+		if final_zac == "bien":
+			return {"lineas": ["Doctor, la cita con Dakota es el sábado y no sé qué llevarle.", "¿Flores? ¿Chocolates? ¿Mi currículum? ¡Ayúdeme!"], "opciones": [
+				{"texto": "Llévale donas. A los policías les encantan.", "amistad": 1, "efecto": "zac_regalo:donas", "respuesta": ["¡Donas! ¡Es usted un genio, doctor!"]},
+				{"texto": "Flores. Nunca fallan.", "amistad": 1, "efecto": "zac_regalo:flores", "respuesta": ["Flores… clásico. Sí, sí, flores."]},
+				{"texto": "Ve con tu bata, que vea que eres doctor.", "amistad": 0, "efecto": "zac_regalo:bata", "respuesta": ["¿Con la bata? Bueno… usted sabrá, doctor."]},
+			]}
+		return {"lineas": ["Doctor… ¿usted cree que debería intentarlo otra vez con Dakota?"], "opciones": [
+			{"texto": "¡Claro! Esta vez invítala a un café, sin correr.", "amistad": 1, "efecto": "zac_reintento:si", "respuesta": ["S-sí… esta vez no corro. Lo prometo."]},
+			{"texto": "Mejor dale un tiempo.", "amistad": 0, "efecto": "zac_reintento:no", "respuesta": ["Tiene razón… algún día."]},
+		]}
+	if e == 4 and _puede_avanzar("zac"):
+		_avanzar("zac", 5)
+		Juego.sonido("exito", 1.0, -8.0)
+		match Juego.flags.get("zac_regalo", ""):
+			"donas":
+				Juego.flags["zac_novios"] = true
+				return ["¡Doctor! Le llevé donas a Dakota y casi llora de la emoción.", "Dice que soy el primer hombre que entiende a un policía.", "…¡Somos novios! ¡NOVIOS!"]
+			"flores":
+				Juego.flags["zac_novios"] = true
+				return ["Le llevé flores a Dakota… y resulta que es alérgica.", "Estornudó toda la cita, pero se rió muchísimo.", "¡Y me dio un beso en el cachete! Bueno… estornudó y luego me dio un beso."]
+			_:
+				return ["Fui con la bata a la cita. Dakota dijo que olía a hospital.", "Pero me dio otra oportunidad. ¡La próxima voy bañado y sin bata!"]
+	if e >= 5:
+		if Juego.flags.get("zac_novios", false):
+			return [["Dakota me espera a la salida del turno. ¡Ya no sudo cuando la veo!"],
+				["Dakota dice que el LSPD tiene un concurso de donas. ¡Voy a ir a apoyarla!"],
+				["Gracias por todo, doctor. Sin usted seguiría ensayando «Hola, Dakota» en el espejo."]].pick_random()
+		if final_zac == "rendido":
+			return [["Sigo practicando: «Hola, Dakota». Algún día, doctor. Algún día."],
+				["Si la oficial Dakota pregunta por mí, dígale que estoy muy ocupado salvando vidas."]].pick_random()
+		return [["Seguimos saliendo con Dakota. Despacito, pero seguimos."], ["Esta vez voy sin bata. Aprendí la lección."]].pick_random()
+	# etapa 3 esperando el día siguiente
+	if final_zac == "bien":
 		return [["Dakota dice que el LSPD tiene un concurso de donas. ¡Voy a ir a apoyarla!"],
 			["Ya no sudo tanto cuando la veo. Bueno… un poquito."]].pick_random()
 	return [["Sigo practicando: «Hola, Dakota». Algún día, doctor. Algún día."],
@@ -1413,7 +1448,7 @@ func _dialogo_zacarias():
 
 
 func _wilder_redimido() -> bool:
-	return _etapa("wil") >= 3 and Juego.flags.get("wil_camino", "") == "encubierto"
+	return _etapa("wil") >= 3 and _etapa("wil") != 9 and Juego.flags.get("wil_camino", "") in ["encubierto", "redimido"]
 
 
 ## Lo que dice Salgado sobre Wilder (pregunta solo una vez, desde el día 2).
@@ -1433,6 +1468,8 @@ func _dialogo_wilder_historia():
 	if e == 1 and _puede_avanzar("wil"):
 		_avanzar("wil", 2)
 		match camino:
+			"redimido":
+				return []
 			"encubierto":
 				Juego.dar_favor("Dr. Wilder Noctis")
 				Juego.cambiar_amistad("Dr. Wilder Noctis", 2)
@@ -1447,6 +1484,22 @@ func _dialogo_wilder_historia():
 	if e == 2 and _puede_avanzar("wil") and camino == "encubierto":
 		_avanzar("wil", 3)
 		return ["Estuve pensando, Walter… tú me cubriste y yo aquí comiendo galletas.", "Desde mañana me verás en urgencias. ¡Promesa de garrita! Esta vez de verdad."]
+	if e == 2 and _puede_avanzar("wil") and camino != "encubierto":
+		return {"lineas": ["Oye, Walter… los turnos dobles me hicieron pensar.", "Creo que soy… ¿perezoso? ¿Se nota mucho?", "¿Me das una segunda oportunidad?"], "opciones": [
+			{"texto": "Claro, empecemos de cero.", "amistad": 2, "efecto": "wil_segunda:si", "respuesta": ["¡Gracias! Mañana me verás en urgencias. ¡Promesa de garrita!"]},
+			{"texto": "Demuéstramelo primero.", "amistad": 0, "efecto": "wil_segunda:no", "respuesta": ["Uy… justo. Bueno, seguiré en mi descanso eterno."]},
+		]}
+	if e == 3 and _puede_avanzar("wil") and _wilder_redimido():
+		return {"lineas": ["Walter, tengo una idea loca: quiero ser Residente como tú.", "¿Me ayudas a estudiar? Prometo no dormirme… mucho."], "opciones": [
+			{"texto": "Claro, te presto mis apuntes.", "amistad": 2, "efecto": "wil_estudio:si", "respuesta": ["¡Eres el mejor! Voy a subrayar todo con colores."]},
+			{"texto": "Primero aprende a llegar a tiempo.", "amistad": -1, "efecto": "wil_estudio:no", "respuesta": ["Auch. Justo pero auch."]},
+		]}
+	if e == 4 and _puede_avanzar("wil"):
+		_avanzar("wil", 5)
+		if Juego.flags.get("wil_estudio", "") == "si":
+			Juego.sonido("exito", 1.0, -8.0)
+			return ["¡WALTER! Brown me hizo un repaso sorpresa y saqué 4 de 5.", "¡Promesa de garrita cumplida! Hasta Salgado me dijo «bien, Noctis»."]
+		return ["Estudié solo. Me dormí en la página dos.", "Pero llegué a tiempo tres días seguidos. ¡Eso cuenta!"]
 	return {}
 
 
@@ -1472,8 +1525,131 @@ func _dialogo_brown():
 	return {"lineas": l, "opciones": opciones}
 
 
+# --- Historia de Rhea Pawlak y Alejandro Reyes -------------------------------------------
+const CASO_PAWLAK := {"diagnostico": "Raspones por caída", "signos": "Raspones en codo y rodilla; el casco está rayado.",
+	"historias": [], "herramienta": "Palpar", "hallazgo": "Raspones superficiales; huesos y articulaciones bien.",
+	"falsos": ["Fractura", "Esguince de tobillo"], "insumo": "Vendaje", "deterioro": 0.15, "premio": 3, "inicial": 85.0, "grave": false}
+
+
+func _pawlak_interes() -> String:
+	return Juego.flags.get("pawlak_interes", "")
+
+
+## Días en que Rhea viene a «reforzar la guardia» con Reyes (desde el día 7, si hay interés).
+func _pawlak_de_guardia(d: int) -> bool:
+	return d >= 7 and _pawlak_interes() == "si" and (d == 7 or d % 3 == 1 or d % 5 == 0)
+
+
+## Rhea llega como paciente: días 2 y 5, y luego de vez en cuando («me caí otra vez»).
+func _agenda_pawlak() -> void:
+	var d := Juego.dia
+	var viene := d == 2 or d == 5 or (d >= 8 and d % 3 == 2 and (_pawlak_interes() != "si" or randf() < 0.5))
+	if not viene:
+		return
+	var ap := {"piel": 0, "ropa": "policia", "pelo_hoja": Personaje.PELOS2, "pelo_fila": 0}
+	agenda.append({"hora": randi_range(9 * 60, 14 * 60), "caso": CASO_PAWLAK, "nombre": "Rhea Pawlak", "apariencia": ap})
+	agenda.sort_custom(func(x, y): return x["hora"] < y["hora"])
+
+
+## Lo que cuenta Rhea en la camilla según el día y la historia.
+func _historia_pawlak() -> void:
+	var visitas := int(Juego.flags.get("pawlak_visitas", 0)) + 1
+	Juego.flags["pawlak_visitas"] = visitas
+	Juego.flags["pawlak_conocida"] = true
+	if visitas == 1:
+		await hud.dialogo("Rhea Pawlak", ["Oficial Rhea Pawlak, LSPD. Mucho gusto, doctor… ¡ay!",
+			"Un perro se me atravesó y me fui al piso con la moto.", "El perro está bien. Yo… más o menos."], -1.0, true)
+		return
+	if Juego.dia >= 5 and _pawlak_interes() == "":
+		await hud.dialogo("Rhea Pawlak", ["Otra vez yo, doctor. Esta vez fue un hueco en la vía. Lo juro.",
+			"Oiga… ese oficial de la entrada, Reyes. ¿Es buena gente?"], -1.0, true)
+		var r: int = await hud.elegir("Responder a Rhea Pawlak", "", ["Es buen tipo. Él también pregunta por ti.",
+			"Es buen policía. Deberías hablarle.", "No lo conozco mucho.", "Concéntrate en tu rodilla, oficial."])
+		match r:
+			0:
+				Juego.flags["pawlak_interes"] = "si"
+				Juego.cambiar_amistad("Rhea Pawlak", 2)
+				await hud.dialogo("Rhea Pawlak", ["¿En serio? ¿Pregunta por mí?", "…No le diga que se me puso la cara roja, doctor."], -1.0, true)
+			1:
+				Juego.flags["pawlak_interes"] = "si"
+				Juego.cambiar_amistad("Rhea Pawlak", 1)
+				await hud.dialogo("Rhea Pawlak", ["Hablarle… sí. Quizás le pida ayuda con algún «caso». Jeje."], -1.0, true)
+			2:
+				Juego.flags["pawlak_interes"] = "neutral"
+				await hud.dialogo("Rhea Pawlak", ["Ah, bueno. No importa. Era curiosidad profesional."], -1.0, true)
+			_:
+				Juego.flags["pawlak_interes"] = "no"
+				Juego.cambiar_amistad("Rhea Pawlak", -1)
+				await hud.dialogo("Rhea Pawlak", ["…Sí, señor. Rodilla. Entendido."], -1.0, true)
+		return
+	if _pawlak_interes() == "si":
+		await hud.dialogo("Rhea Pawlak", [["Me caí… otra vez. Jeje. ¿Reyes está de turno hoy? Por nada, por nada."],
+			["Esta vez fue una cáscara de banano. En la moto. Sí, es posible.", "¿Reyes está en la entrada? Solo pregunto."]].pick_random(), -1.0, true)
+	else:
+		await hud.dialogo("Rhea Pawlak", [["Otra caída, doctor. Creo que la moto me odia."],
+			["Hoy fue un charco. Un charco enorme. Bueno, mediano."]].pick_random(), -1.0, true)
+
+
+func _dialogo_reyes():
+	var base: Array = [["Agente Alejandro Reyes. Hoy me toca la guardia de la entrada.", "Si ve algo raro, me avisa. Para eso estamos."],
+		["Anoche trajimos a un muchacho que se cayó de la moto.", "Sin casco, claro. Siempre sin casco."],
+		["Mendoza está en urgencias y McClane anda por el pasillo. Yo cuido la puerta."],
+		["Hoy la ciudad está tranquila. Eso me pone más nervioso que cuando hay caos."],
+		["El café de la recepción es horrible. No le diga a Erina que dije eso."]].pick_random()
+	if _pawlak_de_guardia(Juego.dia):
+		return [["Hoy vino Pawlak a «reforzar la guardia». Jeje.", "Doctor, no me mire así."],
+			["Pawlak dice que mi café es horrible. Pero se toma dos."],
+			["¿Usted cree que Pawlak viene por mí o por el café? No conteste."]].pick_random()
+	if Juego.flags.get("pawlak_conocida", false) and Juego.dia >= 3 and not Juego.flags.has("reyes_consejo"):
+		return {"lineas": ["Doctor… la oficial que se cae de la moto. Pawlak.", "¿Usted la atendió? ¿Está bien? Pregunto como compañero, nada más."], "opciones": [
+			{"texto": "Está bien. Pregúntale tú mismo cuando venga.", "amistad": 1, "efecto": "reyes:hablar", "respuesta": ["¿Yo? ¿Hablarle? …Bueno. Si vuelve a caerse, le hablo."]},
+			{"texto": "Es muy torpe con la moto, jaja.", "amistad": 0, "efecto": "reyes:torpe", "respuesta": ["Jaja, sí… pero es una gran policía, ¿eh?"]},
+			{"texto": "Eso es confidencial, Reyes.", "amistad": -1, "efecto": "reyes:confidencial", "respuesta": ["Tiene razón, doctor. Perdón."]},
+		]}
+	if _pawlak_interes() == "si" and Juego.dia >= 6:
+		return [["Pawlak me saludó hoy, doctor. ¡Me saludó primero!"],
+			["Creo que le voy a preguntar a Pawlak si quiere patrullar conmigo algún día."]].pick_random()
+	return base
+
+
+func _dialogo_pawlak_guardia():
+	return {"lineas": [["Vine a… reforzar la guardia. Sí. Eso.", "Reyes dice que el café de aquí es horrible, pero yo lo encuentro rico."],
+		["Hola, doctor. Hoy no me caí. Bueno… casi."],
+		["Reyes y yo estamos vigilando la entrada. Muy profesionalmente."]].pick_random(), "opciones": [
+		{"texto": "¿Reforzando la guardia, oficial?", "amistad": 1, "respuesta": ["¡Shh! No le diga nada a nadie, doctor."]},
+		{"texto": "Cuídate en la moto.", "amistad": 1, "respuesta": ["Siempre, doctor. Bueno, casi siempre."]},
+	]}
+
+
 # --- Efectos de las respuestas -------------------------------------------------------
 func efecto_npc(nombre: String, efecto: String) -> void:
+	if efecto.begins_with("reyes:"):
+		Juego.flags["reyes_consejo"] = efecto.substr(6)
+		return
+	if efecto.begins_with("zac_regalo:"):
+		Juego.flags["zac_regalo"] = efecto.substr(11)
+		_avanzar("zac", 4)
+		return
+	if efecto.begins_with("zac_reintento:"):
+		if efecto.ends_with("si"):
+			Juego.flags["zac_consejo"] = "cafe"
+			Juego.flags["zac_animo"] = "valor"
+			_avanzar("zac", 2)
+		else:
+			Juego.flags["zac_final"] = "rendido"
+			_avanzar("zac", 5)
+		return
+	if efecto.begins_with("wil_segunda:"):
+		if efecto.ends_with("si"):
+			Juego.flags["wil_camino"] = "redimido"
+			_avanzar("wil", 3)
+		else:
+			_avanzar("wil", 9)
+		return
+	if efecto.begins_with("wil_estudio:"):
+		Juego.flags["wil_estudio"] = efecto.substr(12)
+		_avanzar("wil", 4)
+		return
 	if efecto == "llamar_catelli":
 		catelli_estado = "llamado"
 		catelli_llega = Juego.minutos + 20.0
