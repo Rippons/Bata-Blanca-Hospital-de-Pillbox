@@ -21,6 +21,7 @@ var _objetivo := Vector2.ZERO
 var _y_primero := false            # alterna el orden de los ejes cuando se atasca
 var ruta: Array = []               # puntos de paso (mundo) antes de quedarse en su zona
 var _espera := 0.0
+var guion := false                  # en una cinemática: solo camina por su «ruta» y luego se queda quieto
 var _atascado := 0.0
 var _turno := 0
 
@@ -54,7 +55,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if quieto or hablando or Juego.pausado:
+	if quieto or hablando or Juego.pausado or (guion and ruta.is_empty()):
 		velocity = Vector2.ZERO
 		figura.caminar(false, delta)
 		return
@@ -151,3 +152,31 @@ func hablar(hud: HUD, walter_pos: Vector2) -> void:
 		figura.caminar(false, 0.0)
 	hablando = false
 	_espera = randf_range(1.0, 2.5)
+
+
+## Camina por los puntos dados (coordenadas del mundo) y espera a llegar.
+## Si algo lo bloquea demasiado tiempo, aparece en el último punto.
+func ir_a(puntos: Array, vel := -1.0, limite := 12.0) -> void:
+	var antes := velocidad
+	if vel > 0.0:
+		velocidad = vel
+	guion = true
+	quieto = false
+	_espera = 0.0
+	ruta = puntos.duplicate()
+	var t := 0.0
+	while not ruta.is_empty() and is_inside_tree():
+		await get_tree().physics_frame
+		if not Juego.pausado:
+			t += get_physics_process_delta_time()
+		if t > limite and not ruta.is_empty():
+			position = ruta[-1]
+			ruta.clear()
+	velocidad = antes
+	figura.caminar(false, 0.0)
+
+
+## Gira hacia un punto del mundo sin moverse.
+func mirar_a(punto: Vector2) -> void:
+	figura.mirando = punto - global_position
+	figura.caminar(false, 0.0)

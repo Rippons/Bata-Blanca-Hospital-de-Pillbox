@@ -40,6 +40,7 @@ const VELOCIDAD_TEXTO := 45.0   # letras por segundo
 const TONOS := {
 	"Walter": 1.0, "Lucía": 1.3, "Erina": 1.42, "Dr. Salgado": 0.72, "Altavoz": 0.85,
 	"Alejandro Reyes": 0.8, "Jaiden Mendoza": 0.92, "John McClane": 0.68,
+	"Jinu Blake": 1.18, "Sheyla Escobedo": 1.36, "Dakota": 1.05, "Capitán Marcos Rojas": 0.6, "Diego Quiroz": 1.1,
 }
 
 

@@ -8,6 +8,8 @@
 
 Las batas y uniformes recoloreados que haga el equipo son obras derivadas propias.
 
+`personajes/propios/` (Dakota, Jinu Blake, Sheyla Escobedo, Marcos Rojas): hojas de personaje aportadas por el equipo (3 columnas × 4 filas, cuadros de 20×32); Dakota y Jinu son recoloreados hechos por el equipo.
+
 ## Audio
 
 Toda la música y los efectos de `audio/` fueron sintetizados por el equipo con `herramientas/generar_audio.py` (obra propia).

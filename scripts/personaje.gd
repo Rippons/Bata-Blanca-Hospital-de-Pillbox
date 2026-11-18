@@ -29,6 +29,17 @@ const ROPAS := {
 	"casual_rojo": ["o6", 0],
 }
 
+## Personajes propios del equipo: una sola hoja de 3 columnas × 4 filas, cuadros de 20×32.
+## Filas: 0 abajo · 1 izquierda · 2 izquierda (otra versión) · 3 arriba. La derecha es la izquierda en espejo.
+## Se usan con ropa = "hoja:<id>".
+const HOJAS := {
+	"dakota": BASE + "propios/dakota.png",
+	"jinu": BASE + "propios/jinu_blake.png",
+	"sheyla": BASE + "propios/sheyla_escobedo.png",
+	"marcos": BASE + "propios/marcos_rojas.png",
+}
+const PASOS_HOJA := [1, 0, 0, 1, 2, 2]   # cuadro de la hoja según la fase de la caminata
+
 @export var piel := 0                 # 0..5
 @export var ropa := "uniforme"
 @export var pelo_hoja := PELOS
@@ -73,6 +84,13 @@ class EfectoOlor extends Node2D:
 func _ready() -> void:
 	_sombra = _capa(SOMBRA)
 	_sombra.region_rect = Rect2(0, 0, 32, 32)
+	if es_hoja():
+		_cuerpo = _capa(HOJAS[ropa.substr(5)])
+		_cuerpo.offset = Vector2(-10, -31)
+		_efecto = EfectoOlor.new()
+		add_child(_efecto)
+		_actualizar_cuadro()
+		return
 	_cuerpo = _capa(CUERPO)
 	_ropa = _capa(TRAJES)
 	_pelo = _capa(PELOS)
@@ -99,7 +117,7 @@ func _tex(ruta: String) -> Texture2D:
 
 ## Vuelve a leer piel, ropa, pelo, tinte y olor.
 func aplicar() -> void:
-	if _cuerpo == null:
+	if _cuerpo == null or es_hoja():
 		return
 	var r: Array = ROPAS.get(ropa, ROPAS["uniforme"])
 	var hoja: String = r[0]
@@ -134,7 +152,21 @@ func _columna_base() -> int:
 	return _col_dir
 
 
+func es_hoja() -> bool:
+	return ropa.begins_with("hoja:") and HOJAS.has(ropa.substr(5))
+
+
 func _actualizar_cuadro() -> void:
+	if es_hoja():
+		var base := _columna_base()
+		var fila := 0
+		match base:
+			6, 18: fila = 1
+			12: fila = 3
+		_cuerpo.flip_h = base == 6
+		_cuerpo.region_rect = Rect2(PASOS_HOJA[int(_cuadro) % 6] * 20.0, fila * 32.0, 20, 32)
+		_sombra.visible = not acostado
+		return
 	var col := _columna_base() + int(_cuadro)
 	if acostado:
 		col = 0

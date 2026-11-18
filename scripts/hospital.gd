@@ -293,6 +293,14 @@ func _construir_recepcion() -> void:
 		var rhea := persona("Rhea Pawlak", 0, "policia", Personaje.PELOS2, 0, Vector2(360, 230), Rect2(300, 200, 150, 46))
 		rhea.velocidad = 20.0
 		rhea.dialogo_dinamico = _dialogo_pawlak_guardia
+	if _dakota_en_recepcion(Juego.dia):
+		var dakota := persona("Dakota", 0, "hoja:dakota", "", 0, Vector2(420, 226), Rect2(380, 200, 70, 44))
+		dakota.velocidad = 16.0
+		dakota.dialogo_dinamico = _dialogo_dakota
+	if _visita_marcos(Juego.dia):
+		var marcos := persona("Capitán Marcos Rojas", 0, "hoja:marcos", "", 0, Vector2(250, 226), Rect2(200, 200, 90, 40))
+		marcos.velocidad = 14.0
+		marcos.dialogo_dinamico = _dialogo_marcos
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(316, 112), true, 6)
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(166, 236), true, 6)
 	for pos in [Vector2(20, 104), Vector2(194, 104), Vector2(286, 104), Vector2(186, 248), Vector2(294, 248), Vector2(462, 248)]:
@@ -378,19 +386,12 @@ func _construir_pasillo() -> void:
 		["Medicina interna es como ser detective: todo deja una pista."],
 		["¿Sabía que la mitad de los mareos que llegan es por no desayunar?"],
 	])
-	persona("Diego Quiroz", 0, "enfermera", Personaje.PELOS, 4, Vector2(160, 160), Rect2(40, 112, 300, 80), [
-		{"lineas": ["¡Aaay sí, señorita Sheyla, jaja, amo esa broma!", "…Shh, doctor. Lo digo duro para que me oiga el interno Jinu Blake.", "¡Se pone rojo como un tomate cada vez! Jajaja."],
-		 "opciones": [
-			{"texto": "Jaja, eres terrible.", "amistad": 1, "respuesta": ["¡Lo sé! Mañana le digo que Sheyla preguntó por él."]},
-			{"texto": "Pobre Jinu, déjalo en paz.", "amistad": -1, "respuesta": ["Bueno, bueno…", "Pero es que es muy fácil molestarlo, doctor."]},
-		]},
-		["Ayer le dije a Jinu que Sheyla le había dejado una nota en su casillero.", "¡Revisó el casillero cinco veces! Jajaja."],
-		{"lineas": ["¿Me ayuda con una broma para Jinu Blake, doctor?"],
-		 "opciones": [
-			{"texto": "Dile que Sheyla lo busca en la cafetería.", "amistad": 2, "respuesta": ["¡Jajaja! Usted sí sabe, doctor. Ya vuelvo."]},
-			{"texto": "No, estoy trabajando.", "amistad": 0, "respuesta": ["Aburrido… pero responsable. Está bien."]},
-		]},
-	])
+	var diego := persona("Diego Quiroz", 0, "enfermera", Personaje.PELOS, 4, Vector2(160, 160), Rect2(40, 112, 300, 80))
+	diego.dialogo_dinamico = _dialogo_diego
+	if int(Juego.flags.get("jinu_cafeteria_dia", 0)) != Juego.dia:
+		var jinu := persona("Jinu Blake", 0, "hoja:jinu", "", 0, Vector2(400, 150), Rect2(330, 112, 220, 80))
+		jinu.dialogo_dinamico = _dialogo_jinu
+		jinu.velocidad = 20.0
 	persona("Sofía", 2, "rosa", Personaje.PELOS, 2, Vector2(760, 170), Rect2(600, 112, 330, 80), [
 		["Busco los consultorios, pero dice «cerrado».", "Ah, ¿solo abren cuando hay residentes? Qué lástima."],
 		["Mi abuelo está en observación. Dicen que se recupera rápido."],
@@ -561,6 +562,15 @@ func _construir_cafeteria() -> void:
 		["La sopa de hoy tiene más papa que pollo. Pero igual me la comí."],
 		["Dicen que el Dr. Noctis vive en esta cafetería. Yo le he visto dormir aquí."],
 	])
+	# Sheyla estudia en la mesa de la derecha (dice que aquí está el mejor wifi)
+	var sheyla := persona("Sheyla Escobedo", 0, "hoja:sheyla", "", 0, Vector2(306, 206), Rect2(), [], true)
+	sheyla.mirada_base = Vector2.RIGHT
+	sheyla.dialogo_dinamico = _dialogo_sheyla
+	if int(Juego.flags.get("jinu_cafeteria_dia", 0)) == Juego.dia:
+		var jinu := persona("Jinu Blake", 0, "hoja:jinu", "", 0, Vector2(282, 206), Rect2(), [], true)
+		jinu.mirada_base = Vector2.RIGHT
+		jinu.dialogo_dinamico = _dialogo_jinu
+		sheyla.mirada_base = Vector2.LEFT
 	if not _wilder_redimido():
 		var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(330, 186), Rect2(290, 176, 80, 14))
 		wilder.dialogo_dinamico = _dialogo_wilder
@@ -627,7 +637,7 @@ func _rect_sala(id: String) -> Rect2:
 	return Rect2(SALAS[id]["origen"], SALAS[id]["tam"])
 
 
-func ir_a_sala(destino: String, punto: Vector2) -> void:
+func ir_a_sala(destino: String, punto: Vector2, seguir_bloqueado := false) -> void:
 	if _cambiando:
 		return
 	_cambiando = true
@@ -639,7 +649,7 @@ func ir_a_sala(destino: String, punto: Vector2) -> void:
 	walter.limitar_camara(_rect_sala(destino))
 	await get_tree().process_frame
 	await Juego.fundir(0.0)
-	walter.bloqueado = false
+	walter.bloqueado = seguir_bloqueado
 	_cambiando = false
 	refrescar_aviso()
 
@@ -1606,6 +1616,9 @@ func _dialogo_reyes():
 			{"texto": "Es muy torpe con la moto, jaja.", "amistad": 0, "efecto": "reyes:torpe", "respuesta": ["Jaja, sí… pero es una gran policía, ¿eh?"]},
 			{"texto": "Eso es confidencial, Reyes.", "amistad": -1, "efecto": "reyes:confidencial", "respuesta": ["Tiene razón, doctor. Perdón."]},
 		]}
+	if _visita_marcos(Juego.dia) and randf() < 0.6:
+		return [["¡El capitán Rojas está aquí! Ponga cara de que todo está en orden, doctor."],
+			["El capitán viene a revisar que no estemos tomando café todo el día.", "…Esconda esa taza, por favor."]].pick_random()
 	if _pawlak_interes() == "si" and Juego.dia >= 6:
 		return [["Pawlak me saludó hoy, doctor. ¡Me saludó primero!"],
 			["Creo que le voy a preguntar a Pawlak si quiere patrullar conmigo algún día."]].pick_random()
@@ -1621,8 +1634,272 @@ func _dialogo_pawlak_guardia():
 	]}
 
 
+# --- Jinu Blake, Sheyla Escobedo y Diego Quiroz --------------------------------------
+var _turno_diego := 0
+var _turno_jinu := 0
+var _turno_sheyla := 0
+var cinematica_activa := false
+
+
+func _jinu_en_cafeteria() -> bool:
+	return int(Juego.flags.get("jinu_cafeteria_dia", 0)) == Juego.dia
+
+
+func _dialogo_diego():
+	var t := _turno_diego
+	_turno_diego += 1
+	match t % 4:
+		0:
+			if Juego.flags.get("jinu_sheyla", false):
+				return [["Doctor… la broma me salió al revés.", "Ahora Jinu y Sheyla estudian juntos. ¡JUNTOS! Y a mí Sheyla me mira feo."],
+					["Jinu dice que me debe una. ¡Yo no quería que me debiera nada! Quería verlo rojo como un tomate."]].pick_random()
+			return {"lineas": ["¡Aaay sí, señorita Sheyla, jaja, amo esa broma!", "…Shh, doctor. Lo digo duro para que me oiga el interno Jinu Blake.", "¡Se pone rojo como un tomate cada vez! Jajaja."],
+				"opciones": [
+					{"texto": "Jaja, eres terrible.", "amistad": 1, "respuesta": ["¡Lo sé! Mañana le digo que Sheyla preguntó por él."]},
+					{"texto": "Pobre Jinu, déjalo en paz.", "amistad": -1, "respuesta": ["Bueno, bueno…", "Pero es que es muy fácil molestarlo, doctor."]},
+				]}
+		1:
+			return [["Ayer le dije a Jinu que Sheyla le había dejado una nota en su casillero.", "¡Revisó el casillero cinco veces! Jajaja."],
+				["Sheyla me dijo que mi humor tiene «0 % de efectividad».", "¿Eso es mucho o poco? Suena a poco."],
+				["Sheyla me escuchó gritar «señorita Sheyla» y me miró como si yo fuera una bacteria.", "…Hoy me porto bien. Quizás."]].pick_random()
+		2:
+			if not Juego.flags.get("jinu_broma", false) and npcs.has("Jinu Blake") and not _jinu_en_cafeteria():
+				return {"lineas": ["¿Me ayuda con una broma para Jinu Blake, doctor?", "Ese muchacho nunca va a la cafetería. Le da pena encontrarse a Sheyla."],
+					"opciones": [
+						{"texto": "Dile que Sheyla lo busca en la cafetería.", "amistad": 2, "efecto": "broma_jinu", "respuesta": ["¡Jajaja! Usted sí sabe, doctor. Mire esto…"]},
+						{"texto": "No, estoy trabajando.", "amistad": 0, "respuesta": ["Aburrido… pero responsable. Está bien."]},
+					]}
+			return ["Las enfermeras dicen que soy el alma del pasillo. Bueno, lo digo yo, pero ellas no lo niegan."]
+	return [["¿Ya fue a la cafetería? Doña Luz hizo sopa. ¡Corra antes de que llegue Noctis!"],
+		["Un día de estos me ascienden a jefe de enfermería. Y lo primero que hago es poner música en el pasillo."]].pick_random()
+
+
+func _dialogo_jinu():
+	if _jinu_en_cafeteria():
+		return [["¡Doctor! Sheyla sí estaba aquí. ¡Y no me estaba buscando!", "Pero… estamos estudiando farmacología juntos. ¿Puede creerlo?"],
+			["Sheyla dice «comprendo» cada vez que le explico algo. ¡Le estoy explicando algo yo a ella!"]].pick_random()
+	var t := _turno_jinu
+	_turno_jinu += 1
+	match t % 4:
+		0:
+			return {"lineas": ["¡Dr. Pinkman! Jinu Blake, interno de primer año.", "Todos dicen que usted aprende rapidísimo. Yo quiero ser como usted."], "opciones": [
+				{"texto": "¡Bienvenido, Jinu! Cuenta conmigo.", "amistad": 2, "respuesta": ["¿De verdad? ¡Gracias, doctor! Usted es el mejor."]},
+				{"texto": "Tranquilo, aquí todos aprendemos.", "amistad": 1, "respuesta": ["Sí… eso me dice mi mamá. Pero usted lo dice más bonito."]},
+			]}
+		1:
+			if Juego.flags.get("jinu_sheyla", false):
+				return ["Sheyla y yo estudiamos en la cafetería después del turno.", "Dice «comprendo» cada vez que entiende algo. Es… adorable. ¡N-no le diga que dije eso!"]
+			return {"lineas": ["Diego Quiroz anda gritando «señorita Sheyla» por todo el pasillo…", "¿P-por qué me mira a mí cuando lo dice? A mí no me gusta nadie. Ejem."], "opciones": [
+				{"texto": "Ignóralo, Jinu.", "amistad": 1, "respuesta": ["Eso intento… pero grita muy duro."]},
+				{"texto": "Se te nota un poquito, Jinu.", "amistad": 1, "respuesta": ["¿¡Se me nota!? Ay, no. Ay, no, no, no."]},
+			]}
+		2:
+			return {"lineas": ["Doctor, ¿me da un consejo? Me tiemblan las manos cuando uso el estetoscopio."], "opciones": [
+				{"texto": "Respira y escucha con calma.", "amistad": 1, "respuesta": ["Respirar… y escuchar. ¡Anotado!"]},
+				{"texto": "Practica conmigo cuando quieras.", "amistad": 2, "respuesta": ["¿¡En serio!? ¡Gracias, doctor! Usted sí es buena gente."]},
+			]}
+	if Juego.get_amistad("Jinu Blake") >= 5 and Juego.una_vez_hoy_disponible("jinu_cafe"):
+		Juego.una_vez_hoy("jinu_cafe")
+		return {"lineas": ["¡Doctor! Le traje un café de la cafetería.", "Usted siempre me ayuda; es lo mínimo que puedo hacer."], "opciones": [
+			{"texto": "Gracias, Jinu. Lo necesitaba.", "amistad": 1, "efecto": "jinu_cafe", "respuesta": ["¡Para eso estamos los colegas!"]},
+		]}
+	return [["Hoy anoté todo lo que usted hizo en urgencias. Para aprender."],
+		["El Dr. Brown me hizo una pregunta y me quedé en blanco. Mañana estudio el doble."]].pick_random()
+
+
+func _dialogo_sheyla():
+	if _jinu_en_cafeteria():
+		return ["Comprendo. Jinu llegó corriendo y diciendo que yo lo buscaba.", "No lo buscaba. Pero sabe muchísimo de farmacología.", "Conclusión: la broma de Quiroz tuvo un resultado positivo. Que no se entere."]
+	var t := _turno_sheyla
+	_turno_sheyla += 1
+	match t % 4:
+		0:
+			return {"lineas": ["Sheyla Escobedo, residente de investigación.", "Estoy leyendo sobre resistencia a los antibióticos. Algunas bacterias se duplican cada 20 minutos.", "Fascinante. Y aterrador."], "opciones": [
+				{"texto": "¡Qué interesante! Cuéntame más.", "amistad": 2, "respuesta": ["Comprendo su interés. Le presto mi resumen. Son 40 páginas.", "A doble columna."]},
+				{"texto": "Suena aburrido.", "amistad": -1, "respuesta": ["Comprendo. Usted se lo pierde."]},
+			]}
+		1:
+			return {"lineas": ["Comprendo que Diego Quiroz crea que es gracioso gritar «señorita Sheyla» en el pasillo.", "Estadísticamente, su humor tiene un 0 % de efectividad.", "La próxima vez le lanzo mi libro de farmacología. Son 1.200 páginas."], "opciones": [
+				{"texto": "Hablaré con él.", "amistad": 1, "respuesta": ["Comprendo. Gracias, doctor. Usted es razonable."]},
+				{"texto": "Es solo una broma, Sheyla.", "amistad": -1, "respuesta": ["Comprendo que usted piense eso.", "Está equivocado, pero lo comprendo."]},
+			]}
+		2:
+			return {"lineas": ["Comprendo. Usted es el Dr. Pinkman. Dicen que aprende rápido.", "Veamos si es cierto: ¿cuál es el hueso más largo del cuerpo humano?"], "opciones": [
+				{"texto": "El fémur.", "amistad": 2, "respuesta": ["Comprendo. Correcto. Usted me cae bien, doctor."]},
+				{"texto": "El húmero.", "amistad": 0, "respuesta": ["Incorrecto. Es el fémur.", "No se preocupe. Le presto otro resumen."]},
+			]}
+	if Juego.flags.get("jinu_sheyla", false):
+		return [["Jinu y yo armamos un horario de estudio. Martes y jueves: farmacología.", "Comprendo que Quiroz crea que fue gracias a él. No lo fue."],
+			["Comprendo por qué Jinu le admira, doctor. Habla de usted todo el tiempo."]].pick_random()
+	return [["La cafetería tiene el mejor wifi del hospital. Y café. Dos recursos esenciales."],
+		["Comprendo que la gente piense que estudio demasiado. La gente se equivoca a menudo."]].pick_random()
+
+
+## Cinemática: Diego le dice a Jinu que Sheyla lo busca en la cafetería… y Sheyla sí está ahí.
+func _cinematica_broma() -> void:
+	if not (npcs.has("Jinu Blake") and npcs.has("Diego Quiroz") and npcs.has("Sheyla Escobedo")):
+		return
+	cinematica_activa = true
+	Juego.flags["jinu_broma"] = true
+	var diego: NPC = npcs["Diego Quiroz"]
+	var jinu: NPC = npcs["Jinu Blake"]
+	var sheyla: NPC = npcs["Sheyla Escobedo"]
+	var o_p: Vector2 = SALAS["pasillo"]["origen"]
+	var o_c: Vector2 = SALAS["cafeteria"]["origen"]
+	var diego_inicio := diego.position
+	walter.bloqueado = true
+	hud.poner_aviso("")
+	# 1. Diego va donde Jinu
+	jinu.guion = true
+	jinu.ruta.clear()
+	await diego.ir_a([Vector2(jinu.position.x - 18, jinu.position.y)], 50.0)
+	diego.mirar_a(jinu.global_position)
+	jinu.mirar_a(diego.global_position)
+	await hud.dialogo("Diego Quiroz", ["¡Jinu! ¡Jinu! Adivina quién te está buscando en la cafetería…", "¡La señorita Sheyla! Dijo que era urgente. Jajaj… digo, ¡URGENTE!"])
+	await hud.dialogo("Jinu Blake", ["¿¡S-Sheyla!? ¿A mí? ¿¡Ahora!?", "¡Voy! ¡Voy corriendo!"])
+	# 2. Jinu sale corriendo hacia la puerta de la cafetería
+	var puerta := o_p + Vector2(480, 82)
+	await jinu.ir_a([Vector2(jinu.position.x, o_p.y + 100), Vector2(puerta.x, o_p.y + 100), puerta], 95.0)
+	Juego.sonido("puerta", 1.2, -8.0)
+	jinu.visible = false
+	diego.mirar_a(walter.global_position)
+	await hud.dialogo("Diego Quiroz", ["¡JAJAJA! ¡Salió volando!", "Venga, doctor, vamos a ver la cara que pone cuando no encuentre a nadie."])
+	await diego.ir_a([Vector2(diego.position.x, o_p.y + 100), Vector2(puerta.x + 14, o_p.y + 100), puerta + Vector2(14, 0)], 55.0)
+	diego.visible = false
+	# 3. En la cafetería: Sheyla sí está ahí
+	await ir_a_sala("cafeteria", SALAS["cafeteria"]["entrada"], true)
+	walter.bloqueado = true
+	walter.figura.mirando = Vector2.DOWN
+	diego.position = o_c + Vector2(126, 108)
+	diego.visible = true
+	diego.mirar_a(o_c + Vector2(240, 200))
+	jinu.position = o_c + Vector2(100, 128)
+	jinu.visible = true
+	jinu.mirar_a(o_c + Vector2(60, 128))
+	await get_tree().create_timer(0.4).timeout
+	jinu.mirar_a(o_c + Vector2(200, 128))
+	await hud.dialogo("Jinu Blake", ["¿Sheyla…? ¿Seño… digo, Sheyla?"])
+	await jinu.ir_a([o_c + Vector2(100, 186), o_c + Vector2(282, 186), o_c + Vector2(282, 206)], 60.0)
+	jinu.mirar_a(sheyla.global_position)
+	sheyla.mirar_a(jinu.global_position)
+	await hud.dialogo("Sheyla Escobedo", ["Comprendo. Jinu Blake, interno de primer año. ¿Necesita algo?"])
+	await hud.dialogo("Jinu Blake", ["D-Diego me dijo que usted me estaba buscando… que era urgente…"])
+	await hud.dialogo("Sheyla Escobedo", ["Comprendo. No lo estaba buscando."])
+	await hud.dialogo("Jinu Blake", ["Ah. Claro. Qué tonto soy. P-perdón por interrumpir, ya me voy…"])
+	await hud.dialogo("Sheyla Escobedo", ["Espere.", "Ese libro que carga es el de farmacología de Goodman. Edición 14.",
+		"Estoy repasando para el examen de residencia y nadie aquí quiere estudiar conmigo. ¿Le interesa?"])
+	await hud.dialogo("Jinu Blake", ["¿¡Farmacología!? ¡Es mi materia favorita! ¡Sí! ¡Claro! ¡Digo… sí, con mucho gusto!"])
+	await hud.dialogo("Sheyla Escobedo", ["Comprendo. Siéntese."])
+	# 4. Sheyla descubre a Diego en la puerta
+	sheyla.mirar_a(diego.global_position)
+	await hud.dialogo("Sheyla Escobedo", ["Y usted, Quiroz. Lo vi asomado en la puerta.",
+		"Comprendo perfectamente lo que intentaba. Su broma tuvo 0 % de gracia y 100 % de resultado contrario.",
+		"Vuelva a gritar «señorita Sheyla» en el pasillo y le lanzo las 1.200 páginas de este libro."])
+	diego.mirar_a(sheyla.global_position)
+	await hud.dialogo("Diego Quiroz", ["¡E-era una broma inocente!", "…Bueno. ¡De nada, Jinu! ¡Me debes una!"])
+	await diego.ir_a([o_c + Vector2(100, 104)], 70.0)
+	Juego.sonido("puerta", 1.0, -10.0)
+	diego.position = diego_inicio
+	diego.guion = false
+	# 5. Jinu se queda estudiando con Sheyla el resto del día
+	jinu.guion = false
+	jinu.quieto = true
+	jinu.zona_paseo = Rect2()
+	jinu.mirada_base = Vector2.RIGHT
+	jinu.mirar_a(sheyla.global_position)
+	sheyla.mirada_base = Vector2.LEFT
+	Juego.flags["jinu_sheyla"] = true
+	Juego.flags["jinu_cafeteria_dia"] = Juego.dia
+	Juego.cambiar_amistad("Jinu Blake", 1)
+	hud.mostrar("A Diego la broma le salió al revés: Jinu y Sheyla ahora estudian juntos.", 4.0)
+	walter.bloqueado = false
+	cinematica_activa = false
+	refrescar_aviso()
+
+
+# --- Policía: Dakota y el capitán Marcos Rojas ---------------------------------------
+func _visita_marcos(d: int) -> bool:
+	return d >= 3 and d % 3 == 0
+
+
+func _dakota_en_recepcion(d: int) -> bool:
+	return d >= 2 and (d % 4 == 2 or _visita_marcos(d))
+
+
+func _dialogo_dakota():
+	if _visita_marcos(Juego.dia) and randf() < 0.5:
+		return ["El capitán Rojas vino a vigilarnos.", "Pórtese normal, doctor. Si es que sabe cómo."]
+	var e := _etapa("zac")
+	var final_zac: String = Juego.flags.get("zac_final", "")
+	if Juego.flags.get("zac_novios", false):
+		return [["Zacarías me trajo donas otra vez. Es un buen hombre.", "Si le rompen el corazón en este hospital, yo me entero, doctor. Yo siempre me entero."],
+			["No le diga a nadie que sonrío cuando Zacarías tartamudea.", "Tengo una reputación. Oscura. Muy oscura."]].pick_random()
+	if final_zac == "bien":
+		return ["Un doctor me invitó a un café. Zacarías.", "Acepté. No le diga que estoy… emocionada. Los góticos no nos emocionamos."]
+	if final_zac == "rendido" or (final_zac == "mal" and e >= 5):
+		return ["Ese doctor tímido ya no pasa por recepción.", "Qué lástima. Era entretenido verlo sudar."]
+	if e <= 2 and not Juego.flags.get("dakota_pregunto", false):
+		return {"lineas": ["Oficial Dakota, LSPD.", "Hay un doctor en el vestidor que suda cada vez que paso. Flores, creo.", "¿Está enfermo o le doy miedo?"], "opciones": [
+			{"texto": "Es tímido. Le caes bien.", "amistad": 1, "efecto": "dakota:timido", "respuesta": ["¿Bien? ¿Yo?", "…Interesante. Muy interesante."]},
+			{"texto": "Le das un poco de miedo.", "amistad": 0, "efecto": "dakota:miedo", "respuesta": ["Bien. Así me gusta.", "…Aunque es lindo cuando suda. Olvide que dije eso."]},
+		]}
+	return [["La noche es mejor que el día. Menos gente, más silencio."],
+		["Me gusta el negro. Combina con todo, hasta con el uniforme del LSPD."],
+		["Hoy no hay luna. Mi favorita."],
+		["Los hospitales de noche tienen algo… tranquilo. A mí me gustan."]].pick_random()
+
+
+func _dialogo_marcos():
+	if _pawlak_de_guardia(Juego.dia) and not Juego.flags.has("marcos_pawlak"):
+		return {"lineas": ["¿Pawlak? Ella no está asignada a este hospital.", "Doctor, ¿usted sabe qué hace aquí?"], "opciones": [
+			{"texto": "Vino a reforzar la guardia, capitán.", "amistad": 0, "efecto": "marcos_pawlak:cubrir", "respuesta": ["Reforzar la guardia… Ajá.", "Que no se le haga costumbre. Y que Reyes deje de sonreír así."]},
+			{"texto": "Viene a ver a Reyes.", "amistad": 1, "efecto": "marcos_pawlak:verdad", "respuesta": ["Lo sabía. Jóvenes…", "Mientras cumplan su trabajo, no digo nada. Gracias por la sinceridad."]},
+		]}
+	if not Juego.flags.get("marcos_conocido", false):
+		return {"lineas": ["Capitán Marcos Rojas, LSPD.", "Vengo de vez en cuando a ver cómo trabajan mis oficiales en este hospital.", "Dígame, doctor: ¿cómo se han portado?"], "opciones": [
+			{"texto": "Son excelentes, capitán.", "amistad": 1, "efecto": "marcos:bien", "respuesta": ["Eso quería oír. Se los diré."]},
+			{"texto": "McClane fuma en el pasillo.", "amistad": 1, "efecto": "marcos:mcclane", "respuesta": ["¿Otra vez? Hablaré con él.", "Gracias por avisar, doctor."]},
+			{"texto": "No me fijo en eso, capitán.", "amistad": 0, "efecto": "marcos:nada", "respuesta": ["Comprendo. Usted tiene pacientes que atender."]},
+		]}
+	return [["Treinta años en el LSPD, doctor. He visto de todo. Hasta un ladrón escondido en una ambulancia."],
+		["¿Reyes sigue tomando ese café horrible de la recepción? Ese muchacho no aprende."],
+		["Mis oficiales traen a los heridos y ustedes los arreglan. Buen equipo."],
+		["Dakota dice que la noche es más bonita. Yo digo que la noche tiene más papeleo."]].pick_random()
+
+
 # --- Efectos de las respuestas -------------------------------------------------------
 func efecto_npc(nombre: String, efecto: String) -> void:
+	if efecto == "broma_jinu":
+		await _cinematica_broma()
+		return
+	if efecto == "jinu_cafe":
+		Juego.energia = minf(Juego.energia + 8.0, 100.0)
+		hud.mostrar("Te tomaste el café de Jinu. (+energía)", 2.5)
+		return
+	if efecto.begins_with("dakota:"):
+		Juego.flags["dakota_pregunto"] = true
+		if efecto.ends_with("timido"):
+			Juego.cambiar_amistad("Dr. Zacarías Flores", 1)
+		return
+	if efecto.begins_with("marcos:"):
+		Juego.flags["marcos_conocido"] = true
+		match efecto.substr(7):
+			"bien":
+				for o in ["Alejandro Reyes", "Jaiden Mendoza", "John McClane"]:
+					Juego.cambiar_amistad(o, 1)
+				hud.mostrar("Reyes, Mendoza y McClane te lo agradecerán. (+amistad)", 3.0)
+			"mcclane":
+				Juego.cambiar_amistad("John McClane", -1)
+				Juego.cambiar_amistad("Capitán Marcos Rojas", 1)
+		return
+	if efecto.begins_with("marcos_pawlak:"):
+		Juego.flags["marcos_pawlak"] = efecto.substr(14)
+		if efecto.ends_with("cubrir"):
+			Juego.cambiar_amistad("Alejandro Reyes", 1)
+			Juego.cambiar_amistad("Rhea Pawlak", 1)
+		else:
+			Juego.cambiar_amistad("Alejandro Reyes", -1)
+		return
 	if efecto.begins_with("reyes:"):
 		Juego.flags["reyes_consejo"] = efecto.substr(6)
 		return

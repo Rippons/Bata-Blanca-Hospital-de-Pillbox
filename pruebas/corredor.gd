@@ -199,6 +199,51 @@ func _ready() -> void:
 	Juego.respuestas_auto = ["Jaja, eres terrible."]
 	await hosp.interactuar("npc:Diego Quiroz")
 	ok(Juego.get_amistad("Diego Quiroz") == a_d + 1, "responder a Diego sube la amistad")
+	# Personajes nuevos con hoja propia
+	ok(hosp.npcs.has("Jinu Blake") and hosp.npcs["Jinu Blake"].figura.es_hoja(), "Jinu Blake está en el pasillo con su sprite propio")
+	ok(hosp.npcs.has("Sheyla Escobedo"), "Sheyla Escobedo estudia en la cafetería")
+	Juego.respuestas_auto = ["¡Bienvenido, Jinu! Cuenta conmigo."]
+	await hosp.hablar_con("Jinu Blake")
+	Juego.respuestas_auto = ["Se te nota un poquito, Jinu."]
+	await hosp.hablar_con("Jinu Blake")
+	ok(Juego.get_amistad("Jinu Blake") >= 2, "Jinu se lleva bien con Walter")
+	Juego.respuestas_auto = ["Hablaré con él."]
+	var sh: Dictionary = hosp._dialogo_sheyla()
+	ok(str(sh["lineas"][0]).begins_with("Sheyla") or str(sh["lineas"][0]).begins_with("Comprendo"), "Sheyla habla como nerd")
+	var enojo: Dictionary = hosp._dialogo_sheyla()
+	ok(str(enojo["lineas"][0]).contains("Diego Quiroz"), "Sheyla se enoja con Diego por las bromas")
+	# Cinemática de la broma
+	await hosp.hablar_con("Diego Quiroz")          # turno 1: anécdota
+	Juego.respuestas_auto = ["Dile que Sheyla lo busca en la cafetería."]
+	await hosp.hablar_con("Diego Quiroz")          # turno 2: la broma
+	var t_c := 0.0
+	while not hosp.cinematica_activa and t_c < 2.0:
+		await esperar(0.1)
+		t_c += 0.1
+	ok(hosp.cinematica_activa, "empieza la cinemática de la broma")
+	var vio_cafe := false
+	t_c = 0.0
+	while hosp.cinematica_activa and t_c < 40.0:
+		await esperar(0.2)
+		t_c += 0.2
+		if not vio_cafe and hosp.sala_actual == "cafeteria" and hosp.npcs["Jinu Blake"].ruta.size() <= 1:
+			vio_cafe = true
+			await captura("cinematica_broma")
+	ok(not hosp.cinematica_activa, "la cinemática termina")
+	var jin: NPC = hosp.npcs["Jinu Blake"]
+	var o_c: Vector2 = hosp.SALAS["cafeteria"]["origen"]
+	ok(hosp.sala_actual == "cafeteria" and jin.position.distance_to(o_c + Vector2(282, 206)) < 6.0, "Jinu termina junto a Sheyla en la cafetería")
+	ok(Juego.flags.get("jinu_sheyla", false) and not hosp.walter.bloqueado, "Jinu y Sheyla estudian juntos y Walter vuelve a moverse")
+	ok(hosp.npcs["Diego Quiroz"].position.y < 2000.0, "Diego vuelve al pasillo")
+	await captura("jinu_y_sheyla")
+	# Policías nuevos
+	ok(hosp._visita_marcos(3) and not hosp._visita_marcos(4), "el capitán Rojas visita cada 3 días")
+	ok(hosp._dakota_en_recepcion(2) and hosp._dakota_en_recepcion(3), "Dakota aparece en recepción algunos días")
+	var dm: Dictionary = hosp._dialogo_marcos()
+	ok(str(dm["lineas"][0]).contains("Marcos Rojas"), "el capitán se presenta y pregunta por sus oficiales")
+	var a_r: int = Juego.get_amistad("John McClane")
+	hosp.efecto_npc("Capitán Marcos Rojas", "marcos:mcclane")
+	ok(Juego.get_amistad("John McClane") == a_r - 1, "acusar a McClane con el capitán le baja la amistad")
 	# segundo paciente: se deja transferir
 	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
 	await esperar(0.3)
@@ -273,6 +318,8 @@ func _ready() -> void:
 	Juego.minutos = h2.catelli_listo + 1.0
 	await esperar(1.2)
 	ok(not h2.apagon and not h2.npcs.has("Paul Catelli") and h2.oscuridad.color.r > 0.9, "vuelve la luz y Catelli se va")
+	h2.apagon_hora = -1.0                 # que no vuelva a fallar al azar durante el resto de la prueba
+	Juego.flags.erase("catelli_fallo")
 	Juego.derivados_semana = Juego.LIMITE_DERIVADOS
 	Juego.flags["llamado_derivados"] = true
 	await esperar(0.4)
