@@ -103,23 +103,35 @@ func posicion_inicial() -> Vector2:
 
 func al_entrar() -> void:
 	Juego.pausado = false
+	Juego.musica("casa")
 	walter.actualizar_aspecto()
 	_actualizar_lista()
 	if Juego.punto_entrada == "cama":
+		if Juego.minutos < 7 * 60 + 30 or Juego.dia == 1:
+			_sonar_alarma()
 		if Juego.dia == 1 and Juego.ultimo_resumen == "":
 			despertador.sonando = true
 			hud.mostrar("Día 1. Eres el Dr. Walter Vega, médico interno del Hospital de Pillbox.", 4.5)
 			hud.mostrar("Tu turno empieza a las 7:30 AM. Báñate, desayuna, vístete y sal de casa.", 5.0)
-			hud.mostrar("Muévete con WASD o flechas · E para interactuar · Mantén Tab para acelerar el tiempo.", 5.0)
+			hud.mostrar("Muévete con WASD o flechas · E para interactuar y hablar · Mantén Tab para acelerar el tiempo.", 5.0)
 		else:
 			despertador.sonando = Juego.minutos < 7 * 60
 			hud.mostrar(Juego.ultimo_resumen, 5.0)
 			if Juego.huele_mal():
 				hud.mostrar("Walter: «Uf… creo que necesito una ducha».", 3.5)
 		await get_tree().create_timer(4.0).timeout
-		despertador.sonando = false
+		if is_inside_tree():
+			despertador.sonando = false
 	else:
 		hud.mostrar("Llegaste a casa a las %s. Cena, ponte la pijama, pon la alarma y duerme." % Juego.hora_texto(), 5.0)
+
+
+func _sonar_alarma() -> void:
+	for i in 3:
+		if not is_inside_tree():
+			return
+		Juego.sonido("alarma", 1.0, -10.0)
+		await get_tree().create_timer(1.1).timeout
 
 
 func _process(delta: float) -> void:
@@ -299,6 +311,7 @@ func _puerta() -> void:
 	if r != 0:
 		return
 	_cerrando = true
+	Juego.sonido("puerta", 1.0, -8.0)
 	Juego.pasar_tiempo(Juego.MINUTOS_VIAJE)
 	Juego.punto_entrada = "puerta"
 	Juego.ir_a("res://escenas/hospital.tscn", "Hospital de Pillbox · %s" % Juego.hora_texto())

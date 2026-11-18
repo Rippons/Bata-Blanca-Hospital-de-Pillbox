@@ -7,3 +7,7 @@
 | `personajes/metrocity2/` (Hair, Suit, Suit1) | MetroCity – Free Top Down Character Pack (update 2.0) | JIK-A-4 | https://jik-a-4.itch.io/metrocity-free-topdown-character-pack | Uso libre, incluido comercial; crédito no obligatorio pero apreciado (según la página del autor) |
 
 Las batas y uniformes recoloreados que haga el equipo son obras derivadas propias.
+
+## Audio
+
+Toda la música y los efectos de `audio/` fueron sintetizados por el equipo con `herramientas/generar_audio.py` (obra propia).

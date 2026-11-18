@@ -6,7 +6,7 @@ extends Node
 signal mensaje(texto: String)
 
 # --- Constantes de diseño (ajustables) -----------------------------------
-const MINUTOS_JUEGO_POR_SEGUNDO := 10.0 / 60.0   # 1 min real = 10 min de juego
+const MINUTOS_JUEGO_POR_SEGUNDO := 1.0           # 1 segundo real = 1 minuto de juego (turno ≈ 12 min reales)
 const INICIO_TURNO := 7 * 60 + 30                  # 7:30 AM
 const FIN_TURNO := 19 * 60 + 30                    # 7:30 PM
 const MINUTOS_VIAJE := 20
@@ -45,7 +45,15 @@ var punto_entrada := "cama"      # dónde aparece Walter: "cama" | "puerta"
 var insumo_cargado := ""
 var respuestas_auto: Array = []  # usado por las pruebas automáticas
 var ultimo_resumen := ""         # cómo amaneció Walter (se muestra al despertar)
+var auto_dialogo := false        # pruebas: los diálogos no esperan a que se pulse E
 var tema: Theme
+
+# Audio
+var _musica: AudioStreamPlayer
+var _musica_actual := ""
+var _sfx: Array = []
+var _sfx_i := 0
+var _sonidos := {}
 
 var _capa_fundido: CanvasLayer
 var _fundido: ColorRect
@@ -58,6 +66,7 @@ func _ready() -> void:
 	_crear_acciones()
 	_crear_tema()
 	_crear_fundido()
+	_crear_audio()
 
 
 func _process(delta: float) -> void:
@@ -289,6 +298,60 @@ func cargar() -> bool:
 	retrasos = int(datos.get("retrasos", 0))
 	hora_alarma = int(datos.get("hora_alarma", 360))
 	return true
+
+
+# --- Música y sonidos -------------------------------------------------------------
+func _crear_audio() -> void:
+	_musica = AudioStreamPlayer.new()
+	_musica.volume_db = -9.0
+	add_child(_musica)
+	for i in 6:
+		var p := AudioStreamPlayer.new()
+		add_child(p)
+		_sfx.append(p)
+
+
+func _stream(nombre: String) -> AudioStream:
+	if not _sonidos.has(nombre):
+		_sonidos[nombre] = load("res://audio/%s.wav" % nombre)
+	return _sonidos[nombre]
+
+
+## Cambia la música con un fundido corto: "casa", "hospital" o "" para silencio.
+func musica(nombre: String) -> void:
+	if nombre == _musica_actual:
+		return
+	_musica_actual = nombre
+	var tw := create_tween()
+	if _musica.playing:
+		tw.tween_property(_musica, "volume_db", -40.0, 0.6)
+	tw.tween_callback(func():
+		if nombre == "":
+			_musica.stop()
+			return
+		var st: AudioStreamWAV = _stream("musica_" + nombre)
+		st.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		st.loop_begin = 0
+		st.loop_end = int(st.get_length() * st.mix_rate)
+		_musica.stream = st
+		_musica.volume_db = -40.0
+		_musica.play())
+	if nombre != "":
+		tw.tween_property(_musica, "volume_db", -9.0, 0.8)
+
+
+func sonido(nombre: String, tono: float = 1.0, vol_db: float = -6.0) -> void:
+	var p: AudioStreamPlayer = _sfx[_sfx_i]
+	_sfx_i = (_sfx_i + 1) % _sfx.size()
+	p.stream = _stream(nombre)
+	p.pitch_scale = tono
+	p.volume_db = vol_db
+	p.play()
+
+
+## Sonidito de voz (estilo retro) al escribir diálogos.
+func blip(tono: float) -> void:
+	sonido("blip", tono * randf_range(0.96, 1.04), -12.0)
 
 
 # --- Escenas y fundidos -----------------------------------------------------------

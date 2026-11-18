@@ -32,6 +32,7 @@ func _ready() -> void:
 	await esperar(0.3)
 	print("== Día 1: mañana en casa")
 	Juego.nueva_partida()
+	Juego.auto_dialogo = true
 	await Juego.ir_a("res://escenas/casa.tscn", "Día 1 · Lunes")
 	await esperar(0.5)
 	var casa = get_tree().current_scene
@@ -76,6 +77,17 @@ func _ready() -> void:
 		await captura("hospital_" + area)
 		await hosp.interactuar("volver_" + area)
 		ok(hosp.sala_actual == "pasillo", area + " → pasillo")
+	ok(hosp.npcs.has("Erina") and hosp.npcs["Erina"].quieto, "Erina en recepción (no camina)")
+	for nombre in ["Alejandro Reyes", "Jaiden Mendoza", "John McClane"]:
+		ok(hosp.npcs.has(nombre) and hosp.npcs[nombre].figura.ropa == "policia", "policía " + nombre)
+	await hosp.interactuar("npc:John McClane")
+	await hosp.interactuar("recepcionista")
+	var mc = hosp.npcs["John McClane"]
+	var p0: Vector2 = mc.position
+	await esperar(6.0)
+	ok(mc.position.distance_to(p0) > 3.0, "los NPC caminan (McClane se movió %.0f px)" % mc.position.distance_to(p0))
+	var nombres_npc: Array = hosp.npcs.keys()
+	ok(nombres_npc.size() >= 12, "%d NPC con nombre en el hospital" % nombres_npc.size())
 	await hosp.interactuar("puerta_consultorios")
 	ok(hosp.sala_actual == "pasillo", "consultorios está cerrado")
 	await hosp.interactuar("puerta_urgencias")
@@ -134,7 +146,7 @@ func _ready() -> void:
 	await esperar(3.5)
 
 	print("== Día 2: sin alarma ni ducha")
-	ok(Juego.dia == 2 and int(Juego.minutos) == 360, "amanece el día 2 a las 6:00 (%s)" % Juego.hora_texto())
+	ok(Juego.dia == 2 and Juego.minutos >= 360.0 and Juego.minutos < 370.0, "amanece el día 2 a las 6:00 (%s)" % Juego.hora_texto())
 	ok(Juego.hay_partida_guardada(), "se guardó la partida al dormir")
 	print("   ", Juego.ultimo_resumen)
 	casa = get_tree().current_scene

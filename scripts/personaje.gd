@@ -22,6 +22,8 @@ const ROPAS := {
 	"rosa": [TRAJES, 1],
 	"fucsia": [TRAJES, 4],
 	"naranja": [TRAJES_B, 3],
+	"policia": [TRAJES_B, 0],
+	"rojo": [TRAJES_B, 1],
 	"overol": [TRAJES_B, 2],
 	"casual_blanco": ["o5", 0],
 	"casual_rojo": ["o6", 0],

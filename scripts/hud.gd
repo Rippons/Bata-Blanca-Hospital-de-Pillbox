@@ -16,6 +16,11 @@ var lbl_lista_titulo: Label
 var lbl_lista: Label
 var panel_msg: PanelContainer
 var lbl_msg: Label
+var lbl_msg_nombre: Label
+var panel_dlg: PanelContainer
+var lbl_dlg_nombre: Label
+var lbl_dlg: Label
+var lbl_dlg_seguir: Label
 var lbl_aviso: Label
 var panel_menu: PanelContainer
 var lbl_menu_titulo: Label
@@ -25,7 +30,22 @@ var caja_botones: VBoxContainer
 var _cola_mensajes: Array = []
 var _mostrando := false
 var _menu_abierto := false
+var _dialogo_abierto := false
+var _avanzar := false
 var _botones: Array = []
+
+const VELOCIDAD_TEXTO := 45.0   # letras por segundo
+## Tono de voz (pitch del blip) de los personajes conocidos; el resto se calcula del nombre.
+const TONOS := {
+	"Walter": 1.0, "Lucía": 1.3, "Erina": 1.42, "Dr. Salgado": 0.72, "Altavoz": 0.85,
+	"Alejandro Reyes": 0.8, "Jaiden Mendoza": 0.92, "John McClane": 0.68,
+}
+
+
+static func tono_de(nombre: String) -> float:
+	if TONOS.has(nombre):
+		return TONOS[nombre]
+	return 0.8 + float(abs(nombre.hash()) % 60) / 100.0
 
 
 func _ready() -> void:
@@ -70,8 +90,17 @@ func poner_aviso(texto: String) -> void:
 
 
 # --- Mensajes (cola) -------------------------------------------------------------
+## Mensaje corto que se escribe solo y desaparece. Si el texto es «Nombre: «…»»,
+## se muestra el nombre arriba y suena la voz de ese personaje.
 func mostrar(texto: String, segundos: float = 3.5) -> void:
-	_cola_mensajes.append([texto, segundos])
+	var nombre := ""
+	var cuerpo := texto
+	var re := RegEx.create_from_string("^([^:«»]{2,28}): «(.*)»(.*)$")
+	var m := re.search(texto)
+	if m:
+		nombre = m.get_string(1).strip_edges()
+		cuerpo = m.get_string(2) + m.get_string(3)
+	_cola_mensajes.append([nombre, cuerpo, segundos])
 	if not _mostrando:
 		_siguiente_mensaje()
 
@@ -83,14 +112,82 @@ func _siguiente_mensaje() -> void:
 		return
 	_mostrando = true
 	var m = _cola_mensajes.pop_front()
-	lbl_msg.text = m[0]
-	panel_msg.visible = true
-	await get_tree().create_timer(m[1]).timeout
-	_siguiente_mensaje()
+	lbl_msg_nombre.text = m[0]
+	lbl_msg_nombre.visible = m[0] != ""
+	lbl_msg.text = m[1]
+	panel_msg.visible = not _dialogo_abierto
+	await _escribir(lbl_msg, tono_de(m[0]) if m[0] != "" else -1.0, false)
+	if not is_inside_tree():
+		return
+	await get_tree().create_timer(m[2]).timeout
+	if is_inside_tree():
+		_siguiente_mensaje()
+
+
+## Revela el texto de una etiqueta letra por letra. tono < 0: sin voz.
+func _escribir(lbl: Label, tono: float, saltable: bool) -> void:
+	lbl.visible_characters = 0
+	var total := lbl.get_total_character_count()
+	var acumulado := 0.0
+	var mostradas := 0
+	while mostradas < total:
+		if not is_inside_tree():
+			return
+		if saltable and _avanzar:
+			_avanzar = false
+			break
+		await get_tree().process_frame
+		acumulado += get_process_delta_time() * VELOCIDAD_TEXTO
+		var nuevas := int(acumulado)
+		if nuevas <= 0:
+			continue
+		acumulado -= nuevas
+		for k in nuevas:
+			mostradas += 1
+			if tono > 0.0 and mostradas % 2 == 0 and mostradas <= total:
+				var c := lbl.text.substr(mostradas - 1, 1)
+				if c != " " and c != "." and c != ",":
+					Juego.blip(tono)
+		lbl.visible_characters = mini(mostradas, total)
+	lbl.visible_characters = -1
+
+
+# --- Diálogos con NPC ----------------------------------------------------------------
+## Conversación: cada línea se escribe con la voz del personaje; E / Espacio / clic avanza.
+func dialogo(nombre: String, lineas: Array, tono: float = -1.0) -> void:
+	if tono < 0.0:
+		tono = tono_de(nombre)
+	if Juego.auto_dialogo:
+		for l in lineas:
+			print("[diálogo] %s: %s" % [nombre, l])
+		return
+	var estaba_pausado := Juego.pausado
+	Juego.pausado = true
+	_dialogo_abierto = true
+	panel_msg.visible = false
+	lbl_dlg_nombre.text = nombre
+	panel_dlg.visible = true
+	for l in lineas:
+		lbl_dlg.text = l
+		lbl_dlg_seguir.visible = false
+		_avanzar = false
+		await _escribir(lbl_dlg, tono, true)
+		lbl_dlg_seguir.visible = true
+		_avanzar = false
+		while not _avanzar:
+			if not is_inside_tree():
+				return
+			await get_tree().process_frame
+		_avanzar = false
+		Juego.sonido("seleccion", 1.0, -14.0)
+	panel_dlg.visible = false
+	_dialogo_abierto = false
+	panel_msg.visible = _mostrando
+	Juego.pausado = estaba_pausado
 
 
 func ocupado() -> bool:
-	return _menu_abierto
+	return _menu_abierto or _dialogo_abierto
 
 
 # --- Menú de opciones -------------------------------------------------------------
@@ -130,10 +227,19 @@ func elegir(titulo: String, texto: String, opciones: Array) -> int:
 
 
 func _on_opcion(i: int) -> void:
+	Juego.sonido("seleccion", 1.0 if i >= 0 else 0.7, -10.0)
 	opcion_elegida.emit(i)
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _dialogo_abierto:
+		var avanzar := event.is_action_pressed("interactuar") or event.is_action_pressed("ui_accept")
+		if event is InputEventMouseButton and event.pressed:
+			avanzar = true
+		if avanzar:
+			_avanzar = true
+			get_viewport().set_input_as_handled()
+		return
 	if not _menu_abierto:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -250,10 +356,40 @@ func _crear_mensajes() -> void:
 	panel_msg.size = Vector2(256, 10)
 	panel_msg.visible = false
 	raiz.add_child(panel_msg)
+	var vm := VBoxContainer.new()
+	vm.add_theme_constant_override("separation", 0)
+	panel_msg.add_child(vm)
+	lbl_msg_nombre = _label("", 7)
+	lbl_msg_nombre.add_theme_color_override("font_color", Color("ffcf6b"))
+	vm.add_child(lbl_msg_nombre)
 	lbl_msg = _label("", 8)
 	lbl_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl_msg.custom_minimum_size = Vector2(246, 0)
-	panel_msg.add_child(lbl_msg)
+	vm.add_child(lbl_msg)
+
+	# Caja de diálogo (más grande, con nombre y ▼ para seguir)
+	panel_dlg = _panel(Color(0.03, 0.04, 0.07, 0.96))
+	var sb: StyleBoxFlat = panel_dlg.get_theme_stylebox("panel")
+	sb.border_color = Color("e8e8e8")
+	sb.set_border_width_all(1)
+	panel_dlg.position = Vector2(88, 196)
+	panel_dlg.custom_minimum_size = Vector2(304, 66)
+	panel_dlg.visible = false
+	raiz.add_child(panel_dlg)
+	var vd := VBoxContainer.new()
+	vd.add_theme_constant_override("separation", 2)
+	panel_dlg.add_child(vd)
+	lbl_dlg_nombre = _label("", 9)
+	lbl_dlg_nombre.add_theme_color_override("font_color", Color("ffcf6b"))
+	vd.add_child(lbl_dlg_nombre)
+	lbl_dlg = _label("", 9)
+	lbl_dlg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl_dlg.custom_minimum_size = Vector2(292, 34)
+	vd.add_child(lbl_dlg)
+	lbl_dlg_seguir = _label("▼  E para seguir", 7)
+	lbl_dlg_seguir.add_theme_color_override("font_color", Color(1, 1, 1, 0.55))
+	lbl_dlg_seguir.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	vd.add_child(lbl_dlg_seguir)
 	panel_msg.resized.connect(func(): panel_msg.position.y = 266 - panel_msg.size.y)
 
 	lbl_aviso = _label("", 8)

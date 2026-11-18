@@ -49,9 +49,12 @@ const CASOS := [
 	{"diagnostico": "Deshidratación", "signos": "Boca seca, mareo. Ha vomitado varias veces desde anoche.",
 	 "falsos": ["Herida superficial", "Reacción alérgica"], "insumo": "Suero oral", "deterioro": 0.5, "premio": 10, "inicial": 75.0, "grave": false},
 	{"diagnostico": "Reacción alérgica grave", "signos": "Ronchas en brazos y cuello, le cuesta respirar. Comió algo con maní hace 10 minutos.",
-	 "falsos": ["Fiebre alta", "Deshidratación"], "insumo": "Epinefrina", "deterioro": 1.5, "premio": 15, "inicial": 60.0, "grave": true},
+	 "falsos": ["Fiebre alta", "Deshidratación"], "insumo": "Epinefrina", "deterioro": 1.0, "premio": 15, "inicial": 60.0, "grave": true},
 ]
-const NOMBRES := ["Don Ramiro", "Teresa", "Andrés", "Doña Carmen", "Julio", "Valentina", "Don Héctor", "Camila", "Mateo", "Rosa"]
+## Nombres de pacientes (no se repiten en el día ni con los NPC del hospital)
+const NOMBRES := ["Don Ramiro", "Teresa", "Andrés", "Doña Carmen", "Julio", "Valentina", "Don Héctor", "Camila",
+	"Mateo", "Rosa", "Felipe", "Laura", "Daniela", "Tomás", "Isabel", "Martín", "Natalia", "Don Jorge",
+	"Lucas", "Mariana", "Esteban", "Doña Inés", "Simón", "Gabriela"]
 const INSUMOS_A := ["Vendaje", "Antipirético", "Suero oral", "Férula"]
 const CONSEJOS := [
 	"Lucía: «Las heridas se cubren con vendaje; la fiebre baja con antipirético».",
@@ -191,12 +194,13 @@ func _construir_recepcion() -> void:
 	cartel("HOSPITAL DE PILLBOX", Vector2(116, 24), Color("1e5a8a"))
 	deco(Rect2(1583, 33, 34, 14), 346, 52)
 	deco(Rect2(2103, 36, 18, 10), 190, 46)
-	# mostrador con Marta, monitor y papeles
-	npc(1, "fucsia", Personaje.PELOS2, 0, Vector2(240, 140))
+	# mostrador con Erina (recepcionista, no camina), monitor y papeles
+	var erina := persona("Erina", 1, "fucsia", Personaje.PELOS2, 0, Vector2(240, 140), Rect2(), [], true)
+	erina.dialogo_dinamico = _dialogo_erina
 	mueble(MISC, Rect2(2819, 15, 122, 45), Vector2(240, 176), true, 30)
 	deco(Rect2(569, 21, 14, 18), 206, 150)
 	deco(Rect2(1209, 23, 12, 16), 276, 148)
-	zona("recepcionista", "Hablar con Marta (recepción)", Rect2(190, 176, 100, 16))
+	zona("recepcionista", "Hablar con Erina (recepción)", Rect2(190, 176, 100, 16))
 	# sala de espera izquierda
 	mueble(HOME + "LivingRoom1-Sheet.png", Rect2(24, 501, 48, 26), Vector2(56, 112), true, 14)
 	mueble(HOME + "LivingRoom1-Sheet.png", Rect2(24, 501, 48, 26), Vector2(120, 112), true, 14)
@@ -205,8 +209,14 @@ func _construir_recepcion() -> void:
 	mueble(MISC, Rect2(824, 4, 14, 50), Vector2(10, 196), true, 40)
 	mueble(MISC, Rect2(54, 18, 20, 30), Vector2(40, 236), true, 12)
 	mueble(HOME + "Miscellaneous-Sheet.png", Rect2(591, 35, 35, 21), Vector2(88, 136), true, 10)
-	npc(4, "casual_rojo", Personaje.PELOS, 3, Vector2(58, 168))
-	npc(2, "overol", Personaje.PELOS2, 3, Vector2(126, 104))
+	persona("Doña Gloria", 4, "casual_rojo", Personaje.PELOS, 3, Vector2(100, 150), Rect2(20, 128, 170, 30), [
+		["Estoy esperando a mi nieto; se torció el tobillo jugando fútbol.", "Ay, doctor, ¿usted cree que demore mucho?"],
+		["Este hospital es muy limpio. Se nota que lo cuidan."],
+	])
+	persona("Don Ernesto", 5, "overol", Personaje.PELOS, 1, Vector2(100, 200), Rect2(20, 190, 150, 52), [
+		["Mi rodilla ya no es lo que era, doctor.", "Pero vengo más por la conversación que por la rodilla, la verdad."],
+		["En mis tiempos los médicos usaban corbata debajo de la bata."],
+	])
 	# lado derecho: dispensador, máquina, plantas y más sillas
 	mueble(MISC, Rect2(1333, 20, 22, 27), Vector2(470, 110), true, 12)
 	mueble(HOME + "Kitchen-Sheet.png", Rect2(996, 0, 24, 48), Vector2(440, 112), true, 26, Color("ffcc80"))
@@ -214,7 +224,15 @@ func _construir_recepcion() -> void:
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(340, 176), true, 12)
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(410, 176), true, 12)
 	mueble(HOME + "LivingRoom1-Sheet.png", Rect2(24, 501, 48, 26), Vector2(352, 112), true, 14)
-	npc(0, "rosa", Personaje.PELOS, 5, Vector2(400, 168))
+	persona("Samuel", 0, "casual_blanco", Personaje.PELOS2, 3, Vector2(380, 150), Rect2(296, 128, 130, 30), [
+		["Vine a traerle el almuerzo a mi esposa; ella es enfermera aquí.", "Dicen que la cafetería cocina mejor que yo."],
+		["¿Usted es nuevo? No lo había visto antes."],
+	])
+	persona("Alejandro Reyes", 2, "policia", Personaje.PELOS, 0, Vector2(300, 222), Rect2(300, 196, 150, 50), [
+		["Agente Alejandro Reyes. Hoy me toca la guardia de la entrada.", "Si ve algo raro, me avisa. Para eso estamos."],
+		["Anoche trajimos a un muchacho que se cayó de la moto.", "Sin casco, claro. Siempre sin casco."],
+		["Mendoza está en urgencias y McClane anda por el pasillo. Yo cuido la puerta."],
+	])
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(316, 112), true, 6)
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(166, 236), true, 6)
 	for pos in [Vector2(20, 104), Vector2(194, 104), Vector2(286, 104), Vector2(186, 248), Vector2(294, 248), Vector2(462, 248)]:
@@ -257,8 +275,22 @@ func _construir_pasillo() -> void:
 	suelo_color(Rect2(30, 211, 60, 8), Color("6b4a2b"))
 	cartel("↓ RECEPCIÓN", Vector2(36, 220), Color("9fc4e8"))
 	zona("ir_recepcion", "Volver a recepción", Rect2(30, 196, 60, 18))
-	npc(2, "rosa", Personaje.PELOS, 2, Vector2(560, 160), Vector2.LEFT)
-	npc(5, "enfermera", Personaje.PELOS2, 4, Vector2(250, 150), Vector2.RIGHT)
+	persona("John McClane", 0, "policia", Personaje.PELOS, 0, Vector2(700, 150), Rect2(520, 112, 400, 80), [
+		["McClane, policía. Estoy esperando para tomar una declaración.", "Los hospitales me ponen nervioso: demasiados pasillos y ascensores."],
+		["¿La cafetería? Tercera puerta. Gracias, doc."],
+		["Un consejo de policía viejo: nunca ande descalzo en un edificio grande."],
+	])
+	persona("Paola", 1, "enfermera", Personaje.PELOS2, 4, Vector2(250, 150), Rect2(40, 112, 440, 80), [
+		["Voy corriendo a llevar unas muestras al laboratorio.", "¡Ánimo en su primer mes, doctor!"],
+		["Si necesita una bata, en el vestidor hay de repuesto."],
+	])
+	persona("Kevin", 3, "overol", Personaje.PELOS, 5, Vector2(420, 170), Rect2(200, 112, 500, 80), [
+		["Llevo diez años de camillero. Me conozco cada baldosa de este pasillo.", "La tercera de la izquierda está floja, ojo."],
+		["Si un paciente no puede caminar, me llaman a mí. ¡Rápido como un rayo!"],
+	])
+	persona("Sofía", 2, "rosa", Personaje.PELOS, 2, Vector2(760, 170), Rect2(600, 112, 330, 80), [
+		["Busco los consultorios, pero dice «cerrado».", "Ah, ¿solo abren cuando hay residentes? Qué lástima."],
+	])
 
 
 func _construir_urgencias() -> void:
@@ -281,13 +313,19 @@ func _construir_urgencias() -> void:
 	mueble(MISC, Rect2(1075, 24, 25, 17), Vector2(456, 92), true, 8)
 	deco(Rect2(1209, 23, 12, 16), 360, 50)
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(64, 90), true, 6)
-	npc(3, "enfermera", Personaje.PELOS, 6, Vector2(110, 204))
+	var lucia := persona("Lucía", 3, "enfermera", Personaje.PELOS, 6, Vector2(110, 204), Rect2(), [], true)
+	lucia.dialogo_dinamico = _dialogo_lucia
 	mueble(MISC, Rect2(2563, 15, 122, 45), Vector2(110, 236), true, 30)
 	deco(Rect2(569, 21, 14, 18), 84, 214)
 	zona("lucia", "Hablar con Lucía", Rect2(60, 236, 100, 16))
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(330, 222), true, 12)
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(410, 222), true, 12)
 	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(462, 250), true, 8)
+	persona("Jaiden Mendoza", 3, "policia", Personaje.PELOS2, 2, Vector2(300, 170), Rect2(250, 150, 200, 40), [
+		["Agente Jaiden Mendoza. Traje a un herido hace un rato.", "Usted haga su trabajo, doctor; yo me quedo por si acaso."],
+		["El café de la cafetería es lo único que me mantiene despierto."],
+		["Reyes cuida la entrada y McClane anda por el pasillo. Somos un buen equipo."],
+	])
 
 
 func _construir_vestidor() -> void:
@@ -304,7 +342,10 @@ func _construir_vestidor() -> void:
 	mueble(HOME + "Kitchen1-Sheet.png", Rect2(409, 15, 46, 33), Vector2(240, 196), true, 18, Color("8d9aa8"))
 	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(124, 214), true, 6)
 	mueble(HOME + "Flowers-Sheet.png", Rect2(89, 23, 14, 23), Vector2(356, 214), true, 6)
-	npc(1, "uniforme", Personaje.PELOS, 7, Vector2(290, 180), Vector2.LEFT)
+	persona("Dr. Ramírez", 1, "uniforme", Personaje.PELOS, 7, Vector2(290, 180), Rect2(190, 160, 150, 50), [
+		["Ramírez, de cirugía. Acabo de salir de una operación de cuatro horas.", "Consejo: báñese antes del turno. Los pacientes lo notan."],
+		["El Dr. Salgado empezó como interno, igual que usted."],
+	])
 
 
 func _construir_cafeteria() -> void:
@@ -323,7 +364,10 @@ func _construir_cafeteria() -> void:
 		mueble(HOME + "Kitchen1-Sheet.png", Rect2(409, 15, 46, 33), pos, true, 22)
 		mueble(HOME + "Kitchen1-Sheet.png", Rect2(42, 7, 12, 25), pos + Vector2(-30, -4), false)
 		mueble(HOME + "Kitchen1-Sheet.png", Rect2(232, 9, 14, 23), pos + Vector2(30, -4), false)
-	npc(0, "naranja", Personaje.PELOS, 4, Vector2(266, 196), Vector2.RIGHT)
+	persona("Don Pedro", 0, "naranja", Personaje.PELOS, 4, Vector2(236, 170), Rect2(130, 150, 220, 60), [
+		["Aquí el almuerzo es sagrado, doctor.", "Pruebe la sopa: la hace Doña Luz desde hace veinte años."],
+		["Vengo todos los días aunque no esté enfermo. ¡Por la comida!"],
+	])
 	mueble(HOME + "Flowers-Sheet.png", Rect2(89, 23, 14, 23), Vector2(116, 220), true, 6)
 
 
@@ -336,7 +380,9 @@ func _construir_direccion() -> void:
 	mueble(HOME + "Cupboard-Sheet.png", Rect2(334, 29, 36, 34), Vector2(184, 124), true, 16)
 	deco(Rect2(1, 0, 30, 32), 240, 80, HOME + "Paintings1-Sheet.png")
 	deco(Rect2(526, 15, 36, 40), 284, 84, HOME + "Windows-Sheet.png")
-	npc(4, "uniforme", Personaje.PELOS, 1, Vector2(240, 162))
+	var salgado := persona("Dr. Salgado", 4, "uniforme", Personaje.PELOS, 1, Vector2(240, 162), Rect2(156, 140, 168, 26))
+	salgado.velocidad = 14.0
+	salgado.dialogo_dinamico = _dialogo_salgado
 	mueble(HOME + "LivingRoom-Sheet.png", Rect2(25, 15, 46, 30), Vector2(240, 192), true, 18)
 	deco(Rect2(569, 21, 14, 18), 228, 178)
 	zona("salgado", "Hablar con el Dr. Salgado", Rect2(204, 192, 72, 18))
@@ -357,10 +403,11 @@ func al_entrar() -> void:
 	_generar_agenda()
 	_ultimo_minuto = Juego.minutos
 	var notas := Juego.llegar_al_hospital()
-	hud.mostrar("Marta: «Buenos días, Dr. Vega. Las áreas están por el pasillo; urgencias es la primera puerta».", 4.5)
+	hud.mostrar("Erina: «Buenos días, Dr. Vega. Las áreas están por el pasillo; urgencias es la primera puerta».", 4.5)
 	for nota in notas:
 		hud.mostrar(nota, 4.5)
 	walter.actualizar_aspecto()
+	Juego.musica("hospital")
 	Juego.pausado = false
 
 
@@ -373,6 +420,7 @@ func ir_a_sala(destino: String, punto: Vector2) -> void:
 		return
 	_cambiando = true
 	walter.bloqueado = true
+	Juego.sonido("puerta", 1.0, -8.0)
 	await Juego.fundir(1.0)
 	sala_actual = destino
 	walter.position = SALAS[destino]["origen"] + punto
@@ -385,17 +433,18 @@ func ir_a_sala(destino: String, punto: Vector2) -> void:
 
 
 func _generar_agenda() -> void:
-	var horas := [8 * 60, 10 * 60 + 30, 13 * 60 + 30, 16 * 60 + 30]
-	var n := 3 if Juego.dia == 1 else 4
-	var leves := CASOS.filter(func(c): return not c["grave"])
-	var graves := CASOS.filter(func(c): return c["grave"])
 	var nombres := NOMBRES.duplicate()
 	nombres.shuffle()
-	var con_grave := Juego.dia >= 2 and randf() < 0.6
-	var indice_grave := randi_range(1, n - 1)
-	for i in n:
-		var caso: Dictionary = graves.pick_random() if (con_grave and i == indice_grave) else leves.pick_random()
-		agenda.append({"hora": horas[i] + randi_range(0, 40), "caso": caso, "nombre": nombres[i]})
+	var leves := CASOS.filter(func(c): return not c["grave"])
+	var graves := CASOS.filter(func(c): return c["grave"])
+	var hora := 7 * 60 + 45 + randi_range(0, 15)
+	var i := 0
+	while hora < 18 * 60 + 40 and i < nombres.size():
+		var grave := i > 0 and randf() < (0.08 if Juego.dia == 1 else 0.18)
+		var caso: Dictionary = graves.pick_random() if grave else leves.pick_random()
+		agenda.append({"hora": hora, "caso": caso, "nombre": nombres[i]})
+		hora += randi_range(40, 70)
+		i += 1
 
 
 # --- Bucle ---------------------------------------------------------------------
@@ -428,6 +477,7 @@ func _llegadas() -> void:
 		pacientes[libre] = p
 		interactuables["camilla%d" % libre].etiqueta = "Atender a %s" % p.nombre
 		refrescar_aviso()
+		Juego.sonido("altavoz", 1.0, -8.0 if sala_actual != "urgencias" else -16.0)
 		if sala_actual != "urgencias":
 			hud.mostrar("Altavoz: «Dr. Walter Vega, se le necesita en urgencias%s»." % (" de inmediato" if a["caso"]["grave"] else ""), 4.0)
 		elif a["caso"]["grave"]:
@@ -474,7 +524,9 @@ func _actualizar_lista() -> void:
 func interactuar(id: String) -> void:
 	if _cambiando:
 		return
-	if id.begins_with("camilla"):
+	if id.begins_with("npc:"):
+		await hablar_con(id.substr(4))
+	elif id.begins_with("camilla"):
 		await _camilla(int(id.substr(7)))
 	elif id.begins_with("puerta_"):
 		var destino := id.substr(7)
@@ -492,15 +544,15 @@ func interactuar(id: String) -> void:
 			"ir_pasillo": await ir_a_sala("pasillo", Vector2(60, 180))
 			"ir_recepcion": await ir_a_sala("recepcion", Vector2(240, 92))
 			"calle": hud.mostrar("Tu turno termina a las 7:30 PM. Son las %s." % Juego.hora_texto())
-			"recepcionista": _marta()
+			"recepcionista": await hablar_con("Erina")
 			"botiquin": await _botiquin(INSUMOS_A, "Botiquín")
 			"botiquin_rojo": await _botiquin(["Epinefrina"], "Botiquín rojo")
 			"casillero": await _casillero()
 			"ducha_hospital": await _ducha()
 			"almuerzo": await _almorzar()
 			"snacks": await _snacks()
-			"lucia": _lucia()
-			"salgado": _salgado()
+			"lucia": await hablar_con("Lucía")
+			"salgado": await hablar_con("Dr. Salgado")
 	walter.actualizar_aspecto()
 
 
@@ -536,6 +588,7 @@ func _camilla(i: int) -> void:
 		else:
 			p.fallos += 1
 			p.estabilidad = maxf(p.estabilidad - 10.0, 1.0)
+			Juego.sonido("error", 1.0, -8.0)
 			hud.mostrar("Eso no encaja con los signos. %s empeoró un poco. Revisa otra vez." % p.nombre)
 		return
 	if Juego.insumo_cargado == "":
@@ -548,11 +601,13 @@ func _camilla(i: int) -> void:
 		p.estado = "alta"
 		p.estabilidad = 100.0
 		atendidos += 1
+		Juego.sonido("exito", 1.0, -8.0)
 		hud.mostrar("¡%s está estable! (+%d reputación)" % [p.nombre, premio])
 		await get_tree().create_timer(2.5).timeout
 		if pacientes[i] == p:
 			_liberar(i)
 	else:
+		Juego.sonido("error", 1.0, -8.0)
 		hud.mostrar("%s no sirve para %s. Se desperdició el insumo." % [Juego.insumo_cargado, p.caso["diagnostico"].to_lower()])
 		Juego.insumo_cargado = ""
 
@@ -608,34 +663,43 @@ func _snacks() -> void:
 		hud.mostrar("Comiste algo rápido. (+hambre)")
 
 
-func _marta() -> void:
-	var esperando := 0
+func _pendientes() -> int:
+	var n := 0
 	for p in pacientes:
 		if p and p.estado != "alta":
-			esperando += 1
-	if esperando > 0:
-		hud.mostrar("Marta: «Hay %d paciente(s) en urgencias, doctor. Primera puerta del pasillo»." % esperando, 4.0)
-	else:
-		hud.mostrar("Marta: «Todo tranquilo por ahora. La cafetería es la tercera puerta, por si acaso».", 4.0)
+			n += 1
+	return n
 
 
-func _lucia() -> void:
+func _dialogo_erina() -> Array:
+	var n := _pendientes()
+	if n > 0:
+		return ["Doctor, hay %d paciente(s) esperando en urgencias." % n, "Es la primera puerta del pasillo. ¡Corra!"]
+	return [["Todo tranquilo por ahora, doctor.", "Si tiene hambre, la cafetería es la tercera puerta."],
+		["¿Sabía que el Dr. Salgado llega todos los días a las 6 en punto?", "Nunca lo he visto llegar tarde."],
+		["Hoy los policías Reyes, Mendoza y McClane están de guardia aquí.", "Con ellos uno se siente más seguro."]].pick_random()
+
+
+func _dialogo_lucia() -> Array:
 	if Juego.huele_mal():
-		hud.mostrar("Lucía: «Doctor, se lo digo con cariño: en el vestidor hay ducha».", 4.0)
-		return
+		return ["Doctor, se lo digo con cariño…", "En el vestidor hay una ducha. Úsela, por favor."]
 	if Juego.energia < 25.0:
-		hud.mostrar("Lucía: «Se ve agotado, doctor. Duerma más esta noche».", 4.0)
-		return
-	hud.mostrar(CONSEJOS.pick_random(), 4.0)
+		return ["Se ve agotado, doctor.", "Duerma más esta noche, o mañana no rendirá."]
+	if _pendientes() > 0:
+		return ["Tenemos pacientes esperando, doctor.", CONSEJOS.pick_random().trim_prefix("Lucía: «").trim_suffix("».")]
+	return [CONSEJOS.pick_random().trim_prefix("Lucía: «").trim_suffix("».")]
 
 
-func _salgado() -> void:
-	var t := "Dr. Salgado: «Vega, lleva %d de reputación, %d día(s) seguidos puntual y %d retraso(s)." % [Juego.reputacion, Juego.racha_puntual, Juego.retrasos]
+func _dialogo_salgado() -> Array:
+	var l := ["Vega. Lleva %d de reputación." % Juego.reputacion,
+		"%d día(s) seguidos puntual y %d retraso(s)." % [Juego.racha_puntual, Juego.retrasos]]
 	if Juego.reputacion >= 30:
-		t += " Va por buen camino para su primera capacitación»."
+		l.append("Va por buen camino para su primera capacitación. Siga así.")
 	else:
-		t += " Necesita 30 de reputación para pensar en una capacitación»."
-	hud.mostrar(t, 5.0)
+		l.append("Necesita 30 de reputación para pensar en una capacitación.")
+	if Juego.huele_mal():
+		l.append("Y por favor… báñese. Un médico también se cuida a sí mismo.")
+	return l
 
 
 func _terminar_turno() -> void:

@@ -4,6 +4,7 @@ extends Control
 
 func _ready() -> void:
 	Juego.pausado = true
+	Juego.musica("casa")
 	theme = Juego.tema
 	var fondo := ColorRect.new()
 	fondo.color = Color("12202e")

@@ -10,6 +10,7 @@ var mundo: Node2D          # contenedor con orden por Y (muebles + personas)
 var walter: Walter
 var hud: HUD
 var interactuables := {}   # id -> Interactuable
+var npcs := {}             # nombre -> NPC
 var origen := Vector2.ZERO  # desplazamiento de la sala que se está construyendo
 var _texturas := {}
 
@@ -122,7 +123,31 @@ func suelo_color(destino: Rect2, color: Color) -> void:
 	fondo.agregar_color(Rect2(destino.position + origen, destino.size), color)
 
 
-## Persona no jugable (MetroCity). «pos» en coordenadas de la sala.
+## NPC con nombre y diálogos. «pos» y «paseo» en coordenadas de la sala.
+## Si «paseo» está vacío o «quieto» es true, no camina.
+func persona(nombre: String, piel: int, ropa: String, pelo_hoja: String, pelo_fila: int, pos: Vector2,
+		paseo := Rect2(), lineas: Array = [], quieto := false) -> NPC:
+	var n := NPC.new()
+	n.configurar(nombre, piel, ropa, pelo_hoja, pelo_fila)
+	n.position = pos + origen
+	n.quieto = quieto or paseo.size == Vector2.ZERO
+	if paseo.size != Vector2.ZERO:
+		n.zona_paseo = Rect2(paseo.position + origen, paseo.size)
+	n.lineas = lineas
+	n.zona_hablar.usado.connect(_on_usado)
+	interactuables[n.zona_hablar.id] = n.zona_hablar
+	npcs[nombre] = n
+	mundo.add_child(n)
+	return n
+
+
+## Habla con un NPC por su nombre (lo usan las zonas de los mostradores).
+func hablar_con(nombre: String) -> void:
+	if npcs.has(nombre):
+		await npcs[nombre].hablar(hud, walter.global_position)
+
+
+## Persona decorativa sin diálogo (MetroCity). «pos» en coordenadas de la sala.
 func npc(piel: int, ropa: String, pelo_hoja: String, pelo_fila: int, pos: Vector2, mirando := Vector2.DOWN) -> Personaje:
 	var p := Personaje.new()
 	p.piel = piel
