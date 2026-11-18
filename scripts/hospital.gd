@@ -371,6 +371,9 @@ func _construir_urgencias() -> void:
 		["El tensiómetro no miente, Pinkman. Úselo."],
 		["Si un paciente no puede hablar, pregúntele a Lucía qué pasó."],
 	])
+	if _wilder_redimido():
+		var w := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(240, 190), Rect2(200, 176, 100, 30))
+		w.dialogo_dinamico = _dialogo_wilder
 	persona("Jaiden Mendoza", 3, "policia", Personaje.PELOS2, 2, Vector2(300, 170), Rect2(250, 150, 200, 40), [
 		["Agente Jaiden Mendoza. Traje a un herido hace un rato.", "Usted haga su trabajo, doctor; yo me quedo por si acaso."],
 		["El café de la cafetería es lo único que me mantiene despierto."],
@@ -396,17 +399,8 @@ func _construir_vestidor() -> void:
 		["Ramírez, de cirugía. Acabo de salir de una operación de cuatro horas.", "Consejo: báñese antes del turno. Los pacientes lo notan."],
 		["El Dr. Salgado empezó como interno, igual que usted."],
 	])
-	persona("Dr. Zacarías Flores", 1, "uniforme", Personaje.PELOS, 6, Vector2(220, 170), Rect2(186, 150, 160, 56), [
-		["¿L-la oficial Dakota del LSPD vino hoy?", "N-no, por nada… solo preguntaba. Ejem."],
-		["¿Se me nota que estoy sudando? Es… es el calor del vestidor, s-sí."],
-		["Si ve a la señorita Dakota, no le diga que pregunté por ella, ¿sí?", "Bueno, sí dígale. ¡No! Mejor no. Ay, no sé, doctor."],
-		{"lineas": ["Ensayé un saludo para la oficial Dakota: «Hola, Dakota».", "¿Muy directo? ¿Muy aburrido? Ay, me tiemblan las manos.", "¿Usted qué me aconseja, doctor?"],
-		 "opciones": [
-			{"texto": "Invítala a un café.", "amistad": 1, "efecto": "consejo_dakota:cafe", "respuesta": ["¿Un café? ¿Así de simple?", "…Lo voy a pensar. Gracias, doctor."]},
-			{"texto": "Sé tú mismo, Zacarías.", "amistad": 1, "efecto": "consejo_dakota:mismo", "respuesta": ["¿Y-y si yo mismo soy un desastre?", "Bueno… lo intentaré."]},
-			{"texto": "Mejor ni lo intentes.", "amistad": -2, "efecto": "consejo_dakota:nada", "respuesta": ["…Tiene razón. Seguro me dice que no."]},
-		]},
-	])
+	var zac := persona("Dr. Zacarías Flores", 1, "uniforme", Personaje.PELOS, 6, Vector2(220, 170), Rect2(186, 150, 160, 56))
+	zac.dialogo_dinamico = _dialogo_zacarias
 
 
 func _construir_cafeteria() -> void:
@@ -429,9 +423,10 @@ func _construir_cafeteria() -> void:
 		["Aquí el almuerzo es sagrado, doctor.", "Pruebe la sopa: la hace Doña Luz desde hace veinte años."],
 		["Vengo todos los días aunque no esté enfermo. ¡Por la comida!"],
 	])
-	var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(300, 176), Rect2(270, 160, 80, 40))
-	wilder.dialogo_dinamico = _dialogo_wilder
-	wilder.velocidad = 9.0
+	if not _wilder_redimido():
+		var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(300, 176), Rect2(270, 160, 80, 40))
+		wilder.dialogo_dinamico = _dialogo_wilder
+		wilder.velocidad = 9.0
 	mueble(HOME + "Flowers-Sheet.png", Rect2(89, 23, 14, 23), Vector2(116, 220), true, 6)
 
 
@@ -849,6 +844,9 @@ func _dialogo_salgado():
 		l.append("Revise el tablón del pasillo; ahí está todo.")
 	if Juego.huele_mal():
 		l.append("Y por favor… báñese. Un médico también se cuida a sí mismo.")
+	var pregunta := _salgado_pregunta_wilder()
+	if not pregunta.is_empty():
+		return {"lineas": l + pregunta["lineas"], "opciones": pregunta["opciones"]}
 	return {"lineas": l, "opciones": [
 		{"texto": "Gracias, doctor. Daré lo mejor.", "amistad": 1, "respuesta": ["Eso espero. En este hospital todos empezamos desde abajo."]},
 		{"texto": "¿Cómo llegó usted a director?", "amistad": 1, "respuesta": ["Puntualidad, estudio y nunca dejar solo a un paciente.", "Y aguantar a gente como Noctis, claro."]},
@@ -868,6 +866,17 @@ func _dialogo_cristian():
 
 
 func _dialogo_wilder():
+	var hist = _dialogo_wilder_historia()
+	if not (hist is Dictionary and hist.is_empty()):
+		return hist
+	if _wilder_redimido():
+		var opc: Array = []
+		if _pendientes() > 0 and Juego.una_vez_hoy_disponible("wilder_ayuda"):
+			opc.append({"texto": "Wilder, ¿me ayudas con un paciente?", "efecto": "wilder_ayuda"})
+		opc.append({"texto": "¡Mírate, trabajando!", "amistad": 1, "respuesta": ["¡Lo sé! Hasta yo estoy sorprendido."]})
+		return {"lineas": [["¡Mírame, Walter! ¡Trabajando! En urgencias y todo."],
+			["Resulta que ayudar a la gente se siente bien. ¿Quién lo diría?"],
+			["Bueno, igual me tomo mi siestita de 5 minutos. Esta vez son 5 de verdad."]].pick_random(), "opciones": opc}
 	var l: Array = [["¡Te juro que mañana sí trabajaré, Walter, promesa de garrita!"],
 		["Shh… estoy en mi descanso. Llevo en mi descanso desde las ocho.", "¿Qué hora es? No me digas, prefiero no saberlo."],
 		["Si Salgado pregunta, estoy atendiendo a un paciente… en la cafetería.", "El paciente soy yo: tengo hambre crónica."],
@@ -928,6 +937,96 @@ func _revisar_historias() -> void:
 		hud.mostrar("Repasaste casos. Horas de estudio: %.1f." % Juego.horas_estudio, 3.0)
 
 
+# --- Historias de personajes ------------------------------------------------------
+## Las historias avanzan una etapa por día (como mínimo) según las respuestas.
+func _etapa(clave: String) -> int:
+	return int(Juego.flags.get(clave + "_etapa", 0))
+
+
+func _puede_avanzar(clave: String) -> bool:
+	return Juego.dia > int(Juego.flags.get(clave + "_dia", 0))
+
+
+func _avanzar(clave: String, etapa: int) -> void:
+	Juego.flags[clave + "_etapa"] = etapa
+	Juego.flags[clave + "_dia"] = Juego.dia
+
+
+func _dialogo_zacarias():
+	var e := _etapa("zac")
+	if e == 0:
+		var l: Array = [["¿L-la oficial Dakota del LSPD vino hoy?", "N-no, por nada… solo preguntaba. Ejem."],
+			["¿Se me nota que estoy sudando? Es… es el calor del vestidor, s-sí."],
+			["Ensayé un saludo para la oficial Dakota: «Hola, Dakota».", "¿Muy directo? ¿Muy aburrido? Ay, me tiemblan las manos."]].pick_random()
+		return {"lineas": l + ["Doctor… ¿usted qué haría para hablarle a la oficial Dakota?"], "opciones": [
+			{"texto": "Invítala a un café.", "amistad": 1, "efecto": "zac:1:cafe", "respuesta": ["¿Un café? ¿Así de simple?", "…Lo voy a pensar. Gracias, doctor."]},
+			{"texto": "Sé tú mismo, Zacarías.", "amistad": 1, "efecto": "zac:1:mismo", "respuesta": ["¿Y-y si yo mismo soy un desastre?", "Bueno… lo intentaré."]},
+			{"texto": "Mejor ni lo intentes.", "amistad": -2, "efecto": "zac:1:nada", "respuesta": ["…Tiene razón. Seguro me dice que no."]},
+		]}
+	if e == 1:
+		if not _puede_avanzar("zac"):
+			return ["Estoy pensando en lo que me dijo, doctor…", "Mañana. Mañana hago algo. C-creo."]
+		return {"lineas": ["¡Doctor! Hoy vi a la oficial Dakota en recepción.", "Me miró y me dijo «hola». ¡ME DIJO HOLA!", "¿Eso significa algo? ¿Qué hago?"], "opciones": [
+			{"texto": "¡Es una señal! Háblale mañana.", "amistad": 1, "efecto": "zac:2:valor", "respuesta": ["¡S-sí! ¡Mañana! Ay, no voy a dormir…"]},
+			{"texto": "Un «hola» no significa nada.", "amistad": -1, "efecto": "zac:2:miedo", "respuesta": ["…Claro. Tiene razón. Solo fue educada."]},
+		]}
+	if e == 2:
+		if not _puede_avanzar("zac"):
+			return ["Mañana es el día, doctor. Mañana. Respire, Zacarías, respire…"]
+		var bien: bool = Juego.flags.get("zac_consejo", "") != "nada" and Juego.flags.get("zac_animo", "") == "valor"
+		_avanzar("zac", 3)
+		Juego.flags["zac_final"] = "bien" if bien else "mal"
+		if bien:
+			Juego.cambiar_amistad("Dr. Zacarías Flores", 2)
+			Juego.sonido("exito", 1.0, -8.0)
+			return ["¡DOCTOR! ¡Lo hice!", "Le dije: «Oficial Dakota, ¿le gustaría tomar un café conmigo?».", "¡Y dijo que sí! ¡El sábado! ¡Gracias, gracias, gracias!"]
+		return ["Doctor… fui a hablarle a la oficial Dakota.", "Abrí la boca y dije: «Buenas tardes, oficial»… y salí corriendo.", "Bueno. Por lo menos ahora sabe que existo."]
+	# etapa 3: final
+	if Juego.flags.get("zac_final", "") == "bien":
+		return [["Dakota dice que el LSPD tiene un concurso de donas. ¡Voy a ir a apoyarla!"],
+			["Ya no sudo tanto cuando la veo. Bueno… un poquito."]].pick_random()
+	return [["Sigo practicando: «Hola, Dakota». Algún día, doctor. Algún día."],
+		["Si la oficial Dakota pregunta por mí, dígale que estoy muy ocupado salvando vidas."]].pick_random()
+
+
+func _wilder_redimido() -> bool:
+	return _etapa("wil") >= 3 and Juego.flags.get("wil_camino", "") == "encubierto"
+
+
+## Lo que dice Salgado sobre Wilder (pregunta solo una vez, desde el día 2).
+func _salgado_pregunta_wilder() -> Dictionary:
+	if Juego.dia < 2 or _etapa("wil") != 0:
+		return {}
+	return {"lineas": ["Pinkman, una pregunta más.", "¿Ha visto al Dr. Noctis trabajando hoy? Sea sincero."], "opciones": [
+		{"texto": "Sí, está atendiendo a un paciente.", "amistad": 0, "efecto": "wil:encubierto", "respuesta": ["Mmm… Está bien. Si usted lo dice."]},
+		{"texto": "Está en la cafetería, como siempre.", "amistad": 1, "efecto": "wil:delatado", "respuesta": ["Lo sabía. Gracias por su honestidad, Pinkman.", "Desde mañana, Noctis hace turnos dobles."]},
+		{"texto": "Prefiero no meterme en eso.", "amistad": 0, "efecto": "wil:neutral", "respuesta": ["Prudente. Ya lo averiguaré yo."]},
+	]}
+
+
+func _dialogo_wilder_historia():
+	var e := _etapa("wil")
+	var camino: String = Juego.flags.get("wil_camino", "")
+	if e == 1 and _puede_avanzar("wil"):
+		_avanzar("wil", 2)
+		match camino:
+			"encubierto":
+				Juego.dar_favor("Dr. Wilder Noctis")
+				Juego.cambiar_amistad("Dr. Wilder Noctis", 2)
+				return ["¡Walter! Salgado me contó que dijiste que yo estaba trabajando.", "¡Me salvaste el pellejo! Te debo una… de verdad esta vez."]
+			"delatado":
+				return {"lineas": ["Turnos dobles, Walter. ¡TURNOS DOBLES!", "Salgado dice que alguien le contó dónde estaba yo…"], "opciones": [
+					{"texto": "Te lo merecías, Wilder.", "amistad": -1, "respuesta": ["…Bueno. Puede ser. Pero igual duele."]},
+					{"texto": "Lo siento, Wilder.", "amistad": 1, "respuesta": ["Ya, ya… por lo menos así no me aburro."]},
+				]}
+			_:
+				return ["Salgado me tiene en la mira, Walter.", "Ahora tengo que fingir que trabajo con más ganas."]
+	if e == 2 and _puede_avanzar("wil") and camino == "encubierto":
+		_avanzar("wil", 3)
+		return ["Estuve pensando, Walter… tú me cubriste y yo aquí comiendo galletas.", "Desde mañana me verás en urgencias. ¡Promesa de garrita! Esta vez de verdad."]
+	return {}
+
+
 # --- Efectos de las respuestas -------------------------------------------------------
 func efecto_npc(nombre: String, efecto: String) -> void:
 	if efecto.begins_with("vigilar:"):
@@ -942,13 +1041,33 @@ func efecto_npc(nombre: String, efecto: String) -> void:
 		else:
 			await hud.dialogo("Lucía", ["Lo siento, doctor, no puedo dejar la enfermería ahora."])
 			hud.mostrar("(Necesitas más amistad con Lucía para pedirle eso.)", 3.0)
-	elif efecto.begins_with("consejo_dakota:"):
-		Juego.flags["consejo_dakota"] = efecto.substr(15)
+	elif efecto.begins_with("zac:"):
+		var partes := efecto.split(":")
+		if partes[1] == "1":
+			Juego.flags["zac_consejo"] = partes[2]
+			_avanzar("zac", 1)
+		else:
+			Juego.flags["zac_animo"] = partes[2]
+			_avanzar("zac", 2)
+	elif efecto.begins_with("wil:"):
+		var camino := efecto.substr(4)
+		Juego.flags["wil_camino"] = camino
+		_avanzar("wil", 1)
+		if camino == "delatado":
+			Juego.sumar_reputacion(3)
+			Juego.cambiar_amistad("Dr. Wilder Noctis", -3)
+			hud.mostrar("(+3 reputación por tu honestidad)", 2.5)
+		elif camino == "encubierto":
+			Juego.cambiar_amistad("Dr. Wilder Noctis", 2)
 	elif efecto == "cubrir_wilder":
 		Juego.una_vez_hoy("cubrir_wilder")
 		Juego.dar_favor("Dr. Wilder Noctis")
 		Juego.flags["wilder_cubierto"] = int(Juego.flags.get("wilder_cubierto", 0)) + 1
 		await _accion(20, "Cubriste a Wilder 20 minutos…")
+	elif efecto == "wilder_ayuda":
+		Juego.una_vez_hoy("wilder_ayuda")
+		Juego.dar_favor("Dr. Wilder Noctis")
+		await efecto_npc(nombre, "favor_wilder")
 	elif efecto == "favor_wilder":
 		for i in 3:
 			var p: Paciente = pacientes[i]

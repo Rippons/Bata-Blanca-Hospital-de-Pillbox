@@ -236,6 +236,32 @@ func _ready() -> void:
 	await esperar(0.5)
 	await captura("consultorio")
 
+	print("== Historias de Zacarías y Wilder")
+	var dia_real: int = Juego.dia
+	Juego.respuestas_auto = ["Invítala a un café."]
+	await h2.hablar_con("Dr. Zacarías Flores")
+	ok(h2._etapa("zac") == 1, "Zacarías: el consejo abre su historia")
+	await h2.hablar_con("Dr. Zacarías Flores")
+	ok(h2._etapa("zac") == 1, "Zacarías: la historia espera al día siguiente")
+	Juego.dia += 1
+	Juego.respuestas_auto = ["¡Es una señal! Háblale mañana."]
+	await h2.hablar_con("Dr. Zacarías Flores")
+	ok(h2._etapa("zac") == 2, "Zacarías: día 2 de la historia")
+	Juego.dia += 1
+	await h2.hablar_con("Dr. Zacarías Flores")
+	ok(Juego.flags.get("zac_final", "") == "bien", "Zacarías: con buenos consejos, Dakota acepta el café")
+	Juego.respuestas_auto = ["Sí, está atendiendo a un paciente."]
+	await h2.hablar_con("Dr. Salgado")
+	ok(h2._etapa("wil") == 1 and Juego.flags.get("wil_camino", "") == "encubierto", "Wilder: Salgado pregunta y Walter lo encubre")
+	Juego.dia += 1
+	Juego.favores["Dr. Wilder Noctis"] = 0
+	await h2.hablar_con("Dr. Wilder Noctis")
+	ok(h2._etapa("wil") == 2 and int(Juego.favores["Dr. Wilder Noctis"]) == 1, "Wilder: agradece y queda debiendo un favor")
+	Juego.dia += 1
+	await h2.hablar_con("Dr. Wilder Noctis")
+	ok(h2._wilder_redimido(), "Wilder: decide trabajar en urgencias")
+	Juego.dia = dia_real
+
 	print("== Carga de partida")
 	var dia_guardado: int = Juego.dia
 	Juego.dia = 99
