@@ -65,6 +65,7 @@ var pausado := true              # el reloj solo corre dentro de casa/hospital
 var escala_debug := 1.0          # Tab mantiene x10 para pruebas
 var punto_entrada := "cama"      # dónde aparece Walter: "cama" | "puerta"
 var insumo_cargado := ""
+var boost_hasta := -1.0          # bebida energética: camina más rápido hasta esta hora
 var respuestas_auto: Array = []  # usado por las pruebas automáticas
 var ultimo_resumen := ""         # cómo amaneció Walter (se muestra al despertar)
 var auto_dialogo := false        # pruebas: los diálogos no esperan a que se pulse E
@@ -162,11 +163,14 @@ func bata_sucia() -> bool:
 
 
 func velocidad_walter() -> float:
+	var v := 72.0
 	if energia < 10.0:
-		return 38.0
-	if energia < 30.0:
-		return 52.0
-	return 72.0
+		v = 38.0
+	elif energia < 30.0:
+		v = 52.0
+	if minutos < boost_hasta:
+		v *= 1.35
+	return v
 
 
 ## Requisitos de la capacitación: lista de [texto, cumplido].

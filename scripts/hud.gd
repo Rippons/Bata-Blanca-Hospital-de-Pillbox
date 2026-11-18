@@ -71,6 +71,8 @@ func _process(_delta: float) -> void:
 	lbl_estado.text = "%s%s · Rep. %d · $%d%s" % [Juego.rango, (" de " + Juego.especialidad) if Juego.especialidad != "" else "",
 		Juego.reputacion, Juego.dinero, ("  ✉ %d (C)" % nuevos) if nuevos > 0 else ""]
 	lbl_carga.text = "Llevas: %s" % Juego.insumo_cargado if Juego.insumo_cargado != "" else ""
+	if Juego.minutos < Juego.boost_hasta:
+		lbl_carga.text += ("   " if lbl_carga.text != "" else "") + "¡Energía extra!"
 	_poner_barra("Higiene", Juego.higiene)
 	_poner_barra("Energía", Juego.energia)
 	_poner_barra("Hambre", Juego.hambre)

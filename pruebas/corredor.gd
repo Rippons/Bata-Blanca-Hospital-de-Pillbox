@@ -72,6 +72,14 @@ func _ready() -> void:
 	hosp.walter.position = hosp.SALAS["pasillo"]["origen"] + Vector2(400, 150)
 	await esperar(0.6)
 	await captura("hospital_pasillo")
+	var v0: float = Juego.velocidad_walter()
+	var en0: float = Juego.energia
+	Juego.respuestas_auto = [0]
+	await hosp.interactuar("energetica")
+	ok(Juego.velocidad_walter() > v0 and Juego.energia >= minf(en0 + 14.0, 100.0), "la bebida energética da energía y velocidad")
+	Juego.respuestas_auto = [0]
+	await hosp.interactuar("energetica")
+	ok(Juego.flags.has("energetica_%d" % Juego.dia), "solo una bebida energética por turno")
 	for area in ["vestidor", "cafeteria", "direccion"]:
 		await hosp.interactuar("puerta_" + area)
 		ok(hosp.sala_actual == area, "pasillo → " + area)

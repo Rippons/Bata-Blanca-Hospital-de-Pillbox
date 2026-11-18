@@ -21,7 +21,7 @@ const SALAS := {
 	"vestidor": {"nombre": "Vestidor", "origen": Vector2(0, 3000), "tam": Vector2(480, 270),
 		"interior": Rect2(112, 40, 256, 180), "entrada": Vector2(340, 112)},
 	"cafeteria": {"nombre": "Cafetería", "origen": Vector2(0, 4000), "tam": Vector2(480, 270),
-		"interior": Rect2(104, 40, 272, 186), "entrada": Vector2(128, 112)},
+		"interior": Rect2(72, 34, 336, 204), "entrada": Vector2(100, 106)},
 	"direccion": {"nombre": "Dirección", "origen": Vector2(0, 5000), "tam": Vector2(480, 270),
 		"interior": Rect2(120, 40, 240, 180), "entrada": Vector2(334, 112)},
 	"consultorios": {"nombre": "Consultorio", "origen": Vector2(0, 6000), "tam": Vector2(480, 270),
@@ -32,7 +32,7 @@ const ALTO_PARED := 48.0
 const PUERTAS_PASILLO := [
 	["urgencias", 120.0, "1 · URGENCIAS", 28.0],
 	["vestidor", 300.0, "2 · VESTIDOR", 340.0],
-	["cafeteria", 480.0, "3 · CAFETERÍA", 128.0],
+	["cafeteria", 480.0, "3 · CAFETERÍA", 100.0],
 	["direccion", 660.0, "4 · DIRECCIÓN", 334.0],
 	["consultorios", 840.0, "5 · CONSULTORIOS", 340.0],
 ]
@@ -445,33 +445,96 @@ func _construir_vestidor() -> void:
 	zac.dialogo_dinamico = _dialogo_zacarias
 
 
+## Pizarra con el menú del día (dibujada por código).
+class Pizarra extends Node2D:
+	func _draw() -> void:
+		draw_rect(Rect2(-30, -36, 60, 34), Color("6b4a2b"))
+		draw_rect(Rect2(-28, -34, 56, 30), Color("2f3b2f"))
+		var f := ThemeDB.fallback_font
+		draw_string(f, Vector2(-26, -26), "MENÚ DEL DÍA", HORIZONTAL_ALIGNMENT_CENTER, 52, 6, Color("f5e6c8"))
+		draw_string(f, Vector2(-25, -18), "Sopa de pollo", HORIZONTAL_ALIGNMENT_LEFT, -1, 5, Color("e8e8e8"))
+		draw_string(f, Vector2(-25, -12), "Arroz y carne", HORIZONTAL_ALIGNMENT_LEFT, -1, 5, Color("e8e8e8"))
+		draw_string(f, Vector2(-25, -6), "Jugo natural", HORIZONTAL_ALIGNMENT_LEFT, -1, 5, Color("ffcf6b"))
+
+
+## Reloj de pared que marca la hora del juego.
+class RelojPared extends Node2D:
+	func _process(_d: float) -> void:
+		queue_redraw()
+	func _draw() -> void:
+		draw_circle(Vector2.ZERO, 8.0, Color("5a5a5a"))
+		draw_circle(Vector2.ZERO, 7.0, Color("fafafa"))
+		var m: float = fmod(Juego.minutos, 720.0)
+		var ah := m / 720.0 * TAU - PI / 2.0
+		var am := fmod(m, 60.0) / 60.0 * TAU - PI / 2.0
+		draw_line(Vector2.ZERO, Vector2(cos(ah), sin(ah)) * 4.0, Color.BLACK, 1.2)
+		draw_line(Vector2.ZERO, Vector2(cos(am), sin(am)) * 6.0, Color("c0392b"), 1.0)
+
+
 func _construir_cafeteria() -> void:
 	_empezar_sala("cafeteria", Rect2(96, 176, 32, 32))
-	_puerta_al_pasillo(128, "cafeteria")
-	cartel("CAFETERÍA", Vector2(216, 26), Color("9fc4e8"))
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(607, 20, 34, 35), Vector2(184, 124), true, 20)
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(128, 21, 33, 34), Vector2(218, 124), true, 20)
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(223, 21, 33, 34), Vector2(251, 124), true, 20)
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(996, 0, 24, 48), Vector2(282, 128), true, 26)
-	deco(Rect2(1583, 33, 34, 14), 218, 74)
-	zona("almuerzo", "Almorzar (20 min)", Rect2(166, 120, 130, 26))
-	mueble(HOME + "Kitchen-Sheet.png", Rect2(996, 0, 24, 48), Vector2(354, 128), true, 26, Color("ffcc80"))
-	zona("snacks", "Máquina de snacks", Rect2(340, 122, 30, 24))
-	for pos in [Vector2(170, 200), Vector2(300, 200)]:
+	_puerta_al_pasillo(100, "cafeteria")
+	cartel("CAFETERÍA", Vector2(216, 20), Color("9fc4e8"))
+	# pared: ventanas, pizarra, reloj y cuadros
+	deco(Rect2(270, 15, 36, 40), 150, 78, HOME + "Windows-Sheet.png")
+	deco(Rect2(270, 15, 36, 40), 350, 78, HOME + "Windows-Sheet.png")
+	var pizarra := Pizarra.new()
+	pizarra.position = origen + Vector2(250, 76)
+	mundo.add_child(pizarra)
+	var reloj := RelojPared.new()
+	reloj.position = origen + Vector2(196, 52)
+	add_child(reloj)
+	deco(Rect2(41, 7, 14, 17), 296, 66, HOME + "Paintings-Sheet.png")
+	deco(Rect2(199, 7, 18, 21), 314, 68, HOME + "Paintings-Sheet.png")
+	# cocina contra la pared
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(607, 20, 34, 35), Vector2(150, 118), true, 18)
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(128, 21, 33, 34), Vector2(184, 118), true, 18)
+	deco(Rect2(321, 15, 18, 20), 184, 98, HOME + "Kitchen-Sheet.png")
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(1092, 0, 24, 48), Vector2(212, 122), true, 24)
+	# barra de servicio con Doña Luz detrás (no camina)
+	var luz := persona("Doña Luz", 5, "casual_blanco", Personaje.PELOS2, 4, Vector2(240, 146), Rect2(), [
+		{"lineas": ["¡Buenas, doctor! ¿Qué le sirvo hoy?", "La sopa está recién hecha. La receta es de mi abuela."],
+		 "opciones": [
+			{"texto": "¡Huele delicioso, Doña Luz!", "amistad": 1, "respuesta": ["¡Ay, gracias, mijo! Para usted le pongo más presa."]},
+			{"texto": "Solo vengo a mirar.", "amistad": 0, "respuesta": ["Mirar no llena la barriga, doctor."]},
+		]},
+		["Veinte años cocinando aquí. He visto pasar tres directores y mil internos."],
+		["Ese Dr. Noctis se come las galletas de la máquina y no las paga. ¡Yo lo vi!"],
+		["Coma bien, doctor. Con hambre nadie salva vidas."],
+	], true)
+	luz.mirada_base = Vector2.DOWN
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(895, 29, 34, 22), Vector2(224, 160), true, 14)
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(895, 29, 34, 22), Vector2(258, 160), true, 14)
+	deco(Rect2(424, 13, 16, 19), 216, 146, HOME + "Lights-Sheet.png")
+	zona("almuerzo", "Almorzar con Doña Luz (20 min)", Rect2(204, 160, 72, 18))
+	# máquinas: snacks y bebidas energéticas
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(996, 0, 24, 48), Vector2(372, 122), true, 24, Color("ffcc80"))
+	cartel("SNACKS", Vector2(361, 124), Color("6b3e00"))
+	zona("snacks", "Máquina de snacks", Rect2(358, 116, 28, 24))
+	mueble(HOME + "Kitchen-Sheet.png", Rect2(1092, 0, 24, 48), Vector2(392, 122), true, 24, Color("8ef0a0"))
+	cartel("ENERGÍA", Vector2(380, 132), Color("0b5d1e"))
+	zona("energetica", "Bebida energética (1 por turno)", Rect2(382, 116, 24, 24))
+	# mesas
+	for pos in [Vector2(126, 214), Vector2(240, 220), Vector2(352, 214)]:
 		mueble(HOME + "Kitchen1-Sheet.png", Rect2(409, 15, 46, 33), pos, true, 22)
 		mueble(HOME + "Kitchen1-Sheet.png", Rect2(42, 7, 12, 25), pos + Vector2(-30, -4), false)
 		mueble(HOME + "Kitchen1-Sheet.png", Rect2(232, 9, 14, 23), pos + Vector2(30, -4), false)
-	persona("Don Pedro", 0, "naranja", Personaje.PELOS, 4, Vector2(236, 170), Rect2(130, 150, 220, 60), [
+	deco(Rect2(424, 13, 16, 19), 126, 200, HOME + "Lights-Sheet.png")
+	# plantas y papelera
+	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(84, 232), true, 8)
+	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(398, 232), true, 8)
+	mueble(HOME + "Flowers-Sheet.png", Rect2(89, 23, 14, 23), Vector2(124, 112), true, 6)
+	mueble(MISC, Rect2(2234, 28, 12, 18), Vector2(300, 118), true, 6)
+	persona("Don Pedro", 0, "naranja", Personaje.PELOS, 4, Vector2(180, 186), Rect2(100, 176, 280, 14), [
 		["Aquí el almuerzo es sagrado, doctor.", "Pruebe la sopa: la hace Doña Luz desde hace veinte años."],
 		["Vengo todos los días aunque no esté enfermo. ¡Por la comida!"],
 		["La sopa de hoy tiene más papa que pollo. Pero igual me la comí."],
 		["Dicen que el Dr. Noctis vive en esta cafetería. Yo le he visto dormir aquí."],
 	])
 	if not _wilder_redimido():
-		var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(300, 176), Rect2(270, 160, 80, 40))
+		var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(330, 186), Rect2(290, 176, 80, 14))
 		wilder.dialogo_dinamico = _dialogo_wilder
 		wilder.velocidad = 9.0
-	mueble(HOME + "Flowers-Sheet.png", Rect2(89, 23, 14, 23), Vector2(116, 220), true, 6)
 
 
 func _construir_direccion() -> void:
@@ -753,6 +816,7 @@ func interactuar(id: String) -> void:
 			"ducha_hospital": await _ducha()
 			"almuerzo": await _almorzar()
 			"snacks": await _snacks()
+			"energetica": await _energetica()
 			"lucia": await hablar_con("Lucía")
 			"salgado": await hablar_con("Dr. Salgado")
 			"tablon": await _tablon()
@@ -931,6 +995,22 @@ func _snacks() -> void:
 		Juego.pasar_tiempo(5)
 		Juego.hambre = minf(Juego.hambre + 20.0, 100.0)
 		hud.mostrar("Comiste algo rápido. (+hambre)")
+
+
+func _energetica() -> void:
+	if not Juego.una_vez_hoy_disponible("energetica"):
+		hud.mostrar("Ya tomaste una bebida energética en este turno. Más no es bueno para el corazón.", 3.5)
+		return
+	var r: int = await hud.elegir("Bebida energética", "+15 % de energía y, durante 1 minuto, caminas más rápido. Solo 1 por turno.",
+		["Tomar una (2 min)", "Cancelar"])
+	if r != 0:
+		return
+	Juego.una_vez_hoy("energetica")
+	Juego.pasar_tiempo(2)
+	Juego.energia = minf(Juego.energia + 15.0, 100.0)
+	Juego.boost_hasta = Juego.minutos + 60.0
+	Juego.sonido("exito", 1.5, -8.0)
+	hud.mostrar("¡Glu, glu! Te sientes con energía. (+15 % energía, más velocidad por 1 minuto)", 3.0)
 
 
 func _pendientes() -> int:
