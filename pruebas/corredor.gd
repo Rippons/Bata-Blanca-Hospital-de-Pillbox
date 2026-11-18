@@ -109,8 +109,20 @@ func _ready() -> void:
 	ok(hosp.sala_actual == "urgencias", "pasillo → urgencias (primera puerta)")
 	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
 	await esperar(0.3)
+	ok(hosp.espera.size() == 1 and hosp.pacientes[0] == null, "el paciente llega a la sala de espera, no directo a la camilla")
+	var e0: Dictionary = hosp.espera[0]
+	ok(e0["triaje"] in ["verde", "amarillo", "rojo"], "Lucía le asigna triaje %s" % e0["triaje"])
+	for k in 12:
+		await esperar(1.0)
+		if e0["npc"].position.distance_to(hosp.SALAS["urgencias"]["origen"] + hosp.PUESTOS_ESPERA[e0["puesto"]]) < 6.0:
+			break
+	var dist: float = e0["npc"].position.distance_to(hosp.SALAS["urgencias"]["origen"] + hosp.PUESTOS_ESPERA[e0["puesto"]])
+	ok(dist < 6.0, "camina hasta su puesto en la sala de espera (a %.0f px)" % dist)
+	await captura("sala_espera")
+	Juego.respuestas_auto = ["Pase a la camilla 1."]
+	await hosp.hablar_con(e0["nombre"])
 	var p = hosp.pacientes[0]
-	ok(p != null, "llega el primer paciente a la camilla 1")
+	ok(p != null and hosp.espera.is_empty(), "Walter lo pasa a la camilla 1")
 	hosp.walter.position = hosp.SALAS["urgencias"]["origen"] + Vector2(150, 136)
 	await esperar(0.5)
 	await captura("hospital_urgencias")
@@ -149,6 +161,7 @@ func _ready() -> void:
 	ok(int(Juego.favores.get("Dr. Wilder Noctis", 0)) == 1 and Juego.minutos >= m_w + 20.0, "cubrir a Wilder: −20 min y te debe un favor")
 	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
 	await esperar(0.3)
+	hosp._pasar_a_camilla(hosp.espera[0], 0)
 	var at0: int = hosp.atendidos
 	Juego.respuestas_auto = ["Wilder, me debes una: atiende a un paciente."]
 	await hosp.interactuar("npc:Dr. Wilder Noctis")
@@ -163,7 +176,7 @@ func _ready() -> void:
 	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
 	await esperar(0.3)
 	var rep2: int = Juego.reputacion
-	Juego.minutos += 400.0
+	Juego.minutos += 1000.0
 	await esperar(0.3)
 	ok(hosp.transferidos >= 1 and Juego.reputacion <= rep2 - 5, "paciente desatendido se transfiere (−5)")
 	print("   ", estado())

@@ -18,6 +18,7 @@ var zona_hablar: Interactuable
 
 var mirada_base := Vector2.DOWN   # hacia dónde mira cuando está quieto (p. ej. el mostrador)
 var _objetivo := Vector2.ZERO
+var _y_primero := false            # alterna el orden de los ejes cuando se atasca
 var _espera := 0.0
 var _atascado := 0.0
 var _turno := 0
@@ -66,10 +67,16 @@ func _physics_process(delta: float) -> void:
 	if hacia.length() < 2.0:
 		_espera = randf_range(1.5, 5.0)
 		velocity = Vector2.ZERO
+		if zona_paseo.size.x <= 2.0:
+			figura.mirando = mirada_base      # llegó a su puesto fijo: mira al frente
 		figura.caminar(false, delta)
 		return
 	# Camina en tramos rectos (primero en x, luego en y): sin zigzag ni giros raros.
-	var dir := Vector2(signf(hacia.x), 0.0) if absf(hacia.x) > 1.5 else Vector2(0.0, signf(hacia.y))
+	var dir: Vector2
+	if _y_primero:
+		dir = Vector2(0.0, signf(hacia.y)) if absf(hacia.y) > 1.5 else Vector2(signf(hacia.x), 0.0)
+	else:
+		dir = Vector2(signf(hacia.x), 0.0) if absf(hacia.x) > 1.5 else Vector2(0.0, signf(hacia.y))
 	velocity = dir * velocidad
 	var antes := position
 	move_and_slide()
@@ -79,7 +86,8 @@ func _physics_process(delta: float) -> void:
 		_atascado += delta
 		if _atascado > 0.6:
 			_atascado = 0.0
-			_espera = randf_range(0.3, 1.0)   # algo lo bloquea: busca otro destino
+			_y_primero = not _y_primero        # prueba rodeando por el otro eje
+			_espera = randf_range(0.2, 0.6)
 	else:
 		_atascado = 0.0
 

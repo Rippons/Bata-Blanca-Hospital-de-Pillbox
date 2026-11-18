@@ -123,8 +123,27 @@ class Tablon extends Node2D:
 			draw_circle(p[0].position + Vector2(p[0].size.x / 2.0, 1.5), 1.2, Color("c0392b"))
 
 
+## Marca de triaje sobre un paciente en espera: punto de color, nombre y barra.
+class MarcaTriaje extends Node2D:
+	var color := Color("4caf50")
+	var nombre := ""
+	var estabilidad := 100.0
+	func _process(_d: float) -> void:
+		queue_redraw()
+	func _draw() -> void:
+		draw_circle(Vector2(-14, -38), 3.0, Color.BLACK)
+		draw_circle(Vector2(-14, -38), 2.2, color)
+		draw_string(ThemeDB.fallback_font, Vector2(-10, -36), nombre, HORIZONTAL_ALIGNMENT_LEFT, -1, 6, Color(0.1, 0.1, 0.1))
+		draw_rect(Rect2(-12, -34, 24, 2), Color(0, 0, 0, 0.5))
+		draw_rect(Rect2(-12, -34, 24 * estabilidad / 100.0, 2), color)
+
+
+const TRIAJE := {"rojo": Color("e53935"), "amarillo": Color("fbc02d"), "verde": Color("4caf50")}
+const PUESTOS_ESPERA := [Vector2(312, 205), Vector2(336, 205), Vector2(392, 205), Vector2(416, 205), Vector2(364, 205), Vector2(440, 205)]
+
 var sala_actual := "recepcion"
 var _puerta_consultorios: Node2D
+var espera: Array = []          # pacientes en la sala de espera de urgencias
 var pacientes: Array = [null, null, null]
 var agenda: Array = []          # [{hora, caso, nombre}]
 var _ultimo_minuto := 0.0
@@ -366,7 +385,7 @@ func _construir_urgencias() -> void:
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(330, 222), true, 12)
 	mueble(MISC, Rect2(929, 15, 62, 25), Vector2(410, 222), true, 12)
 	mueble(HOME + "Flowers-Sheet.png", Rect2(22, 3, 20, 43), Vector2(462, 250), true, 8)
-	persona("Dr. Maximiliano Brown", 0, "uniforme", Personaje.PELOS, 0, Vector2(200, 170), Rect2(130, 150, 140, 40), [
+	persona("Dr. Maximiliano Brown", 0, "uniforme", Personaje.PELOS, 3, Vector2(200, 170), Rect2(130, 150, 140, 40), [
 		["Maximiliano Brown, de urgencias. Si se le complica un caso, pregúnteme.", "Y lea los signos con calma: el apuro hace equivocarse."],
 		["El tensiómetro no miente, Pinkman. Úselo."],
 		["Si un paciente no puede hablar, pregúntele a Lucía qué pasó."],
@@ -539,29 +558,101 @@ func _process(_delta: float) -> void:
 
 func _llegadas() -> void:
 	while not agenda.is_empty() and Juego.minutos >= agenda[0]["hora"]:
-		var libre := pacientes.find(null)
-		if libre == -1:
-			return          # sala llena: espera a que se libere una camilla
+		if espera.size() >= PUESTOS_ESPERA.size():
+			return          # sala de espera llena: el resto espera en recepción
 		var a = agenda.pop_front()
-		var p := Paciente.new()
-		p.caso = a["caso"]
-		p.nombre = a["nombre"]
-		p.estabilidad = a["caso"]["inicial"]
-		p.position = SALAS["urgencias"]["origen"] + Vector2(CAMILLAS_X[libre], CAMILLA_Y)
-		mundo.add_child(p)
-		pacientes[libre] = p
-		interactuables["camilla%d" % libre].etiqueta = "Atender a %s" % p.nombre
-		refrescar_aviso()
-		Juego.sonido("altavoz", 1.0, -8.0 if sala_actual != "urgencias" else -16.0)
-		if sala_actual != "urgencias":
-			hud.mostrar("Altavoz: «Dr. Walter Pinkman, se le necesita en urgencias%s»." % (" de inmediato" if a["caso"]["grave"] else ""), 4.0)
-		elif a["caso"]["grave"]:
-			hud.mostrar("Lucía: «¡Doctor, urgente! %s en la camilla %d, le cuesta respirar»." % [p.nombre, libre + 1], 4.0)
-		else:
-			hud.mostrar("Lucía: «Llegó %s a la camilla %d»." % [p.nombre, libre + 1], 3.0)
+		_entra_a_espera(a)
+
+
+func _triaje(caso: Dictionary) -> String:
+	if caso["grave"]:
+		return "rojo"
+	return "amarillo" if caso["deterioro"] >= 0.5 else "verde"
+
+
+## El paciente entra por la puerta de urgencias y camina hasta un puesto libre de la sala de espera.
+func _entra_a_espera(a: Dictionary) -> void:
+	var ocupados: Array = espera.map(func(e): return e["puesto"])
+	var puesto := 0
+	while ocupados.has(puesto):
+		puesto += 1
+	var o: Vector2 = SALAS["urgencias"]["origen"]
+	var destino: Vector2 = PUESTOS_ESPERA[puesto]
+	var ropa: String = ROPAS_PACIENTE.pick_random()
+	var n := persona(a["nombre"], randi_range(0, 5), ropa, [Personaje.PELOS, Personaje.PELOS2].pick_random(), randi_range(0, 4),
+		o + Vector2(40, 96), Rect2(o + destino, Vector2(1, 1)))   # origen = 0 aquí: coordenadas del mundo
+	n.velocidad = 44.0
+	n.mirada_base = Vector2.DOWN
+	var tri := _triaje(a["caso"])
+	var marca := MarcaTriaje.new()
+	marca.color = TRIAJE[tri]
+	marca.nombre = a["nombre"]
+	n.add_child(marca)
+	var e := {"nombre": a["nombre"], "caso": a["caso"], "estabilidad": float(a["caso"]["inicial"]), "triaje": tri,
+		"npc": n, "marca": marca, "puesto": puesto}
+	espera.append(e)
+	n.dialogo_dinamico = _dialogo_espera.bind(e)
+	Juego.sonido("altavoz", 1.0, -8.0 if sala_actual != "urgencias" else -16.0)
+	var texto_tri: String = {"rojo": "ROJO, urgente", "amarillo": "amarillo", "verde": "verde"}[tri]
+	if sala_actual != "urgencias":
+		hud.mostrar("Altavoz: «Dr. Walter Pinkman, paciente en urgencias: triaje %s»." % texto_tri, 4.0)
+	else:
+		hud.mostrar("Lucía: «Llegó %s. Triaje %s; está en la sala de espera»." % [a["nombre"], texto_tri], 3.5)
+
+
+func _dialogo_espera(e: Dictionary):
+	var libres: Array = []
+	for i in 3:
+		if pacientes[i] == null:
+			libres.append(i)
+	var l: Array
+	if e["caso"]["grave"]:
+		l = ["(%s no puede hablar. Lucía lo marcó en ROJO.)" % e["nombre"]]
+	else:
+		l = [["Doctor, ¿ya me toca?"], ["¿Falta mucho, doctor? Me siento mal."], ["Perdón, ¿usted me va a atender?"]].pick_random()
+	var opciones: Array = []
+	for i in libres:
+		opciones.append({"texto": "Pase a la camilla %d." % (i + 1), "efecto": "pasar:%d" % i})
+	if libres.is_empty():
+		l = l + ["(No hay camillas libres. Atiende o da de alta a alguien primero.)"]
+	opciones.append({"texto": "Espere un momento, por favor.", "amistad": 0})
+	return {"lineas": l, "opciones": opciones}
+
+
+## Pasa un paciente de la sala de espera a una camilla.
+func _pasar_a_camilla(e: Dictionary, i: int) -> void:
+	if pacientes[i] != null or not espera.has(e):
+		return
+	espera.erase(e)
+	_quitar_npc(e["npc"])
+	var p := Paciente.new()
+	p.caso = e["caso"]
+	p.nombre = e["nombre"]
+	p.estabilidad = e["estabilidad"]
+	p.position = SALAS["urgencias"]["origen"] + Vector2(CAMILLAS_X[i], CAMILLA_Y)
+	mundo.add_child(p)
+	pacientes[i] = p
+	interactuables["camilla%d" % i].etiqueta = "Atender a %s" % p.nombre
+	Juego.sonido("seleccion", 1.0, -10.0)
+	refrescar_aviso()
+
+
+func _quitar_npc(n: NPC) -> void:
+	npcs.erase(n.nombre)
+	interactuables.erase(n.zona_hablar.id)
+	n.queue_free()
 
 
 func _deterioro(dm: float) -> void:
+	for e in espera.duplicate():
+		e["estabilidad"] -= e["caso"]["deterioro"] * dm * 0.5      # en espera empeoran a la mitad
+		e["marca"].estabilidad = maxf(e["estabilidad"], 0.0)
+		if e["estabilidad"] <= 0.0:
+			espera.erase(e)
+			_quitar_npc(e["npc"])
+			transferidos += 1
+			Juego.sumar_reputacion(-5)
+			hud.mostrar("Lucía: «%s empeoró en la sala de espera; lo tomó el doctor de turno». (−5 reputación)" % e["nombre"], 4.0)
 	for i in 3:
 		var p: Paciente = pacientes[i]
 		if p == null or p.estado == "alta":
@@ -591,6 +682,8 @@ func _actualizar_lista() -> void:
 		if p and p.estado != "alta":
 			var paso := "diagnosticar" if p.estado == "diagnosticar" else "tratar"
 			tareas.append(["%s: %s" % [p.nombre, paso], false])
+	for e in espera:
+		tareas.append(["Espera: %s (%s)" % [e["nombre"], e["triaje"]], false])
 	if tareas.is_empty():
 		tareas.append(["Esperar pacientes", false])
 	tareas.append(["Turno hasta 7:30 PM", false])
@@ -779,7 +872,7 @@ func _snacks() -> void:
 
 
 func _pendientes() -> int:
-	var n := 0
+	var n := espera.size()
 	for p in pacientes:
 		if p and p.estado != "alta":
 			n += 1
@@ -813,8 +906,10 @@ func _dialogo_lucia():
 		l = ["Doctor, se lo digo con cariño…", "En el vestidor hay una ducha. Úsela, por favor."]
 	elif Juego.energia < 25.0:
 		l = ["Se ve agotado, doctor.", "Duerma más esta noche, o mañana no rendirá."]
+	elif espera.any(func(e): return e["triaje"] == "rojo"):
+		l = ["¡Doctor, hay un paciente en ROJO en la sala de espera!", "Los rojos primero, luego los amarillos y al final los verdes."]
 	elif _pendientes() > 0:
-		l = ["Tenemos pacientes esperando, doctor.", CONSEJOS.pick_random().trim_prefix("Lucía: «").trim_suffix("».")]
+		l = ["Tenemos pacientes esperando, doctor.", "Recuerde: los rojos primero, luego amarillos y verdes."]
 	else:
 		l = [CONSEJOS.pick_random().trim_prefix("Lucía: «").trim_suffix("».")]
 	var opciones: Array = []
@@ -1029,6 +1124,14 @@ func _dialogo_wilder_historia():
 
 # --- Efectos de las respuestas -------------------------------------------------------
 func efecto_npc(nombre: String, efecto: String) -> void:
+	if efecto.begins_with("pasar:"):
+		var i := int(efecto.substr(6))
+		for e in espera:
+			if e["nombre"] == nombre:
+				_pasar_a_camilla(e, i)
+				hud.mostrar("%s pasó a la camilla %d." % [nombre, i + 1], 2.5)
+				return
+		return
 	if efecto.begins_with("vigilar:"):
 		var i := int(efecto.substr(8))
 		var p: Paciente = pacientes[i]
@@ -1083,6 +1186,15 @@ func efecto_npc(nombre: String, efecto: String) -> void:
 				if pacientes[i] == p:
 					_liberar(i)
 				return
+		if not espera.is_empty():
+			var e: Dictionary = espera[0]
+			Juego.favores["Dr. Wilder Noctis"] = int(Juego.favores["Dr. Wilder Noctis"]) - 1
+			await hud.dialogo("Dr. Wilder Noctis", ["Ugh… está bien. Un trato es un trato.", "Yo atiendo a %s en la sala de espera." % e["nombre"]])
+			espera.erase(e)
+			_quitar_npc(e["npc"])
+			atendidos += 1
+			Juego.sumar_reputacion(5)
+			hud.mostrar("Wilder atendió a %s por ti. (+5 reputación)" % e["nombre"], 3.0)
 	elif efecto == "cristian_insumo":
 		if Juego.get_amistad("Cristian Daniel") < 4:
 			await hud.dialogo("Cristian Daniel", ["Ahorita no puedo, doctor, ando con una camilla.", "(Necesitas más amistad con Cristian Daniel.)"])
@@ -1101,10 +1213,7 @@ func _terminar_turno() -> void:
 	_terminando = true
 	Juego.pausado = true
 	walter.bloqueado = true
-	var pendientes := 0
-	for p in pacientes:
-		if p and p.estado != "alta":
-			pendientes += 1
+	var pendientes := _pendientes()
 	Juego.terminar_turno()
 	var delta_rep := Juego.reputacion - _rep_inicio
 	var resumen := "Fin del turno · Atendiste %d · Transferidos %d · Reputación %+d" % [atendidos, transferidos, delta_rep]
