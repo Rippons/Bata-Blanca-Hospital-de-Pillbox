@@ -23,6 +23,7 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 | WASD / flechas | Moverse |
 | E o Espacio | Interactuar con lo que está cerca |
 | 1-9 o clic | Elegir opción en los menús · Esc cancela |
+| C | Abrir el celular (mensajes, tienda, banco) |
 | Tab (mantener) | Acelerar el tiempo ×10 (para probar) |
 
 ## Versión 1: qué incluye
@@ -54,12 +55,32 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - Los textos se escriben letra por letra con un sonidito de voz retro distinto para cada personaje; E salta o avanza.
 - Música tranquila en el hospital y otra, más hogareña, en la casa. Efectos: altavoz, puertas, alarma, acierto y error.
 
+**Relaciones y diálogos con respuesta**
+- Muchas conversaciones terminan con respuestas para elegir. Cada NPC tiene un medidor de amistad (corazones junto a su nombre) que se guarda.
+- Con amistad: Lucía vigila a un paciente para que no empeore, Erina avisa qué trae el próximo paciente y Cristian Daniel trae un insumo. Cubrir a Wilder deja un favor que se cobra pidiéndole que atienda a un paciente.
+- A los pacientes se les puede calmar (empeoran más lento).
+- Historias por días: **Zacarías y la oficial Dakota** (tus consejos deciden si la invita a un café) y **Wilder y Salgado** (encubrirlo, delatarlo o no meterse; si lo encubres, termina trabajando en urgencias). Diego Quiroz molesta al interno Jinu Blake con lo de la señorita Sheyla.
+
+**Carrera: estudiar y ascender**
+- Escritorio de la casa: estudiar 30 min o 1 h, con una pregunta de repaso (acertar suma media hora).
+- Tablón de capacitaciones en el pasillo: con reputación 80, 5 h de estudio y 3 turnos, Walter elige especialidad (Urgencias, Pediatría o Cirugía) y pasa a **Residente**. Se abre su consultorio y llegan casos e insumos de su especialidad.
+
+**Sala de espera y triaje**
+- Los pacientes entran caminando a urgencias y esperan frente a las sillas. Lucía los marca en rojo, amarillo o verde y Walter decide a quién pasa a cada camilla.
+
+**Dinero, celular y fin de semana**
+- Sueldo por turno ($60 Interno, $110 Residente) que se paga el viernes, junto con la **evaluación semanal** de Salgado (nota y bono de reputación). Arriendo de $150 cada lunes.
+- La nevera se gasta al comer; se compra mercado o domicilio desde el celular. Mejoras: cafetera y cama nueva.
+- Celular (tecla C): mensajes de mamá, Lucía, Wilder, Diego y otros (algunos con respuesta), tienda y banco.
+- Sábado y domingo no hay turno: mercado, parque o visitar a mamá.
+
 ## Estructura
 
 ```
 project.godot
 escenas/   menu.tscn · casa.tscn · hospital.tscn
-scripts/   juego.gd (autoload «Juego»: reloj, necesidades, guardado)
+scripts/   juego.gd (autoload «Juego»: reloj, necesidades, dinero, amistad, guardado)
+           casos.gd (casos clínicos, herramientas e insumos)
            sala.gd (base de casa y hospital) · casa.gd · hospital.gd
            walter.gd · npc.gd (NPC que caminan y hablan) · personaje.gd (sprites MetroCity por capas) · hud.gd · interactuable.gd · fondo.gd · menu.gd
 pruebas/   prueba.tscn + corredor.gd (juega un día y medio automáticamente)
@@ -79,4 +100,4 @@ Las salas se construyen por código en `construir()` (muebles, zonas interactuab
 
 ## Pendiente para la versión 2
 
-- Estudiar en el escritorio, estrés, dinero y sueldo, eventos aleatorios, evaluación semanal de Salgado, capacitaciones y ascenso de rango.
+- Estrés, eventos aleatorios, horas extra y capacitaciones siguientes (Especialista → Jefe de servicio → Director).

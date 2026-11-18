@@ -45,7 +45,7 @@ func _ready() -> void:
 	v.add_child(salir)
 
 	var ayuda := Label.new()
-	ayuda.text = "WASD / flechas: moverse · E: interactuar · 1-9: elegir opción · Tab: acelerar el tiempo"
+	ayuda.text = "WASD / flechas: moverse · E: interactuar · C: celular · 1-9: elegir · Tab: acelerar"
 	ayuda.add_theme_font_size_override("font_size", 7)
 	ayuda.add_theme_color_override("font_color", Color(1, 1, 1, 0.55))
 	ayuda.position = Vector2(0, 250)

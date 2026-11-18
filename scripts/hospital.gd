@@ -582,6 +582,8 @@ func _entra_a_espera(a: Dictionary) -> void:
 	var n := persona(a["nombre"], randi_range(0, 5), ropa, [Personaje.PELOS, Personaje.PELOS2].pick_random(), randi_range(0, 4),
 		o + Vector2(40, 96), Rect2(o + destino, Vector2(1, 1)))   # origen = 0 aquí: coordenadas del mundo
 	n.velocidad = 44.0
+	# Ruta: baja por la izquierda, cruza entre las camillas y la enfermería, y llega a su puesto
+	n.ruta = [o + Vector2(40, 170), o + Vector2(destino.x, 170), o + destino]
 	n.mirada_base = Vector2.DOWN
 	var tri := _triaje(a["caso"])
 	var marca := MarcaTriaje.new()
@@ -1215,6 +1217,12 @@ func _terminar_turno() -> void:
 	walter.bloqueado = true
 	var pendientes := _pendientes()
 	Juego.terminar_turno()
+	Juego.semana["atendidos"] += atendidos
+	Juego.semana["transferidos"] += transferidos
+	if Juego.es_viernes():
+		hud.mostrar("Altavoz: «Dr. Walter Pinkman, preséntese en dirección para su evaluación»." , 3.0)
+		await get_tree().create_timer(1.0).timeout
+		await hud.dialogo("Dr. Salgado", Juego.evaluacion_semanal())
 	var delta_rep := Juego.reputacion - _rep_inicio
 	var resumen := "Fin del turno · Atendiste %d · Transferidos %d · Reputación %+d" % [atendidos, transferidos, delta_rep]
 	if pendientes > 0:

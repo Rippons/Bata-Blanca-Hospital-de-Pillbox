@@ -42,9 +42,12 @@ func _ready() -> void:
 	await casa.interactuar("ducha")
 	ok(Juego.higiene == 100.0 and Juego.banado_hoy, "bañarse deja higiene en 100")
 	ok(Juego.minutos >= m0 + 15.0, "bañarse gasta 15 min")
+	var comida0: int = Juego.comida
 	Juego.respuestas_auto = [1]
 	await casa.interactuar("comer")
 	ok(Juego.desayuno_hoy, "desayuno completo")
+	ok(Juego.comida == comida0 - 1, "desayunar gasta una comida de la nevera")
+	ok(Juego.mensajes_nuevos() >= 1, "hay un mensaje nuevo de mamá en el celular")
 	Juego.respuestas_auto = [0]
 	await casa.interactuar("armario")
 	ok(Juego.ropa == "uniforme", "vestido con bata")
@@ -280,6 +283,40 @@ func _ready() -> void:
 	Juego.dia = 99
 	ok(Juego.cargar() and Juego.dia == dia_guardado, "cargar() recupera el día guardado")
 	ok(Juego.get_amistad("Lucía") == 5, "la amistad se guarda y se carga")
+
+	print("== Dinero, celular y fin de semana")
+	Juego.nueva_partida()
+	Juego.auto_dialogo = true
+	await Juego.ir_a("res://escenas/casa.tscn", "")
+	await esperar(0.5)
+	var c2 = get_tree().current_scene
+	Juego.respuestas_auto = [1, "Mercado de la semana: 6 comidas ($90)", 3]
+	await c2.celular()
+	ok(Juego.dinero == 110 and Juego.comida == 12, "comprar mercado por el celular (−$90, +6 comidas)")
+	Juego.respuestas_auto = [0, 0, 1, 3]
+	await c2.celular()
+	ok(Juego.mensajes_nuevos() == 0, "leer el mensaje lo marca como leído")
+	Juego.semana = {"turnos": 5, "atendidos": 20, "transferidos": 1, "retrasos": 0}
+	var din0: int = Juego.dinero
+	var ev: Array = Juego.evaluacion_semanal()
+	ok(Juego.dinero == din0 + 5 * 60 and int(Juego.semana["turnos"]) == 0, "evaluación del viernes: sueldo de 5 turnos ($300)")
+	ok(str(ev[2]).contains("Excelente"), "con 20 atendidos la nota es Excelente")
+	Juego.dia = 6
+	ok(Juego.es_fin_de_semana() and not Juego.es_manana(), "el sábado no hay turno")
+	Juego.minutos = 10 * 60
+	var din1: int = Juego.dinero
+	Juego.respuestas_auto = ["Ir al mercado: 6 comidas por $70 (1 h)"]
+	await c2.interactuar("puerta")
+	ok(Juego.dinero == din1 - 70 and Juego.comida == 18, "el sábado se puede ir al mercado")
+	Juego.minutos = 12 * 60 + 5
+	await esperar(0.5)
+	ok(not Juego.falto_hoy, "el fin de semana no cuenta como falta")
+	Juego.dia = 7
+	Juego.minutos = 22 * 60
+	var din2: int = Juego.dinero
+	Juego.alarma_puesta = true
+	Juego.dormir()
+	ok(Juego.nombre_dia() == "Lunes" and Juego.dinero == din2 - Juego.ARRIENDO, "el lunes se cobra el arriendo")
 
 	print("RESULTADO: %d fallo(s)" % fallos)
 	get_tree().quit(1 if fallos > 0 else 0)

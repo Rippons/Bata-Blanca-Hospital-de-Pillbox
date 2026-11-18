@@ -113,7 +113,7 @@ func al_entrar() -> void:
 			despertador.sonando = true
 			hud.mostrar("Día 1. Eres el Dr. Walter Pinkman, médico interno del Hospital de Pillbox.", 4.5)
 			hud.mostrar("Tu turno empieza a las 7:30 AM. Báñate, desayuna, vístete y sal de casa.", 5.0)
-			hud.mostrar("Muévete con WASD o flechas · E para interactuar y hablar · Mantén Tab para acelerar el tiempo.", 5.0)
+			hud.mostrar("Muévete con WASD o flechas · E para interactuar y hablar · C abre el celular · Tab acelera el tiempo.", 5.0)
 		else:
 			despertador.sonando = Juego.minutos < 7 * 60
 			hud.mostrar(Juego.ultimo_resumen, 5.0)
@@ -152,6 +152,14 @@ func _process(delta: float) -> void:
 
 
 func _actualizar_lista() -> void:
+	var h := fmod(Juego.minutos, 1440.0)
+	if Juego.es_fin_de_semana() and h < 18 * 60 and h >= 5 * 60:
+		hud.poner_lista("%s · día libre" % Juego.nombre_dia(), [
+			["Hacer mercado (nevera: %d)" % Juego.comida, Juego.comida >= 4],
+			["Descansar o salir (puerta)", false],
+			["Revisar el celular (C)", Juego.mensajes_nuevos() == 0],
+		])
+		return
 	if Juego.es_manana():
 		hud.poner_lista("Mañana · turno 7:30 AM", [
 			["Bañarse", Juego.banado_hoy],
@@ -200,29 +208,38 @@ func _banarse() -> void:
 
 
 func _comer() -> void:
+	if Juego.comida <= 0:
+		Juego.sonido("error", 1.0, -10.0)
+		hud.mostrar("La nevera está vacía. Pide mercado o un domicilio desde el celular (C), o ve al mercado el fin de semana.", 5.0)
+		return
 	var h := fmod(Juego.minutos, 1440.0)
+	var min_completo := 10 if Juego.cafetera else 20
 	if Juego.es_manana() and h < 12 * 60:
-		var r: int = await hud.elegir("Desayuno", "¿Qué vas a desayunar?",
-			["Algo rápido: café y pan (5 min)", "Desayuno completo (20 min)", "Nada por ahora"])
+		var r: int = await hud.elegir("Desayuno", "¿Qué vas a desayunar? (Nevera: %d comidas)" % Juego.comida,
+			["Algo rápido: café y pan (5 min)", "Desayuno completo (%d min)" % min_completo, "Nada por ahora"])
 		if r == 0:
 			await _accion(5, "5 minutos después…")
+			Juego.comida -= 1
 			Juego.hambre = minf(Juego.hambre + 25.0, 100.0)
 			Juego.energia = minf(Juego.energia + 5.0, 100.0)
 			Juego.desayuno_hoy = true
 			hud.mostrar("Desayuno rápido. Te va a dar hambre antes del mediodía.")
 		elif r == 1:
-			await _accion(20, "20 minutos después…")
+			await _accion(min_completo, "%d minutos después…" % min_completo)
+			Juego.comida -= 1
 			Juego.hambre = minf(Juego.hambre + 50.0, 100.0)
 			Juego.energia = minf(Juego.energia + 15.0, 100.0)
 			Juego.desayuno_hoy = true
 			hud.mostrar("Desayuno completo. Tienes energía para la mañana.")
 	else:
-		var r: int = await hud.elegir("Cocina", "Ya es de noche.", ["Cenar (25 min)", "Nada por ahora"])
+		var r: int = await hud.elegir("Cocina", "Nevera: %d comidas." % Juego.comida, ["Cocinar y comer (25 min)", "Nada por ahora"])
 		if r == 0:
 			await _accion(25, "25 minutos después…")
+			Juego.comida -= 1
 			Juego.hambre = minf(Juego.hambre + 50.0, 100.0)
-			Juego.cenado_hoy = true
-			hud.mostrar("Cenaste. Mañana amanecerás con menos hambre.")
+			if h >= 17 * 60 or h < 4 * 60:
+				Juego.cenado_hoy = true
+			hud.mostrar("Comiste bien. Quedan %d comidas en la nevera." % Juego.comida)
 
 
 func _vestirse() -> void:
@@ -318,6 +335,36 @@ func _cama() -> void:
 		_ir_a_dormir(false)
 
 
+func _salir_fin_de_semana() -> void:
+	var h := fmod(Juego.minutos, 1440.0)
+	if h >= 20 * 60 or h < 6 * 60:
+		hud.mostrar("Ya es tarde para salir. Mañana será otro día.")
+		return
+	var r: int = await hud.elegir("Día libre", "Hoy es %s. ¿Qué quieres hacer? (Saldo: $%d)" % [Juego.nombre_dia(), Juego.dinero], [
+		"Ir al mercado: 6 comidas por $70 (1 h)",
+		"Pasear por el parque (1 h, +energía)",
+		"Visitar a mamá (2 h, comes rico y te da comida)",
+		"Quedarme en casa"])
+	match r:
+		0:
+			if Juego.dinero < 70:
+				hud.mostrar("No te alcanza para el mercado ($70). Tienes $%d." % Juego.dinero, 3.5)
+				return
+			await _accion(60, "Haciendo mercado…\n1 hora después")
+			Juego.dinero -= 70
+			Juego.comida += 6
+			hud.mostrar("Compraste mercado. La nevera tiene %d comidas. (−$70)" % Juego.comida, 3.5)
+		1:
+			await _accion(60, "Paseando por el parque de Pillbox…\n1 hora después")
+			Juego.energia = minf(Juego.energia + 15.0, 100.0)
+			hud.mostrar("El aire libre te hizo bien. (+energía)", 3.0)
+		2:
+			await _accion(120, "En casa de mamá…\n2 horas después")
+			Juego.hambre = minf(Juego.hambre + 50.0, 100.0)
+			Juego.comida += 3
+			hud.mostrar("Mamá: «¡Estás muy flaco, mijo! Llévate este tupper». (+hambre, +3 comidas)", 4.5)
+
+
 func _ir_a_dormir(desmayado: bool) -> void:
 	if _cerrando:
 		return
@@ -327,6 +374,9 @@ func _ir_a_dormir(desmayado: bool) -> void:
 
 
 func _puerta() -> void:
+	if Juego.es_fin_de_semana():
+		await _salir_fin_de_semana()
+		return
 	if not Juego.es_manana():
 		hud.mostrar("Ya terminó el día de trabajo. Descansa para mañana.")
 		return

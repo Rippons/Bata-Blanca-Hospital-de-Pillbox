@@ -67,7 +67,9 @@ func _process(_delta: float) -> void:
 	lbl_dia.text = "Día %d · %s" % [Juego.dia, Juego.nombre_dia()]
 	lbl_hora.text = Juego.hora_texto()
 	lbl_hora.add_theme_color_override("font_color", Color("ffcf6b") if Juego.escala_debug > 1.0 else Color.WHITE)
-	lbl_estado.text = "%s%s · Reputación %d" % [Juego.rango, (" de " + Juego.especialidad) if Juego.especialidad != "" else "", Juego.reputacion]
+	var nuevos := Juego.mensajes_nuevos()
+	lbl_estado.text = "%s%s · Rep. %d · $%d%s" % [Juego.rango, (" de " + Juego.especialidad) if Juego.especialidad != "" else "",
+		Juego.reputacion, Juego.dinero, ("  ✉ %d (C)" % nuevos) if nuevos > 0 else ""]
 	lbl_carga.text = "Llevas: %s" % Juego.insumo_cargado if Juego.insumo_cargado != "" else ""
 	_poner_barra("Higiene", Juego.higiene)
 	_poner_barra("Energía", Juego.energia)

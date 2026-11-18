@@ -19,6 +19,7 @@ var zona_hablar: Interactuable
 var mirada_base := Vector2.DOWN   # hacia dónde mira cuando está quieto (p. ej. el mostrador)
 var _objetivo := Vector2.ZERO
 var _y_primero := false            # alterna el orden de los ejes cuando se atasca
+var ruta: Array = []               # puntos de paso (mundo) antes de quedarse en su zona
 var _espera := 0.0
 var _atascado := 0.0
 var _turno := 0
@@ -57,13 +58,18 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		figura.caminar(false, delta)
 		return
-	if _espera > 0.0:
+	if _espera > 0.0 and ruta.is_empty():
 		_espera -= delta
 		figura.caminar(false, delta)
 		if _espera <= 0.0:
 			_nuevo_objetivo()
 		return
+	if not ruta.is_empty():
+		_objetivo = ruta[0]
 	var hacia := _objetivo - position
+	if not ruta.is_empty() and hacia.length() < 2.0:
+		ruta.pop_front()
+		return
 	if hacia.length() < 2.0:
 		_espera = randf_range(1.5, 5.0)
 		velocity = Vector2.ZERO

@@ -3,7 +3,6 @@ extends Node
 ## Reloj del día, necesidades de Walter, ropa, alarma, reputación,
 ## transiciones entre escenas y guardado.
 
-signal mensaje(texto: String)
 
 # --- Constantes de diseño (ajustables) -----------------------------------
 const MINUTOS_JUEGO_POR_SEGUNDO := 1.0           # 1 segundo real = 1 minuto de juego (turno ≈ 12 min reales)
@@ -38,6 +37,14 @@ var racha_puntual := 0
 var retrasos := 0
 var alarma_puesta := false
 var hora_alarma := 6 * 60
+var dinero := 200
+var comida := 6                 # comidas en la nevera
+var cafetera := false           # desayuno completo en 10 min
+var cama_buena := false         # descansa 25 % más
+var mensajes: Array = []        # celular: {de, texto, opciones, leido, respondido}
+var semana := {"turnos": 0, "atendidos": 0, "transferidos": 0, "retrasos": 0}
+const PAGO_TURNO := {"Interno": 60, "Residente": 110}
+const ARRIENDO := 150
 var amistad := {}               # nombre del NPC -> 0..10
 var favores := {}               # nombre del NPC -> favores que le debe a Walter
 var flags := {}                 # marcas de historias y cosas de una vez por día
@@ -129,7 +136,15 @@ func nombre_dia() -> String:
 
 
 func es_manana() -> bool:
-	return not turno_terminado and not falto_hoy
+	return not turno_terminado and not falto_hoy and not es_fin_de_semana()
+
+
+func es_fin_de_semana() -> bool:
+	return (dia - 1) % 7 >= 5
+
+
+func es_viernes() -> bool:
+	return (dia - 1) % 7 == 4
 
 
 func huele_mal() -> bool:
@@ -232,6 +247,8 @@ func dormir(desmayado: bool = false) -> String:
 	var recuperacion := horas * 12.5
 	if not con_pijama:
 		recuperacion *= 0.8
+	if cama_buena:
+		recuperacion *= 1.25
 	energia = clampf(energia + recuperacion, 0.0, 100.0)
 	hambre = clampf(hambre - horas * 2.0, 0.0, 100.0)
 	higiene = clampf(higiene - 8.0, 0.0, 100.0)
@@ -247,6 +264,7 @@ func dormir(desmayado: bool = false) -> String:
 	alarma_puesta = false
 	insumo_cargado = ""
 	punto_entrada = "cama"
+	var extra := _nuevo_dia()
 	guardar()
 
 	var t := "Dormiste %.1f horas." % horas
@@ -258,7 +276,100 @@ func dormir(desmayado: bool = false) -> String:
 		t += " Sonó la alarma: %s." % hora_texto()
 	if not con_pijama:
 		t += " Dormir sin pijama no te dejó descansar bien."
+	return t + extra
+
+
+# --- Dinero, semana y mensajes --------------------------------------------------------
+func pago_por_turno() -> int:
+	return int(PAGO_TURNO.get(rango, 60))
+
+
+## Cosas que pasan al empezar un día nuevo: arriendo los lunes y mensajes nuevos.
+func _nuevo_dia() -> String:
+	var t := ""
+	if (dia - 1) % 7 == 0 and dia > 1:
+		dinero -= ARRIENDO
+		t += " Se pagó el arriendo de la semana (−$%d)." % ARRIENDO
+		if dinero < 0:
+			t += " ¡Quedaste en deuda!"
+		mensaje("Banco", "Se debitaron $%d del arriendo. Saldo: $%d." % [ARRIENDO, dinero])
+	if es_fin_de_semana():
+		t += " Hoy es %s: no hay turno." % nombre_dia()
+	_mensajes_del_dia()
 	return t
+
+
+func mensaje(de: String, texto: String, opciones: Array = []) -> void:
+	mensajes.push_front({"de": de, "texto": texto, "opciones": opciones, "leido": false, "respondido": false})
+	if mensajes.size() > 12:
+		mensajes.resize(12)
+
+
+func mensajes_nuevos() -> int:
+	return mensajes.filter(func(m): return not m["leido"]).size()
+
+
+func _mensajes_del_dia() -> void:
+	var pool: Array = [
+		["Mamá", "¿Estás comiendo bien, mijo? Te quiero mucho.", [
+			{"texto": "Sí, mamá, tranquila.", "efecto": ""},
+			{"texto": "La verdad, la nevera está vacía…", "efecto": "mama_dinero"}]],
+		["Mamá", "¡Mi hijo el doctor! Ya les conté a todas mis amigas.", []],
+		["Mamá", "Acuérdate de poner la alarma, que tú eres muy dormilón.", []],
+		["Dr. Wilder Noctis", "Walter… ¿tienes algo para dormir? No es para mí. Es para un amigo. El amigo soy yo.", []],
+		["Diego Quiroz", "Le dije a Jinu que Sheyla lo invitó a almorzar. ¡Lleva una hora esperando en la cafetería! Jajaja", []],
+		["Erina", "¡Buenos días, doctor! Hoy hay sopa de pollo en la cafetería.", []],
+	]
+	if get_amistad("Lucía") >= 5:
+		pool.append(["Lucía", "¡Buen trabajo ayer, doctor! Le guardé un café en la enfermería.", []])
+	if flags.get("zac_final", "") == "bien":
+		pool.append(["Dr. Zacarías Flores", "¡El café con la oficial Dakota fue increíble! Gracias por el consejo, doctor.", []])
+	var m: Array = pool.pick_random()
+	mensaje(m[0], m[1], m[2])
+
+
+## Respuestas a mensajes del celular.
+func efecto_mensaje(efecto: String) -> String:
+	match efecto:
+		"mama_dinero":
+			if una_vez_hoy("mama_dinero") and not flags.has("mama_dio_dinero_semana_%d" % ((dia - 1) / 7)):
+				flags["mama_dio_dinero_semana_%d" % ((dia - 1) / 7)] = true
+				dinero += 50
+				return "Mamá: «¡Ay, mijo! Te mandé $50 para mercado. Come bien»."
+			return "Mamá: «Ya te mandé esta semana, mijo. Administra bien»."
+	return ""
+
+
+## Evaluación del viernes: nota, comentario de Salgado, bono y sueldo.
+func evaluacion_semanal() -> Array:
+	var s := semana
+	var puntaje: int = int(s["atendidos"]) * 2 - int(s["transferidos"]) * 3 - int(s["retrasos"]) * 4
+	var nota := "Debe mejorar"
+	var bono_rep := 0
+	if puntaje >= 30:
+		nota = "Excelente"
+		bono_rep = 10
+	elif puntaje >= 15:
+		nota = "Bien"
+		bono_rep = 5
+	elif puntaje < 0:
+		nota = "Mal"
+		bono_rep = -5
+	sumar_reputacion(bono_rep)
+	var sueldo: int = int(s["turnos"]) * pago_por_turno()
+	dinero += sueldo
+	var lineas := ["Pinkman, es viernes: hora de su evaluación semanal.",
+		"Turnos: %d · Pacientes atendidos: %d · Transferidos: %d · Retrasos: %d." % [s["turnos"], s["atendidos"], s["transferidos"], s["retrasos"]],
+		"Nota de la semana: %s. (%+d reputación)" % [nota, bono_rep],
+		"Su sueldo de la semana: $%d. Ya está en su cuenta." % sueldo]
+	match nota:
+		"Excelente": lineas.append("Así se trabaja en Pillbox. Estoy orgulloso.")
+		"Bien": lineas.append("Buen trabajo. Puede dar más.")
+		"Mal": lineas.append("Esto no puede repetirse. La próxima semana lo quiero puntual y atento.")
+		_: lineas.append("Hay cosas por mejorar. Confío en usted.")
+	mensaje("Banco", "Pago de nómina: +$%d. Saldo: $%d." % [sueldo, dinero])
+	semana = {"turnos": 0, "atendidos": 0, "transferidos": 0, "retrasos": 0}
+	return lineas
 
 
 # --- Llegada y salida del hospital --------------------------------------------
@@ -269,6 +380,7 @@ func llegar_al_hospital() -> Array:
 	if minutos > INICIO_TURNO:
 		var tarde := int(minutos - INICIO_TURNO)
 		retrasos += 1
+		semana["retrasos"] += 1
 		racha_puntual = 0
 		var castigo := 5 if tarde <= 30 else 10
 		sumar_reputacion(-castigo)
@@ -293,6 +405,7 @@ func llegar_al_hospital() -> Array:
 func terminar_turno() -> void:
 	turno_terminado = true
 	dias_trabajados += 1
+	semana["turnos"] += 1
 	if ropa == "uniforme":
 		turnos_bata += 1
 
@@ -333,6 +446,12 @@ func nueva_partida() -> void:
 	especialidad = ""
 	horas_estudio = 0.0
 	dias_trabajados = 0
+	dinero = 200
+	comida = 6
+	cafetera = false
+	cama_buena = false
+	mensajes = [{"de": "Mamá", "texto": "¡Mucha suerte en tu primer día, mijo! Estoy muy orgullosa de ti.", "opciones": [], "leido": false, "respondido": false}]
+	semana = {"turnos": 0, "atendidos": 0, "transferidos": 0, "retrasos": 0}
 
 
 func hay_partida_guardada() -> bool:
@@ -347,6 +466,8 @@ func guardar() -> void:
 		"retrasos": retrasos, "hora_alarma": hora_alarma,
 		"amistad": amistad, "favores": favores, "flags": _flags_persistentes(),
 		"especialidad": especialidad, "horas_estudio": horas_estudio, "dias_trabajados": dias_trabajados,
+		"dinero": dinero, "comida": comida, "cafetera": cafetera, "cama_buena": cama_buena,
+		"mensajes": mensajes, "semana": semana,
 	}
 	var f := FileAccess.open(RUTA_GUARDADO, FileAccess.WRITE)
 	if f:
@@ -386,6 +507,12 @@ func cargar() -> bool:
 	retrasos = int(datos.get("retrasos", 0))
 	hora_alarma = int(datos.get("hora_alarma", 360))
 	especialidad = str(datos.get("especialidad", ""))
+	dinero = int(datos.get("dinero", 200))
+	comida = int(datos.get("comida", 6))
+	cafetera = bool(datos.get("cafetera", false))
+	cama_buena = bool(datos.get("cama_buena", false))
+	mensajes = datos.get("mensajes", [])
+	semana = datos.get("semana", semana)
 	horas_estudio = float(datos.get("horas_estudio", 0.0))
 	dias_trabajados = int(datos.get("dias_trabajados", 0))
 	amistad = datos.get("amistad", {})
@@ -502,7 +629,7 @@ func _crear_acciones() -> void:
 	var mapa := {
 		"arriba": [KEY_W, KEY_UP], "abajo": [KEY_S, KEY_DOWN],
 		"izquierda": [KEY_A, KEY_LEFT], "derecha": [KEY_D, KEY_RIGHT],
-		"interactuar": [KEY_E, KEY_SPACE], "acelerar": [KEY_TAB],
+		"interactuar": [KEY_E, KEY_SPACE], "acelerar": [KEY_TAB], "celular": [KEY_C],
 	}
 	for accion in mapa:
 		if not InputMap.has_action(accion):
