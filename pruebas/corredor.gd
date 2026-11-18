@@ -117,10 +117,15 @@ func _ready() -> void:
 	var rep: int = Juego.reputacion
 	var falso: String = p.caso["falsos"][0]
 	var est: float = p.estabilidad
+	Juego.amistad["Lucía"] = 5
+	Juego.respuestas_auto = [0]
+	await hosp.interactuar("lucia")
+	ok(p.vigilado_hasta > Juego.minutos, "con amistad, Lucía vigila al paciente (no empeora)")
 	var otra: String = "Palpar" if p.caso["herramienta"] != "Palpar" else "Termómetro"
-	Juego.respuestas_auto = [otra]
+	Juego.respuestas_auto = [0, otra]
 	await hosp.interactuar("camilla0")
 	ok(p.conto_historia and not p.examinado, "el paciente cuenta su historia; herramienta equivocada no revela nada")
+	ok(p.calmado or p.caso["grave"], "responder «Tranquilo…» calma al paciente")
 	Juego.respuestas_auto = [p.caso["herramienta"], falso]
 	await hosp.interactuar("camilla0")
 	ok(p.examinado, "con %s se encuentra: %s" % [p.caso["herramienta"], p.caso["hallazgo"]])
@@ -135,6 +140,25 @@ func _ready() -> void:
 	ok(Juego.reputacion == rep + int(p.caso["premio"] / 2), "paciente estable, premio a la mitad por el fallo (rep %d)" % Juego.reputacion)
 	await esperar(3.0)
 	ok(hosp.pacientes[0] == null, "camilla liberada")
+	# Wilder: cubrirlo da un favor; cobrarlo hace que atienda a un paciente
+	Juego.flags.erase("cubrir_wilder_%d" % Juego.dia)
+	Juego.favores["Dr. Wilder Noctis"] = 0
+	var m_w: float = Juego.minutos
+	Juego.respuestas_auto = ["Está bien, te cubro (−20 min)."]
+	await hosp.interactuar("npc:Dr. Wilder Noctis")
+	ok(int(Juego.favores.get("Dr. Wilder Noctis", 0)) == 1 and Juego.minutos >= m_w + 20.0, "cubrir a Wilder: −20 min y te debe un favor")
+	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
+	await esperar(0.3)
+	var at0: int = hosp.atendidos
+	Juego.respuestas_auto = ["Wilder, me debes una: atiende a un paciente."]
+	await hosp.interactuar("npc:Dr. Wilder Noctis")
+	ok(hosp.atendidos == at0 + 1 and int(Juego.favores["Dr. Wilder Noctis"]) == 0, "Wilder paga el favor atendiendo a un paciente")
+	await esperar(2.5)
+	# Diego: responder cambia la amistad
+	var a_d: int = Juego.get_amistad("Diego Quiroz")
+	Juego.respuestas_auto = ["Jaja, eres terrible."]
+	await hosp.interactuar("npc:Diego Quiroz")
+	ok(Juego.get_amistad("Diego Quiroz") == a_d + 1, "responder a Diego sube la amistad")
 	# segundo paciente: se deja transferir
 	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
 	await esperar(0.3)
@@ -191,6 +215,7 @@ func _ready() -> void:
 	var dia_guardado: int = Juego.dia
 	Juego.dia = 99
 	ok(Juego.cargar() and Juego.dia == dia_guardado, "cargar() recupera el día guardado")
+	ok(Juego.get_amistad("Lucía") == 5, "la amistad se guarda y se carga")
 
 	print("RESULTADO: %d fallo(s)" % fallos)
 	get_tree().quit(1 if fallos > 0 else 0)

@@ -29,6 +29,10 @@ var racha_puntual := 0
 var retrasos := 0
 var alarma_puesta := false
 var hora_alarma := 6 * 60
+var amistad := {}               # nombre del NPC -> 0..10
+var favores := {}               # nombre del NPC -> favores que le debe a Walter
+var flags := {}                 # marcas de historias y cosas de una vez por día
+const AMISTAD_INICIAL := 3
 
 # Banderas del día
 var banado_hoy := false
@@ -141,6 +145,44 @@ func velocidad_walter() -> float:
 
 func sumar_reputacion(n: int) -> void:
 	reputacion = maxi(reputacion + n, 0)
+
+
+# --- Relaciones con los NPC --------------------------------------------------------
+func get_amistad(nombre: String) -> int:
+	return int(amistad.get(nombre, AMISTAD_INICIAL))
+
+
+## Cambia la amistad. Subir tiene un tope de +2 por persona y por día.
+## Devuelve cuánto cambió de verdad.
+func cambiar_amistad(nombre: String, d: int) -> int:
+	if d > 0:
+		var clave := "amistad_hoy_%s_%d" % [nombre, dia]
+		var ya: int = int(flags.get(clave, 0))
+		d = mini(d, 2 - ya)
+		if d <= 0:
+			return 0
+		flags[clave] = ya + d
+	var antes := get_amistad(nombre)
+	amistad[nombre] = clampi(antes + d, 0, 10)
+	return int(amistad[nombre]) - antes
+
+
+## Marca algo como hecho hoy; devuelve true solo la primera vez del día.
+func una_vez_hoy(clave: String) -> bool:
+	var k := "%s_%d" % [clave, dia]
+	if flags.has(k):
+		return false
+	flags[k] = true
+	return true
+
+
+## Como una_vez_hoy, pero sin marcar: dice si todavía no se ha hecho hoy.
+func una_vez_hoy_disponible(clave: String) -> bool:
+	return not flags.has("%s_%d" % [clave, dia])
+
+
+func dar_favor(nombre: String, n: int = 1) -> void:
+	favores[nombre] = int(favores.get(nombre, 0)) + n
 
 
 # --- Dormir y nuevo día -----------------------------------------------------
@@ -257,6 +299,9 @@ func nueva_partida() -> void:
 	insumo_cargado = ""
 	punto_entrada = "cama"
 	ultimo_resumen = ""
+	amistad = {}
+	favores = {}
+	flags = {}
 
 
 func hay_partida_guardada() -> bool:
@@ -269,10 +314,21 @@ func guardar() -> void:
 		"hambre": hambre, "ropa": ropa, "turnos_bata": turnos_bata,
 		"reputacion": reputacion, "rango": rango, "racha_puntual": racha_puntual,
 		"retrasos": retrasos, "hora_alarma": hora_alarma,
+		"amistad": amistad, "favores": favores, "flags": _flags_persistentes(),
 	}
 	var f := FileAccess.open(RUTA_GUARDADO, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(datos, "\t"))
+
+
+## Solo se guardan las marcas de historia (las de «hoy» no hacen falta).
+func _flags_persistentes() -> Dictionary:
+	var f := {}
+	var diaria := RegEx.create_from_string("_\\d+$")
+	for k in flags:
+		if diaria.search(str(k)) == null:
+			f[k] = flags[k]
+	return f
 
 
 func cargar() -> bool:
@@ -297,6 +353,9 @@ func cargar() -> bool:
 	racha_puntual = int(datos.get("racha_puntual", 0))
 	retrasos = int(datos.get("retrasos", 0))
 	hora_alarma = int(datos.get("hora_alarma", 360))
+	amistad = datos.get("amistad", {})
+	favores = datos.get("favores", {})
+	flags = datos.get("flags", {})
 	return true
 
 

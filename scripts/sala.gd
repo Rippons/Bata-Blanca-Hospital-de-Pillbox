@@ -48,6 +48,11 @@ func interactuar(_id: String) -> void:
 	pass
 
 
+## Efecto de una respuesta elegida en un diálogo (lo maneja cada sala).
+func efecto_npc(_nombre: String, _efecto: String) -> void:
+	pass
+
+
 func etiqueta_de(id: String) -> String:
 	return interactuables[id].etiqueta if interactuables.has(id) else ""
 
@@ -135,6 +140,7 @@ func persona(nombre: String, piel: int, ropa: String, pelo_hoja: String, pelo_fi
 		n.zona_paseo = Rect2(paseo.position + origen, paseo.size)
 	n.lineas = lineas
 	n.zona_hablar.usado.connect(_on_usado)
+	n.efecto_dialogo.connect(efecto_npc)
 	interactuables[n.zona_hablar.id] = n.zona_hablar
 	npcs[nombre] = n
 	mundo.add_child(n)

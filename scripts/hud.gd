@@ -158,7 +158,14 @@ func _escribir(lbl: Label, tono: float, saltable: bool) -> void:
 
 # --- Diálogos con NPC ----------------------------------------------------------------
 ## Conversación: cada línea se escribe con la voz del personaje; E / Espacio / clic avanza.
-func dialogo(nombre: String, lineas: Array, tono: float = -1.0) -> void:
+## Corazones de amistad (0-10 → 5 corazones) para mostrar junto al nombre.
+static func corazones(nombre: String) -> String:
+	var a := Juego.get_amistad(nombre)
+	var llenos := int(round(a / 2.0))
+	return "  " + "♥".repeat(llenos) + "♡".repeat(5 - llenos)
+
+
+func dialogo(nombre: String, lineas: Array, tono: float = -1.0, con_amistad := true) -> void:
 	if tono < 0.0:
 		tono = tono_de(nombre)
 	if Juego.auto_dialogo:
@@ -169,7 +176,7 @@ func dialogo(nombre: String, lineas: Array, tono: float = -1.0) -> void:
 	Juego.pausado = true
 	_dialogo_abierto = true
 	panel_msg.visible = false
-	lbl_dlg_nombre.text = nombre
+	lbl_dlg_nombre.text = nombre + (corazones(nombre) if con_amistad else "")
 	panel_dlg.visible = true
 	for l in lineas:
 		lbl_dlg.text = l
@@ -202,6 +209,9 @@ func elegir(titulo: String, texto: String, opciones: Array) -> int:
 		var r: int = opciones.find(auto) if auto is String else int(auto)
 		print("[auto] ", titulo, " -> ", opciones[r] if r >= 0 and r < opciones.size() else "cancelar")
 		return r
+	if Juego.auto_dialogo:
+		print("[auto] ", titulo, " -> ", opciones[0], " (primera opción)")
+		return 0
 	var estaba_pausado := Juego.pausado
 	Juego.pausado = true
 	_menu_abierto = true

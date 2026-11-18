@@ -1,5 +1,7 @@
 class_name NPC
 extends CharacterBody2D
+
+signal efecto_dialogo(nombre: String, efecto: String)
 ## Persona no jugable con nombre y diálogos.
 ## Si no es «quieto», camina sola dentro de su «zona» (puntos al azar), choca con
 ## muebles y paredes, y se detiene a hablar cuando Walter le habla.
@@ -92,21 +94,44 @@ func _nuevo_objetivo() -> void:
 
 
 ## Conversación con Walter. Mira hacia él, habla y luego sigue con lo suyo.
+## Cada entrada de diálogo puede ser un Array de frases, o un Dictionary:
+##   {"lineas": [...], "opciones": [{"texto": "...", "amistad": 1, "respuesta": [...], "efecto": "..."}]}
 func hablar(hud: HUD, walter_pos: Vector2) -> void:
 	hablando = true
 	var dir := walter_pos - global_position
 	if dir.length() > 0.1:
 		figura.mirando = dir
 		figura.caminar(false, 0.0)
-	var frases: Array
+	var entrada
 	if dialogo_dinamico.is_valid():
-		frases = dialogo_dinamico.call()
+		entrada = dialogo_dinamico.call()
 	elif not lineas.is_empty():
-		frases = lineas[_turno % lineas.size()]
+		entrada = lineas[_turno % lineas.size()]
 		_turno += 1
 	else:
-		frases = ["…"]
-	await hud.dialogo(nombre, frases)
+		entrada = ["…"]
+	var frases: Array = entrada.get("lineas", []) if entrada is Dictionary else entrada
+	var opciones: Array = entrada.get("opciones", []) if entrada is Dictionary else []
+	if not frases.is_empty():
+		await hud.dialogo(nombre, frases)
+	if not opciones.is_empty():
+		var textos: Array = []
+		for o in opciones:
+			textos.append(o["texto"])
+		var r: int = await hud.elegir("Responder a %s" % nombre, "", textos)
+		if r >= 0:
+			var o: Dictionary = opciones[r]
+			var cambio := Juego.cambiar_amistad(nombre, int(o.get("amistad", 0)))
+			if cambio > 0:
+				Juego.sonido("exito", 1.4, -14.0)
+				hud.mostrar("(Amistad con %s: +%d)" % [nombre, cambio], 2.0)
+			elif cambio < 0:
+				Juego.sonido("error", 1.2, -14.0)
+				hud.mostrar("(Amistad con %s: %d)" % [nombre, cambio], 2.0)
+			if o.has("respuesta"):
+				await hud.dialogo(nombre, o["respuesta"])
+			if o.has("efecto"):
+				efecto_dialogo.emit(nombre, str(o["efecto"]))
 	if quieto:
 		figura.mirando = mirada_base      # vuelve a mirar hacia su mostrador
 		figura.caminar(false, 0.0)

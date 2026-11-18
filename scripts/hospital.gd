@@ -123,6 +123,8 @@ class Paciente extends Node2D:
 	var se_quejo := false
 	var conto_historia := false
 	var examinado := false
+	var calmado := false               # Walter lo tranquilizó: empeora más lento
+	var vigilado_hasta := -1.0         # Lucía lo vigila: no empeora hasta esa hora
 	var figura: Personaje
 
 	class Sabana extends Node2D:
@@ -327,15 +329,19 @@ func _construir_pasillo() -> void:
 		["McClane, policía. Estoy esperando para tomar una declaración.", "Los hospitales me ponen nervioso: demasiados pasillos y ascensores."],
 		["¿La cafetería? Tercera puerta. Gracias, doc."],
 		["Un consejo de policía viejo: nunca ande descalzo en un edificio grande."],
+		{"lineas": ["Llevo dos horas esperando que el testigo despierte.", "¿Usted cree que tarde mucho, doc?"],
+		 "opciones": [
+			{"texto": "Le aviso apenas despierte.", "amistad": 1, "respuesta": ["Se lo agradezco, Pinkman. Le debo una."]},
+			{"texto": "Aquí no se puede fumar, oficial.", "amistad": 0, "respuesta": ["No estoy fumando. Es un chicle.", "…Bueno, ya lo boté."]},
+			{"texto": "Eso no es asunto mío.", "amistad": -1, "respuesta": ["Vaya. Qué simpático."]},
+		]},
 	])
 	persona("Paola", 1, "enfermera", Personaje.PELOS2, 4, Vector2(250, 150), Rect2(40, 112, 440, 80), [
 		["Voy corriendo a llevar unas muestras al laboratorio.", "¡Ánimo en su primer mes, doctor!"],
 		["Si necesita una bata, en el vestidor hay de repuesto."],
 	])
-	persona("Cristian Daniel", 3, "overol", Personaje.PELOS, 5, Vector2(420, 170), Rect2(200, 112, 500, 80), [
-		["Llevo diez años de camillero. Me conozco cada baldosa de este pasillo.", "La tercera de la izquierda está floja, ojo."],
-		["Si un paciente no puede caminar, me llaman a mí. ¡Rápido como un rayo!"],
-	])
+	var cristian := persona("Cristian Daniel", 3, "overol", Personaje.PELOS, 5, Vector2(420, 170), Rect2(200, 112, 500, 80))
+	cristian.dialogo_dinamico = _dialogo_cristian
 	persona("Dr. Máximo Stone", 5, "uniforme", Personaje.PELOS, 7, Vector2(340, 170), Rect2(260, 112, 300, 80), [
 		["Stone, traumatología. Si llega alguien con un esguince: férula y reposo.", "Y nada de volver a la cancha en una semana."],
 		["Este pasillo es más largo que mis turnos, y eso es mucho decir."],
@@ -345,9 +351,17 @@ func _construir_pasillo() -> void:
 		["Para el azúcar baja, el glucómetro es su mejor amigo."],
 	])
 	persona("Diego Quiroz", 0, "enfermera", Personaje.PELOS, 4, Vector2(160, 160), Rect2(40, 112, 300, 80), [
-		["¡Aaay sí, señorita Sheyla, jaja, amo esa broma!", "…Ah, perdón, doctor. Pensé que era ella."],
-		["La señorita Sheyla me contó un chiste de un fémur que se fue de fiesta.", "¡Jaja! Bueno… uno tenía que estar ahí."],
-		["¿Ha visto a la señorita Sheyla hoy? Se ve… radiante. Jaja, ay."],
+		{"lineas": ["¡Aaay sí, señorita Sheyla, jaja, amo esa broma!", "…Shh, doctor. Lo digo duro para que me oiga el interno Jinu Blake.", "¡Se pone rojo como un tomate cada vez! Jajaja."],
+		 "opciones": [
+			{"texto": "Jaja, eres terrible.", "amistad": 1, "respuesta": ["¡Lo sé! Mañana le digo que Sheyla preguntó por él."]},
+			{"texto": "Pobre Jinu, déjalo en paz.", "amistad": -1, "respuesta": ["Bueno, bueno…", "Pero es que es muy fácil molestarlo, doctor."]},
+		]},
+		["Ayer le dije a Jinu que Sheyla le había dejado una nota en su casillero.", "¡Revisó el casillero cinco veces! Jajaja."],
+		{"lineas": ["¿Me ayuda con una broma para Jinu Blake, doctor?"],
+		 "opciones": [
+			{"texto": "Dile que Sheyla lo busca en la cafetería.", "amistad": 2, "respuesta": ["¡Jajaja! Usted sí sabe, doctor. Ya vuelvo."]},
+			{"texto": "No, estoy trabajando.", "amistad": 0, "respuesta": ["Aburrido… pero responsable. Está bien."]},
+		]},
 	])
 	persona("Sofía", 2, "rosa", Personaje.PELOS, 2, Vector2(760, 170), Rect2(600, 112, 330, 80), [
 		["Busco los consultorios, pero dice «cerrado».", "Ah, ¿solo abren cuando hay residentes? Qué lástima."],
@@ -416,7 +430,12 @@ func _construir_vestidor() -> void:
 		["¿L-la oficial Dakota del LSPD vino hoy?", "N-no, por nada… solo preguntaba. Ejem."],
 		["¿Se me nota que estoy sudando? Es… es el calor del vestidor, s-sí."],
 		["Si ve a la señorita Dakota, no le diga que pregunté por ella, ¿sí?", "Bueno, sí dígale. ¡No! Mejor no. Ay, no sé, doctor."],
-		["Ensayé un saludo para la oficial Dakota: «Hola, Dakota».", "¿Muy directo? ¿Muy aburrido? Ay, me tiemblan las manos."],
+		{"lineas": ["Ensayé un saludo para la oficial Dakota: «Hola, Dakota».", "¿Muy directo? ¿Muy aburrido? Ay, me tiemblan las manos.", "¿Usted qué me aconseja, doctor?"],
+		 "opciones": [
+			{"texto": "Invítala a un café.", "amistad": 1, "efecto": "consejo_dakota:cafe", "respuesta": ["¿Un café? ¿Así de simple?", "…Lo voy a pensar. Gracias, doctor."]},
+			{"texto": "Sé tú mismo, Zacarías.", "amistad": 1, "efecto": "consejo_dakota:mismo", "respuesta": ["¿Y-y si yo mismo soy un desastre?", "Bueno… lo intentaré."]},
+			{"texto": "Mejor ni lo intentes.", "amistad": -2, "efecto": "consejo_dakota:nada", "respuesta": ["…Tiene razón. Seguro me dice que no."]},
+		]},
 	])
 
 
@@ -440,12 +459,8 @@ func _construir_cafeteria() -> void:
 		["Aquí el almuerzo es sagrado, doctor.", "Pruebe la sopa: la hace Doña Luz desde hace veinte años."],
 		["Vengo todos los días aunque no esté enfermo. ¡Por la comida!"],
 	])
-	var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(300, 176), Rect2(270, 160, 80, 40), [
-		["¡Te juro que mañana sí trabajaré, Walter, promesa de garrita!"],
-		["Shh… estoy en mi descanso. Llevo en mi descanso desde las ocho.", "¿Qué hora es? No me digas, prefiero no saberlo."],
-		["Si Salgado pregunta, estoy atendiendo a un paciente… en la cafetería.", "El paciente soy yo: tengo hambre crónica."],
-		["Una siestita de cinco minutos y vuelvo.", "Bueno… de cincuenta."],
-	])
+	var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(300, 176), Rect2(270, 160, 80, 40))
+	wilder.dialogo_dinamico = _dialogo_wilder
 	wilder.velocidad = 9.0
 	mueble(HOME + "Flowers-Sheet.png", Rect2(89, 23, 14, 23), Vector2(116, 220), true, 6)
 
@@ -570,7 +585,9 @@ func _deterioro(dm: float) -> void:
 		var p: Paciente = pacientes[i]
 		if p == null or p.estado == "alta":
 			continue
-		p.estabilidad -= p.caso["deterioro"] * dm
+		if Juego.minutos < p.vigilado_hasta:
+			continue
+		p.estabilidad -= p.caso["deterioro"] * dm * (0.7 if p.calmado else 1.0)
 		if p.estabilidad <= 0.0:
 			transferidos += 1
 			Juego.sumar_reputacion(-5)
@@ -660,9 +677,17 @@ func _camilla(i: int) -> void:
 		if not p.conto_historia:
 			p.conto_historia = true
 			if p.caso["historias"].is_empty():
-				await hud.dialogo("Lucía", [p.caso["relato"]])
+				await hud.dialogo("Lucía", [p.caso["relato"]], -1.0, false)
 			else:
-				await hud.dialogo(p.nombre, p.caso["historias"].pick_random())
+				await hud.dialogo(p.nombre, p.caso["historias"].pick_random(), -1.0, false)
+				if not is_instance_valid(p) or pacientes[i] != p:
+					return
+				var c: int = await hud.elegir("Responder a %s" % p.nombre, "", ["Tranquilo, se va a poner bien.", "Rápido, que tengo más pacientes."])
+				if c == 0:
+					p.calmado = true
+					await hud.dialogo(p.nombre, ["Gracias, doctor… ya me siento más tranquilo."], -1.0, false)
+				elif c == 1:
+					await hud.dialogo(p.nombre, ["…Está bien, doctor. Perdón."], -1.0, false)
 			if not is_instance_valid(p) or pacientes[i] != p:
 				return
 		# 2) Examinar con una herramienta
@@ -778,26 +803,53 @@ func _pendientes() -> int:
 	return n
 
 
-func _dialogo_erina() -> Array:
+func _dialogo_erina():
+	var l: Array = []
 	var n := _pendientes()
 	if n > 0:
-		return ["Doctor, hay %d paciente(s) esperando en urgencias." % n, "Es la primera puerta del pasillo. ¡Corra!"]
-	return [["Todo tranquilo por ahora, doctor.", "Si tiene hambre, la cafetería es la tercera puerta."],
-		["¿Sabía que el Dr. Salgado llega todos los días a las 6 en punto?", "Nunca lo he visto llegar tarde."],
-		["Hoy los policías Reyes, Mendoza y McClane están de guardia aquí.", "Con ellos uno se siente más seguro."]].pick_random()
+		l = ["Doctor, hay %d paciente(s) esperando en urgencias." % n, "Es la primera puerta del pasillo. ¡Corra!"]
+	else:
+		l = [["Todo tranquilo por ahora, doctor.", "Si tiene hambre, la cafetería es la tercera puerta."],
+			["¿Sabía que el Dr. Salgado llega todos los días a las 6 en punto?", "Nunca lo he visto llegar tarde."],
+			["Hoy los policías Reyes, Mendoza y McClane están de guardia aquí.", "Con ellos uno se siente más seguro."]].pick_random()
+	# Con buena amistad, Erina avisa qué trae el próximo paciente
+	if Juego.get_amistad("Erina") >= 5 and not agenda.is_empty():
+		var a: Dictionary = agenda[0]
+		l = l + ["Ah, y le cuento en secreto: a las %s llega %s." % [Juego.hora_texto(a["hora"]), a["nombre"]],
+			"Llamaron antes. Dicen que tiene: %s" % a["caso"]["signos"].to_lower()]
+	return {"lineas": l, "opciones": [
+		{"texto": "Gracias, Erina. Eres la mejor.", "amistad": 1, "respuesta": ["¡Ay, doctor! Para eso estoy."]},
+		{"texto": "¿Cómo va tu día?", "amistad": 1, "respuesta": ["Pues entre llamadas y formularios…", "Pero usted es de los pocos que pregunta. Gracias."]},
+		{"texto": "Hasta luego.", "amistad": 0},
+	]}
 
 
-func _dialogo_lucia() -> Array:
+func _dialogo_lucia():
+	var l: Array
 	if Juego.huele_mal():
-		return ["Doctor, se lo digo con cariño…", "En el vestidor hay una ducha. Úsela, por favor."]
-	if Juego.energia < 25.0:
-		return ["Se ve agotado, doctor.", "Duerma más esta noche, o mañana no rendirá."]
-	if _pendientes() > 0:
-		return ["Tenemos pacientes esperando, doctor.", CONSEJOS.pick_random().trim_prefix("Lucía: «").trim_suffix("».")]
-	return [CONSEJOS.pick_random().trim_prefix("Lucía: «").trim_suffix("».")]
+		l = ["Doctor, se lo digo con cariño…", "En el vestidor hay una ducha. Úsela, por favor."]
+	elif Juego.energia < 25.0:
+		l = ["Se ve agotado, doctor.", "Duerma más esta noche, o mañana no rendirá."]
+	elif _pendientes() > 0:
+		l = ["Tenemos pacientes esperando, doctor.", CONSEJOS.pick_random().trim_prefix("Lucía: «").trim_suffix("».")]
+	else:
+		l = [CONSEJOS.pick_random().trim_prefix("Lucía: «").trim_suffix("».")]
+	var opciones: Array = []
+	# Pedirle que vigile al paciente más delicado
+	var peor := -1
+	for i in 3:
+		var p: Paciente = pacientes[i]
+		if p and p.estado != "alta" and Juego.minutos >= p.vigilado_hasta:
+			if peor == -1 or p.estabilidad < pacientes[peor].estabilidad:
+				peor = i
+	if peor != -1:
+		opciones.append({"texto": "¿Puedes vigilar a %s mientras traigo el insumo?" % pacientes[peor].nombre, "efecto": "vigilar:%d" % peor})
+	opciones.append({"texto": "Gracias por todo, Lucía.", "amistad": 1, "respuesta": ["Para eso estamos, doctor. Usted va muy bien."]})
+	opciones.append({"texto": "¿Algún consejo?", "amistad": 0, "respuesta": [CONSEJOS.pick_random().trim_prefix("Lucía: «").trim_suffix("».")]})
+	return {"lineas": l, "opciones": opciones}
 
 
-func _dialogo_salgado() -> Array:
+func _dialogo_salgado():
 	var l := ["Pinkman. Lleva %d de reputación." % Juego.reputacion,
 		"%d día(s) seguidos puntual y %d retraso(s)." % [Juego.racha_puntual, Juego.retrasos]]
 	if Juego.reputacion >= 30:
@@ -806,7 +858,89 @@ func _dialogo_salgado() -> Array:
 		l.append("Necesita 30 de reputación para pensar en una capacitación.")
 	if Juego.huele_mal():
 		l.append("Y por favor… báñese. Un médico también se cuida a sí mismo.")
-	return l
+	return {"lineas": l, "opciones": [
+		{"texto": "Gracias, doctor. Daré lo mejor.", "amistad": 1, "respuesta": ["Eso espero. En este hospital todos empezamos desde abajo."]},
+		{"texto": "¿Cómo llegó usted a director?", "amistad": 1, "respuesta": ["Puntualidad, estudio y nunca dejar solo a un paciente.", "Y aguantar a gente como Noctis, claro."]},
+		{"texto": "Me retiro, doctor.", "amistad": 0},
+	]}
+
+
+func _dialogo_cristian():
+	var l: Array = [["Llevo diez años de camillero. Me conozco cada baldosa de este pasillo.", "La tercera de la izquierda está floja, ojo."],
+		["Si un paciente no puede caminar, me llaman a mí. ¡Rápido como un rayo!"]].pick_random()
+	var opciones: Array = []
+	if Juego.insumo_cargado == "" and _pendientes() > 0:
+		opciones.append({"texto": "Cristian, ¿me traes un insumo del botiquín?", "efecto": "cristian_insumo"})
+	opciones.append({"texto": "¡Diez años! Qué experiencia.", "amistad": 1, "respuesta": ["¡Y ni una camilla volteada! Bueno… solo una."]})
+	opciones.append({"texto": "Sigue con lo tuyo.", "amistad": 0})
+	return {"lineas": l, "opciones": opciones}
+
+
+func _dialogo_wilder():
+	var l: Array = [["¡Te juro que mañana sí trabajaré, Walter, promesa de garrita!"],
+		["Shh… estoy en mi descanso. Llevo en mi descanso desde las ocho.", "¿Qué hora es? No me digas, prefiero no saberlo."],
+		["Si Salgado pregunta, estoy atendiendo a un paciente… en la cafetería.", "El paciente soy yo: tengo hambre crónica."],
+		["Una siestita de cinco minutos y vuelvo.", "Bueno… de cincuenta."]].pick_random()
+	var opciones: Array = []
+	if Juego.una_vez_hoy_disponible("cubrir_wilder"):
+		l = l + ["Oye, Walter… ¿me cubres un ratito? Si Salgado pasa, dile que estoy con un paciente."]
+		opciones.append({"texto": "Está bien, te cubro (−20 min).", "amistad": 2, "efecto": "cubrir_wilder",
+			"respuesta": ["¡Eres un ángel con bata! Te debo una, promesa de garrita."]})
+		opciones.append({"texto": "Ni loco. Ve a trabajar.", "amistad": -1, "respuesta": ["Uy… qué carácter. Ya voy, ya voy… mañana."]})
+	if int(Juego.favores.get("Dr. Wilder Noctis", 0)) > 0 and _pendientes() > 0:
+		opciones.append({"texto": "Wilder, me debes una: atiende a un paciente.", "efecto": "favor_wilder"})
+	opciones.append({"texto": "Jaja, típico.", "amistad": 0, "respuesta": ["Típico y feliz, Walter."]})
+	return {"lineas": l, "opciones": opciones}
+
+
+# --- Efectos de las respuestas -------------------------------------------------------
+func efecto_npc(nombre: String, efecto: String) -> void:
+	if efecto.begins_with("vigilar:"):
+		var i := int(efecto.substr(8))
+		var p: Paciente = pacientes[i]
+		if p == null:
+			return
+		if Juego.get_amistad("Lucía") >= 4:
+			p.vigilado_hasta = Juego.minutos + 40.0
+			await hud.dialogo("Lucía", ["Claro, doctor. Yo cuido a %s; usted vaya tranquilo." % p.nombre])
+			hud.mostrar("Lucía vigila a %s durante 40 minutos: no empeorará." % p.nombre, 3.0)
+		else:
+			await hud.dialogo("Lucía", ["Lo siento, doctor, no puedo dejar la enfermería ahora."])
+			hud.mostrar("(Necesitas más amistad con Lucía para pedirle eso.)", 3.0)
+	elif efecto.begins_with("consejo_dakota:"):
+		Juego.flags["consejo_dakota"] = efecto.substr(15)
+	elif efecto == "cubrir_wilder":
+		Juego.una_vez_hoy("cubrir_wilder")
+		Juego.dar_favor("Dr. Wilder Noctis")
+		Juego.flags["wilder_cubierto"] = int(Juego.flags.get("wilder_cubierto", 0)) + 1
+		await _accion(20, "Cubriste a Wilder 20 minutos…")
+	elif efecto == "favor_wilder":
+		for i in 3:
+			var p: Paciente = pacientes[i]
+			if p and p.estado != "alta":
+				Juego.favores["Dr. Wilder Noctis"] = int(Juego.favores["Dr. Wilder Noctis"]) - 1
+				await hud.dialogo("Dr. Wilder Noctis", ["Ugh… está bien. Un trato es un trato.", "Yo me encargo de %s. ¡No le digas a nadie que trabajé!" % p.nombre])
+				p.estado = "alta"
+				p.estabilidad = 100.0
+				atendidos += 1
+				Juego.sumar_reputacion(5)
+				hud.mostrar("Wilder atendió a %s por ti. (+5 reputación)" % p.nombre, 3.0)
+				await get_tree().create_timer(2.0).timeout
+				if pacientes[i] == p:
+					_liberar(i)
+				return
+	elif efecto == "cristian_insumo":
+		if Juego.get_amistad("Cristian Daniel") < 4:
+			await hud.dialogo("Cristian Daniel", ["Ahorita no puedo, doctor, ando con una camilla.", "(Necesitas más amistad con Cristian Daniel.)"])
+			return
+		if not Juego.una_vez_hoy("cristian_insumo"):
+			await hud.dialogo("Cristian Daniel", ["Ya le hice un mandado hoy, doctor. ¡Tengo más camillas que llevar!"])
+			return
+		var todos: Array = INSUMOS_A + INSUMOS_ROJO
+		var r: int = await hud.elegir("¿Qué insumo te trae Cristian?", "", todos)
+		if r >= 0:
+			Juego.insumo_cargado = todos[r]
+			await hud.dialogo("Cristian Daniel", ["¡Rápido como un rayo! Aquí tiene: %s." % todos[r].to_lower()])
 
 
 func _terminar_turno() -> void:
