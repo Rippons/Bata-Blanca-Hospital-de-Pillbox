@@ -336,13 +336,18 @@ func _construir_pasillo() -> void:
 		["Llevo diez años de camillero. Me conozco cada baldosa de este pasillo.", "La tercera de la izquierda está floja, ojo."],
 		["Si un paciente no puede caminar, me llaman a mí. ¡Rápido como un rayo!"],
 	])
-	persona("Dr. Máximo Stone", 5, "uniforme", Personaje.PELOS, 3, Vector2(340, 170), Rect2(260, 112, 300, 80), [
+	persona("Dr. Máximo Stone", 5, "uniforme", Personaje.PELOS, 7, Vector2(340, 170), Rect2(260, 112, 300, 80), [
 		["Stone, traumatología. Si llega alguien con un esguince: férula y reposo.", "Y nada de volver a la cancha en una semana."],
 		["Este pasillo es más largo que mis turnos, y eso es mucho decir."],
 	])
-	persona("Dr. Enzo Escobar", 2, "uniforme", Personaje.PELOS2, 2, Vector2(620, 150), Rect2(560, 112, 360, 80), [
+	persona("Dr. Enzo Escobar", 2, "uniforme", Personaje.PELOS, 6, Vector2(620, 150), Rect2(560, 112, 360, 80), [
 		["Enzo Escobar, medicina interna. ¿Ya almorzó? Aquí se le olvida a uno comer.", "Un médico con hambre se equivoca más."],
 		["Para el azúcar baja, el glucómetro es su mejor amigo."],
+	])
+	persona("Iván Rojas", 0, "enfermera", Personaje.PELOS, 4, Vector2(160, 160), Rect2(40, 112, 300, 80), [
+		["¡Aaay sí, señorita Sheyla, jaja, amo esa broma!", "…Ah, perdón, doctor. Pensé que era ella."],
+		["La señorita Sheyla me contó un chiste de un fémur que se fue de fiesta.", "¡Jaja! Bueno… uno tenía que estar ahí."],
+		["¿Ha visto a la señorita Sheyla hoy? Se ve… radiante. Jaja, ay."],
 	])
 	persona("Sofía", 2, "rosa", Personaje.PELOS, 2, Vector2(760, 170), Rect2(600, 112, 330, 80), [
 		["Busco los consultorios, pero dice «cerrado».", "Ah, ¿solo abren cuando hay residentes? Qué lástima."],
@@ -407,9 +412,11 @@ func _construir_vestidor() -> void:
 		["Ramírez, de cirugía. Acabo de salir de una operación de cuatro horas.", "Consejo: báñese antes del turno. Los pacientes lo notan."],
 		["El Dr. Salgado empezó como interno, igual que usted."],
 	])
-	persona("Dr. Zacarías Flores", 4, "uniforme", Personaje.PELOS2, 4, Vector2(220, 170), Rect2(186, 150, 160, 56), [
-		["Zacarías Flores. Siempre dejo una bata limpia en el casillero.", "Uno nunca sabe cuándo le van a estornudar encima."],
-		["¿Primer mes? Tranquilo, el primero es el más duro."],
+	persona("Dr. Zacarías Flores", 1, "uniforme", Personaje.PELOS, 7, Vector2(220, 170), Rect2(186, 150, 160, 56), [
+		["¿L-la oficial Dakota del LSPD vino hoy?", "N-no, por nada… solo preguntaba. Ejem."],
+		["¿Se me nota que estoy sudando? Es… es el calor del vestidor, s-sí."],
+		["Si ve a la señorita Dakota, no le diga que pregunté por ella, ¿sí?", "Bueno, sí dígale. ¡No! Mejor no. Ay, no sé, doctor."],
+		["Ensayé un saludo para la oficial Dakota: «Hola, Dakota».", "¿Muy directo? ¿Muy aburrido? Ay, me tiemblan las manos."],
 	])
 
 
@@ -433,7 +440,7 @@ func _construir_cafeteria() -> void:
 		["Aquí el almuerzo es sagrado, doctor.", "Pruebe la sopa: la hace Doña Luz desde hace veinte años."],
 		["Vengo todos los días aunque no esté enfermo. ¡Por la comida!"],
 	])
-	var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS, 6, Vector2(300, 176), Rect2(270, 160, 80, 40), [
+	var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(300, 176), Rect2(270, 160, 80, 40), [
 		["¡Te juro que mañana sí trabajaré, Walter, promesa de garrita!"],
 		["Shh… estoy en mi descanso. Llevo en mi descanso desde las ocho.", "¿Qué hora es? No me digas, prefiero no saberlo."],
 		["Si Salgado pregunta, estoy atendiendo a un paciente… en la cafetería.", "El paciente soy yo: tengo hambre crónica."],

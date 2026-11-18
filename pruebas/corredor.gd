@@ -86,14 +86,23 @@ func _ready() -> void:
 	var p0: Vector2 = mc.position
 	await esperar(6.0)
 	ok(mc.position.distance_to(p0) > 3.0, "los NPC caminan (McClane se movió %.0f px)" % mc.position.distance_to(p0))
-	for nombre in ["Dr. Maximiliano Brown", "Dr. Máximo Stone", "Dr. Enzo Escobar", "Dr. Zacarías Flores", "Dr. Wilder Noctis", "Cristian Daniel"]:
+	for nombre in ["Dr. Maximiliano Brown", "Dr. Máximo Stone", "Dr. Enzo Escobar", "Dr. Zacarías Flores", "Dr. Wilder Noctis", "Cristian Daniel", "Iván Rojas"]:
 		ok(hosp.npcs.has(nombre), "NPC " + nombre)
 	await hosp.interactuar("npc:Dr. Wilder Noctis")
 	ok(not hosp.npcs["Alejandro Reyes"].figura._pelo.visible, "los policías no muestran pelo sobre la gorra")
+	var fig := Personaje.new()
+	add_child(fig)
+	fig.mirando = Vector2.RIGHT
+	fig.caminar(true, 0.0)
+	ok(fig._col_dir == 6, "caminar a la derecha usa las columnas 6-11 (miran a la derecha)")
+	fig.mirando = Vector2.LEFT
+	fig.caminar(true, 0.0)
+	ok(fig._col_dir == 18, "caminar a la izquierda usa las columnas 18-23")
+	fig.queue_free()
 	var erina = hosp.npcs["Erina"]
 	ok(erina.figura.mirando == Vector2.DOWN, "Erina vuelve a mirar al mostrador después de hablar")
 	var nombres_npc: Array = hosp.npcs.keys()
-	ok(nombres_npc.size() >= 19, "%d NPC con nombre en el hospital" % nombres_npc.size())
+	ok(nombres_npc.size() >= 20, "%d NPC con nombre en el hospital" % nombres_npc.size())
 	await hosp.interactuar("puerta_consultorios")
 	ok(hosp.sala_actual == "pasillo", "consultorios está cerrado")
 	await hosp.interactuar("puerta_urgencias")

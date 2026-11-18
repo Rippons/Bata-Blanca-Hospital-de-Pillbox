@@ -2,7 +2,7 @@ class_name Personaje
 extends Node2D
 ## Personaje armado por capas con los sprites de MetroCity (JIK-A-4):
 ## sombra + cuerpo (tono de piel) + ropa + pelo.
-## Cada hoja tiene 24 columnas de 32×32: 0-5 abajo, 6-11 izquierda, 12-17 arriba, 18-23 derecha.
+## Cada hoja tiene 24 columnas de 32×32: 0-5 abajo, 6-11 derecha, 12-17 arriba, 18-23 izquierda.
 ## El origen (0, 0) está en los pies.
 
 const BASE := "res://arte/personajes/"
@@ -128,7 +128,7 @@ func _columna_base() -> int:
 	var horizontal := absf(mirando.x) > absf(mirando.y) * 1.25
 	var vertical := absf(mirando.y) > absf(mirando.x) * 1.25
 	if horizontal:
-		_col_dir = 18 if mirando.x > 0.0 else 6
+		_col_dir = 6 if mirando.x > 0.0 else 18
 	elif vertical:
 		_col_dir = 12 if mirando.y < 0.0 else 0
 	return _col_dir
