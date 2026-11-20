@@ -38,6 +38,13 @@ const HOJAS := {
 	"sheyla": BASE + "propios/sheyla_escobedo.png",
 	"marcos": BASE + "propios/marcos_rojas.png",
 }
+## Hojas exclusivas de Walter Pinkman (formato MetroCity: 24 cuadros de 32×32 en una fila,
+## con cuerpo, ropa, pelo y barba ya unidos). Si «unico» es true se usan en vez de las capas.
+const WALTER := {
+	"uniforme": BASE + "walter/walter_bata.png",
+	"uniforme_sucia": BASE + "walter/walter_bata_sucia.png",
+	"pijama": BASE + "walter/walter_pijama.png",
+}
 const PASOS_HOJA := [1, 0, 0, 1, 2, 2]   # cuadro de la hoja según la fase de la caminata
 
 @export var piel := 0                 # 0..5
@@ -46,6 +53,7 @@ const PASOS_HOJA := [1, 0, 0, 1, 2, 2]   # cuadro de la hoja según la fase de l
 @export var pelo_fila := 0
 @export var tinte_ropa := Color.WHITE
 @export var olor := 0                 # 0 nada · 1 huele · 2 huele mucho
+@export var unico := false             # true solo para Walter: usa sus hojas exclusivas
 
 var mirando := Vector2.DOWN
 var acostado := false
@@ -119,6 +127,18 @@ func _tex(ruta: String) -> Texture2D:
 func aplicar() -> void:
 	if _cuerpo == null or es_hoja():
 		return
+	if usa_walter():
+		var clave := ropa
+		if ropa == "uniforme" and tinte_ropa != Color.WHITE:
+			clave = "uniforme_sucia"
+		_cuerpo.texture = _tex(WALTER[clave])
+		_ropa.visible = false
+		_pelo.visible = false
+		_efecto.nivel = olor
+		_actualizar_cuadro()
+		return
+	_cuerpo.texture = _tex(CUERPO)
+	_ropa.visible = true
 	var r: Array = ROPAS.get(ropa, ROPAS["uniforme"])
 	var hoja: String = r[0]
 	var fila: int = r[1]
@@ -152,6 +172,10 @@ func _columna_base() -> int:
 	return _col_dir
 
 
+func usa_walter() -> bool:
+	return unico and WALTER.has(ropa)
+
+
 func es_hoja() -> bool:
 	return ropa.begins_with("hoja:") and HOJAS.has(ropa.substr(5))
 
@@ -171,6 +195,10 @@ func _actualizar_cuadro() -> void:
 	if acostado:
 		col = 0
 	var x := col * 32.0
+	if usa_walter():
+		_cuerpo.region_rect = Rect2(x, 0, 32, 32)
+		_sombra.visible = not acostado
+		return
 	_cuerpo.region_rect = Rect2(x, piel * 32.0, 32, 32)
 	_ropa.region_rect = Rect2(x, int(_ropa.get_meta("fila", 0)) * 32.0, 32, 32)
 	_pelo.region_rect = Rect2(x, pelo_fila * 32.0, 32, 32)

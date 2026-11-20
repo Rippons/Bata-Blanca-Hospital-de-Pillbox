@@ -26,6 +26,7 @@ func _ready() -> void:
 	figura.piel = 0
 	figura.pelo_hoja = Personaje.PELOS
 	figura.pelo_fila = 0
+	figura.unico = true
 	add_child(figura)
 
 	camara = Camera2D.new()

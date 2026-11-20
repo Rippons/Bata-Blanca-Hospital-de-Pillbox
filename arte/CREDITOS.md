@@ -13,3 +13,5 @@ Las batas y uniformes recoloreados que haga el equipo son obras derivadas propia
 ## Audio
 
 Toda la música y los efectos de `audio/` fueron sintetizados por el equipo con `herramientas/generar_audio.py` (obra propia).
+
+`personajes/walter/`: hojas exclusivas de Walter Pinkman (bata, bata sucia y pijama), editadas píxel a píxel por el equipo a partir de las capas de MetroCity: pelo rubio con cola de caballo, ojos azules, barba y bata con camisa azul y estetoscopio.
