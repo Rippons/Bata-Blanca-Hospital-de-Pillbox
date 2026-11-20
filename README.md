@@ -55,6 +55,21 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - **Apagón:** el hospital se oscurece y los pacientes empeoran más rápido. Hay que avisar a Salgado para que llame al electricista **Paul Catelli**; tus consejos deciden si la luz vuelve a fallar y qué tan seguido se va.
 - **El director llama por el megáfono** cada pocos días para hablar del rendimiento.
 - **La ambulancia (ESC-02 del guion):** desde el día 2 suena el código rojo. Walter sale a la entrada, llega la ambulancia con sirena y **Cristian Daniel** baja a Andrés (24 años, alergia al maní) y lo lleva en camilla a urgencias. Si Lucía confía en Walter (amistad 3+), abre el botiquín rojo y vigila a los demás; si no, grita la clave del botiquín. La epinefrina es una sola dosis: si se desperdicia, Cristian corre por otra. Con Andrés crítico suena un latido. Salvarlo da +8 de reputación extra.
+- **Eventos del día** (`scripts/eventos.gd`, uno al azar casi todos los días desde el día 2, más los de historia):
+  - **Incendio en la cafetería:** humo en la cocina de Doña Luz; Walter habla con Lucía para evacuar la sala de espera y llegan los bomberos.
+  - **Paciente que se escapa** por el pasillo: convencerlo o pedirle a McClane que lo detenga.
+  - **Inspección sorpresa** de la Secretaría de Salud (higiene, bata limpia, espera y transferidos).
+  - **Falta un insumo** del botiquín: Cristian lo trae de la farmacia o Brown lo presta (y queda debiendo un favor).
+  - **Ascensor atascado** con el capitán Marcos Rojas adentro; llega Paul Catelli.
+  - **Dakota trae a un detenido herido** y Zacarías se pone nervioso.
+  - **Examen sorpresa del Dr. Brown** a Walter, Jinu y Wilder.
+  - **Cumpleaños de Erina:** conseguir el pastel con Doña Luz, distraerla y la sorpresa a las 3 PM.
+  - **Diego esconde el estetoscopio** de Walter (Sheyla sabe dónde está).
+  - **Rhea Pawlak llega herida de verdad** y Reyes está muy nervioso.
+  - **Accidente grande en la avenida:** dos ambulancias, patrulla y bomberos; llegan tres heridos.
+  - **Ola de calor:** más golpes de calor, cafetería llena y jugos gratis.
+  - **Mamá visita el hospital** con almuerzo (y les muestra a todos fotos de Walter de bebé).
+  - **Llamada del arrendador** si Walter quedó en deuda con el arriendo.
 - **Cafetería:** bebida energética (1 por turno: +15 % de energía y más velocidad por 1 minuto) y Doña Luz en la barra.
 
 **Personas, diálogos y sonido**

@@ -175,6 +175,7 @@ var llamado_hora := -1.0
 var llamado_desde := 0.0
 var oscuridad: CanvasModulate
 var exterior: Exterior
+var eventos: EventosHospital
 
 # Escena de la ambulancia (ESC-02): Cristian Daniel trae a Andrés
 var ambulancia_hora := -1.0
@@ -196,6 +197,10 @@ func construir() -> void:
 	_construir_cafeteria()
 	_construir_direccion()
 	_construir_consultorio()
+	eventos = EventosHospital.new(self)
+	add_child(eventos)
+	origen = Vector2.ZERO
+	eventos.construir()
 	exterior = Exterior.new()
 	exterior.position = SALAS["entrada"]["origen"] + Vector2(0, EXT_Y)   # subido para que la calle no quede bajo el HUD
 	mundo.add_child(exterior)
@@ -808,7 +813,7 @@ func _quitar_npc(n: NPC) -> void:
 
 func _deterioro(dm: float) -> void:
 	for e in espera.duplicate():
-		e["estabilidad"] -= e["caso"]["deterioro"] * dm * 0.5      # en espera empeoran a la mitad
+		e["estabilidad"] -= e["caso"]["deterioro"] * dm * 0.5 * eventos.mult_espera()   # en espera empeoran a la mitad (el humo los empeora)
 		e["marca"].estabilidad = maxf(e["estabilidad"], 0.0)
 		if e["estabilidad"] <= 0.0:
 			espera.erase(e)
@@ -856,6 +861,7 @@ func _actualizar_lista() -> void:
 		tareas.append([("¡Sin luz! Avisar en dirección" if catelli_estado == "" else ("Esperar al electricista" if catelli_estado == "llamado" else "Hablar con Catelli (pasillo)" if catelli_estado == "llego" else "Catelli está arreglando")), false])
 	if llamado != "":
 		tareas.append(["¡Ir a la dirección!", false])
+	tareas += eventos.tareas()
 	for e in espera:
 		tareas.append(["Espera: %s (%s)" % [e["nombre"], e["triaje"]], false])
 	if tareas.is_empty():
@@ -872,6 +878,8 @@ func interactuar(id: String) -> void:
 		await hablar_con(id.substr(4))
 	elif id.begins_with("camilla"):
 		await _camilla(int(id.substr(7)))
+	elif id.begins_with("ev_"):
+		await eventos.interactuar(id)
 	elif id.begins_with("puerta_"):
 		var destino := id.substr(7)
 		if destino == "consultorios" and Juego.rango == "Interno":
@@ -950,6 +958,9 @@ func _camilla(i: int) -> void:
 			var h: int = await hud.elegir("Examinar a %s" % p.nombre, "Signos: %s\n¿Con qué lo examinas?" % p.caso["signos"], herr)
 			if h < 0 or not is_instance_valid(p) or pacientes[i] != p:
 				return
+			if h < HERRAMIENTAS.size() and eventos.sin_estetoscopio and herr[h] == "Estetoscopio":
+				hud.mostrar("¡Tu estetoscopio no está! Alguien lo escondió… Diego no para de reírse.", 3.5)
+				return
 			if h < HERRAMIENTAS.size():
 				Juego.pasar_tiempo(2)
 				if herr[h] == p.caso["herramienta"]:
@@ -993,6 +1004,7 @@ func _camilla(i: int) -> void:
 		atendidos += 1
 		Juego.sonido("exito", 1.0, -8.0)
 		hud.mostrar("¡%s está estable! (+%d reputación)" % [p.nombre, premio])
+		eventos.paciente_curado(p.nombre)
 		if ambulancia_estado == "activa" and i == ambulancia_cama:
 			await _ambulancia_resuelta()
 		await get_tree().create_timer(2.5).timeout
@@ -1038,9 +1050,12 @@ func _botiquin(insumos: Array, titulo: String) -> void:
 		if r == 0:
 			Juego.insumo_cargado = ""
 		return
-	var opciones: Array = insumos.duplicate()
+	var opciones: Array = insumos.map(func(i): return eventos.etiqueta_insumo(i))
 	opciones.append("Cancelar")
 	var r2: int = await hud.elegir(titulo, "¿Qué insumo tomas?", opciones)
+	if r2 >= 0 and r2 < insumos.size() and insumos[r2] == eventos.agotado:
+		hud.mostrar("No queda %s. Pídele a Cristian que traiga de la farmacia, o al Dr. Brown." % eventos.agotado.to_lower(), 3.5)
+		return
 	if r2 >= 0 and r2 < insumos.size():
 		Juego.insumo_cargado = insumos[r2]
 		hud.mostrar("Tomaste: %s." % Juego.insumo_cargado, 2.0)
@@ -1277,6 +1292,7 @@ func _planear_eventos() -> void:
 	# La ambulancia de Andrés llega una vez, desde el día 2
 	if Juego.dia >= 2 and not Juego.flags.get("ambulancia_andres", false):
 		ambulancia_hora = randi_range(10 * 60, 12 * 60)
+	eventos.planear()
 
 
 func _eventos() -> void:
@@ -1285,6 +1301,7 @@ func _eventos() -> void:
 		_intentar_ambulancia()
 	if ambulancia_estado == "activa":
 		_vigilar_ambulancia()
+	eventos.revisar()
 	if evento_pico > 0.0 and m >= evento_pico:
 		evento_pico = -1.0
 		Juego.sonido("altavoz", 0.9, -6.0)
@@ -1675,6 +1692,16 @@ var _turno_diego := 0
 var _turno_jinu := 0
 var _turno_sheyla := 0
 var cinematica_activa := false
+
+
+func dialogo_prioritario(nombre: String):
+	return eventos.dialogo(nombre) if eventos else null
+
+
+func poner_sirena(s: Node2D, pos: Vector2) -> void:
+	var luz := Sirena.new()
+	luz.position = pos
+	s.add_child(luz)
 
 
 func en_cinematica() -> bool:
@@ -2206,6 +2233,9 @@ func _cristian_vuelve() -> void:
 
 # --- Efectos de las respuestas -------------------------------------------------------
 func efecto_npc(nombre: String, efecto: String) -> void:
+	if efecto.begins_with("ev:"):
+		await eventos.efecto(nombre, efecto.substr(3))
+		return
 	if efecto == "broma_jinu":
 		await _cinematica_broma()
 		return

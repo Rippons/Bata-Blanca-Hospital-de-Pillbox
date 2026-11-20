@@ -141,6 +141,8 @@ func persona(nombre: String, piel: int, ropa: String, pelo_hoja: String, pelo_fi
 	n.lineas = lineas
 	n.zona_hablar.usado.connect(_on_usado)
 	n.efecto_dialogo.connect(efecto_npc)
+	if has_method("dialogo_prioritario"):
+		n.prioridad = Callable(self, "dialogo_prioritario")
 	interactuables[n.zona_hablar.id] = n.zona_hablar
 	npcs[nombre] = n
 	mundo.add_child(n)

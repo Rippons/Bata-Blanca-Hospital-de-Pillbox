@@ -382,6 +382,144 @@ func _ready() -> void:
 	h2.epinefrina_repuesto = -1.0
 	h2.ambulancia_estado = ""
 
+	print("== Eventos nuevos")
+	var evh: EventosHospital = h2.eventos
+	var esperar_hasta := func(cond: Callable, limite: float) -> void:
+		var tt := 0.0
+		while not cond.call() and tt < limite:
+			await esperar(0.2)
+			tt += 0.2
+	# 4. Falta de insumos
+	evh.iniciar("insumos")
+	var falta: String = evh.agotado
+	ok(falta != "", "falta un insumo en el botiquín: %s" % falta)
+	Juego.respuestas_auto = [evh.etiqueta_insumo(falta), "Cancelar"]
+	await h2.interactuar("botiquin")
+	ok(Juego.insumo_cargado == "", "el insumo agotado no se puede tomar")
+	Juego.respuestas_auto = ["Cristian, ¿me traes %s de la farmacia?" % falta.to_lower()]
+	await h2.hablar_con("Cristian Daniel")
+	ok(evh.agotado_vuelve > 0.0, "Cristian va a la farmacia")
+	Juego.minutos = evh.agotado_vuelve + 1.0
+	await esperar(0.3)
+	ok(evh.agotado == "", "Cristian trae el insumo")
+	# 9. Estetoscopio escondido
+	evh.iniciar("estetoscopio")
+	Juego.respuestas_auto = ["Le voy a contar a Sheyla."]
+	await h2.hablar_con("Diego Quiroz")
+	await esperar(0.5)
+	ok(not evh.sin_estetoscopio, "Diego devuelve el estetoscopio (y Sheyla lo regaña)")
+	# 2. Paciente que se escapa
+	h2._entra_a_espera({"nombre": "Prueba Fuga", "caso": Casos.casos_leves()[0]})
+	evh.fuga = {}
+	for e in h2.espera.duplicate():
+		if e["nombre"] != "Prueba Fuga":
+			pass
+	evh.iniciar("fuga")
+	var fugado: String = evh.fuga.get("nombre", "")
+	ok(fugado != "" and h2.npcs.has(fugado) and h2.npcs[fugado].position.y < 2000.0, "un paciente se va por el pasillo")
+	Juego.respuestas_auto = ["¡McClane, ayúdeme a detenerlo!"]
+	await h2.hablar_con(fugado)
+	await esperar_hasta.call(func(): return evh.fuga.is_empty(), 8.0)
+	ok(evh.fuga.is_empty() and h2.espera.any(func(e): return e["nombre"] == fugado), "McClane lo trae de vuelta a la sala de espera")
+	# 3. Inspección
+	evh.iniciar("inspeccion")
+	ok(h2.npcs.has("Inspectora Valdés"), "llega la inspectora al pasillo")
+	evh.inspectora_evalua = Juego.minutos
+	await esperar_hasta.call(func(): return not h2.npcs.has("Inspectora Valdés"), 5.0)
+	ok(Juego.flags.has("inspeccion_resultado"), "la inspectora da su resultado (%s)" % Juego.flags.get("inspeccion_resultado", "?"))
+	# 1. Incendio
+	evh.iniciar("incendio")
+	ok(evh.incendio == "humo", "sale humo de la cafetería")
+	Juego.respuestas_auto = ["¡Evacuemos a recepción, ahora!"]
+	h2.hablar_con("Lucía")
+	var vio_bomberos := false
+	var t_f := 0.0
+	while (evh.incendio != "listo" or h2.cinematica_activa) and t_f < 30.0:
+		await esperar(0.2)
+		t_f += 0.2
+		if not vio_bomberos and h2.sala_actual == "entrada" and t_f > 4.0:
+			vio_bomberos = true
+			await captura("evento_bomberos")
+	ok(evh.incendio == "listo" and not h2.cinematica_activa, "evacuación y llegan los bomberos")
+	# 7. Examen de Brown
+	Juego.respuestas_auto = [0, 0, 0]
+	await evh.iniciar("examen")
+	ok(not h2.cinematica_activa and h2.npcs["Dr. Maximiliano Brown"].position.y > 1999.0, "examen sorpresa de Brown y todos vuelven a su sitio")
+	# 6. Detenido con Dakota (día 2: Dakota está en recepción)
+	evh.iniciar("detenido")
+	ok(h2.espera.any(func(e): return e["nombre"] == "Detenido (LSPD)") or h2.agenda.any(func(a): return a["nombre"] == "Detenido (LSPD)"), "Dakota trae a un detenido")
+	ok(h2.npcs["Dakota"].position.y > 1999.0, "Dakota lo custodia en urgencias")
+	evh.paciente_curado("Detenido (LSPD)")
+	ok(h2.npcs["Dakota"].position.y < 1000.0, "al curarlo, Dakota vuelve a recepción")
+	# 10. Pawlak herida
+	evh.iniciar("pawlak_herida")
+	ok(evh.pawlak_herida and h2.npcs["Alejandro Reyes"].position.y > 1999.0, "Rhea Pawlak llega herida y Reyes la acompaña")
+	Juego.respuestas_auto = ["Respira, Reyes. Está en buenas manos."]
+	await h2.hablar_con("Alejandro Reyes")
+	evh.paciente_curado("Oficial Rhea Pawlak")
+	ok(not evh.pawlak_herida and h2.npcs["Alejandro Reyes"].position.y < 1000.0, "Reyes vuelve a la entrada")
+	# 12. Calor
+	evh.iniciar("calor")
+	Juego.respuestas_auto = ["Un jugo de maracuyá, por favor."]
+	await h2.hablar_con("Doña Luz")
+	ok(evh.calor and evh.jugo_tomado, "ola de calor: jugo gratis de Doña Luz")
+	# 14. Mamá
+	evh.iniciar("mama")
+	Juego.respuestas_auto = ["¡Gracias, mamá! Me lo como ya."]
+	await h2.hablar_con("Mamá de Walter")
+	ok(Juego.hambre >= 99.0, "mamá trae almuerzo")
+	var de_erina = evh.dialogo("Erina")
+	ok(de_erina is Array and str(de_erina[0]).contains("mamá"), "Erina comenta la visita de mamá")
+	# 15. Arrendador
+	var plata: int = Juego.dinero
+	Juego.dinero = -50
+	Juego.respuestas_auto = [0]
+	await evh.iniciar("arrendador")
+	ok(Juego.flags.get("arrendador_promesa", false), "llama el arrendador por la deuda")
+	Juego.dinero = plata
+	# 5. Ascensor
+	evh.iniciar("ascensor")
+	ok(evh.ascensor == "atrapado", "el capitán queda atrapado en el ascensor")
+	evh.catelli_llega = Juego.minutos
+	await esperar(0.3)
+	ok(h2.npcs.has("Paul Catelli"), "llega Paul Catelli")
+	Juego.respuestas_auto = ["Catelli, usted es el mejor electricista de Pillbox. Demuéstrelo."]
+	await h2.hablar_con("Paul Catelli")
+	await esperar_hasta.call(func(): return evh.ascensor == "listo" and not h2.npcs.has("Paul Catelli"), 5.0)
+	ok(evh.ascensor == "listo" and h2.npcs.has("Capitán Marcos Rojas"), "Catelli lo saca y el capitán da las gracias")
+	# 11. Accidente grande
+	var vio_acc := false
+	evh.iniciar("accidente")
+	var t_c2 := 0.0
+	while not h2.agenda.any(func(a): return str(a["nombre"]).contains("accidente")) and t_c2 < 30.0:
+		await esperar(0.2)
+		t_c2 += 0.2
+		if not vio_acc and h2.sala_actual == "entrada" and t_c2 > 6.0:
+			vio_acc = true
+			await captura("evento_accidente")
+	ok(h2.agenda.filter(func(a): return str(a["nombre"]).contains("accidente")).size() == 3, "accidente grande: llegan tres heridos")
+	# 8. Cumpleaños de Erina
+	evh.iniciar("cumple_erina")
+	Juego.respuestas_auto = ["¡Sí! Démelo, Doña Luz."]
+	await h2.hablar_con("Doña Luz")
+	ok(evh.pastel, "Doña Luz entrega el pastel")
+	Juego.respuestas_auto = ["Erina, ¿me ayudas a buscar una historia clínica en el archivo?"]
+	await h2.hablar_con("Erina")
+	ok(evh.distraida, "Walter distrae a Erina")
+	await h2.ir_a_sala("recepcion", Vector2(240, 200))
+	Juego.minutos = 15 * 60 + 1
+	var vio_fiesta := false
+	var t_b := 0.0
+	while evh.cumple != "listo" and t_b < 10.0:
+		await esperar(0.1)
+		t_b += 0.1
+		if not vio_fiesta and h2.cinematica_activa:
+			vio_fiesta = true
+			await esperar(0.2)
+			await captura("evento_cumple_erina")
+	await esperar_hasta.call(func(): return not h2.cinematica_activa, 5.0)
+	ok(evh.cumple == "listo" and Juego.get_amistad("Erina") >= 2, "fiesta sorpresa para Erina")
+
 	print("== Capacitación y ascenso")
 	Juego.respuestas_auto = ["Cerrar"]
 	await h2.interactuar("tablon")

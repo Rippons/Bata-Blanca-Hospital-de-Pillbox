@@ -21,6 +21,7 @@ var _objetivo := Vector2.ZERO
 var _y_primero := false            # alterna el orden de los ejes cuando se atasca
 var ruta: Array = []               # puntos de paso (mundo) antes de quedarse en su zona
 var _espera := 0.0
+var prioridad: Callable             # diálogo de eventos que se pone antes que el de siempre
 var guion := false                  # en una cinemática: solo camina por su «ruta» y luego se queda quieto
 var _atascado := 0.0
 var _turno := 0
@@ -117,8 +118,12 @@ func hablar(hud: HUD, walter_pos: Vector2) -> void:
 	if dir.length() > 0.1:
 		figura.mirando = dir
 		figura.caminar(false, 0.0)
-	var entrada
-	if dialogo_dinamico.is_valid():
+	var entrada = null
+	if prioridad.is_valid():
+		entrada = prioridad.call(nombre)      # eventos del día (si no hay, devuelve null)
+	if entrada != null:
+		pass
+	elif dialogo_dinamico.is_valid():
 		entrada = dialogo_dinamico.call()
 	elif not lineas.is_empty():
 		entrada = lineas[_turno % lineas.size()]

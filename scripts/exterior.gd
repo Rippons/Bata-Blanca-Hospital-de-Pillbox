@@ -93,7 +93,7 @@ func vehiculo(nombre: String, a_la_derecha: bool, duracion: float, hasta := -1.0
 	var h := float(s.texture.get_height())
 	var y := (CARRIL_DER if a_la_derecha else CARRIL_IZQ) - h
 	s.position = Vector2(-w - 4.0 if a_la_derecha else ANCHO + 4.0, y)
-	s.z_index = 2 if a_la_derecha else 1
+	s.z_index = 0           # sin z propio: en el hospital Walter queda delante (orden por y)
 	add_child(s)
 	var meta := hasta if hasta >= 0.0 else (ANCHO + 4.0 if a_la_derecha else -w - 4.0)
 	var tw := create_tween()
