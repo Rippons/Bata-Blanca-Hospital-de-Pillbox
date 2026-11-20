@@ -267,7 +267,12 @@ func _on_usado(id: String) -> void:
 
 
 func _on_objetivo_cambiado(obj: Interactuable) -> void:
-	hud.poner_aviso(obj.etiqueta if obj else "")
+	hud.poner_aviso(obj.etiqueta if obj and not en_cinematica() else "")
+
+
+## Las salas con cinemáticas lo sobrescriben para ocultar el aviso «E: …».
+func en_cinematica() -> bool:
+	return false
 
 
 func refrescar_aviso() -> void:

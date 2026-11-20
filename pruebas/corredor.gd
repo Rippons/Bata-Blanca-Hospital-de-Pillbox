@@ -121,7 +121,7 @@ func _ready() -> void:
 	ok(hosp.sala_actual == "urgencias", "pasillo → urgencias (primera puerta)")
 	Juego.minutos = hosp.agenda[0]["hora"] + 1.0
 	await esperar(0.3)
-	ok(hosp.espera.size() == 1 and hosp.pacientes[0] == null, "el paciente llega a la sala de espera, no directo a la camilla")
+	ok(hosp.espera.size() == 1 and hosp.pacientes[0] == null, "el paciente llega a la sala de espera, no directo a la camilla (%d en espera)" % hosp.espera.size())
 	var e0: Dictionary = hosp.espera[0]
 	ok(e0["triaje"] in ["verde", "amarillo", "rojo"], "Lucía le asigna triaje %s" % e0["triaje"])
 	for k in 12:
@@ -340,6 +340,47 @@ func _ready() -> void:
 	h2.evento_pico = Juego.minutos
 	await esperar(0.3)
 	ok(h2.evento_pico < 0.0, "hora pico: aviso de accidente")
+
+	print("== ESC-02: la ambulancia")
+	var cama := 2
+	for k in [2, 1, 0]:
+		if h2.pacientes[k] == null:
+			cama = k
+			break
+	Juego.amistad["Lucía"] = 0
+	h2.iniciar_ambulancia(cama)
+	var t_a := 0.0
+	var vio_entrada := false
+	while h2.ambulancia_estado != "activa" and t_a < 30.0:
+		await esperar(0.2)
+		t_a += 0.2
+		if not vio_entrada and h2.sala_actual == "entrada" and t_a > 6.2:
+			vio_entrada = true
+			await captura("ambulancia_llega")
+	ok(vio_entrada, "Walter sale a la entrada y llega la ambulancia")
+	ok(h2.ambulancia_estado == "activa" and h2.sala_actual == "urgencias", "Cristian Daniel lleva a Andrés a urgencias")
+	var andres = h2.pacientes[cama]
+	ok(andres != null and andres.nombre == "Andrés" and andres.caso["insumo"] == "Epinefrina", "Andrés queda en la camilla %d" % (cama + 1))
+	ok(h2.npcs["Cristian Daniel"].position.distance_to(h2.SALAS["urgencias"]["origen"] + Vector2(h2.CAMILLAS_X[cama] + 26.0, h2.CAMILLA_Y + 18.0)) < 6.0, "Cristian se queda junto a la camilla")
+	ok(h2.codigo_rojo != "", "sin amistad con Lucía, el botiquín rojo tiene clave")
+	await captura("ambulancia_urgencias")
+	Juego.respuestas_auto = ["0-0-0"]
+	await h2.interactuar("botiquin_rojo")
+	ok(Juego.insumo_cargado == "" and h2.codigo_rojo != "", "con la clave equivocada no se abre")
+	Juego.respuestas_auto = [h2.codigo_rojo, "Epinefrina"]
+	await h2.interactuar("botiquin_rojo")
+	ok(Juego.insumo_cargado == "Epinefrina" and h2.epinefrina == 0, "con la clave de Lucía se toma la única dosis de epinefrina")
+	Juego.respuestas_auto = ["Estetoscopio", "Reacción alérgica grave"]
+	await h2.interactuar("camilla%d" % cama)
+	ok(andres.estado == "tratar", "diagnóstico: reacción alérgica grave")
+	var rep_a: int = Juego.reputacion
+	await h2.interactuar("camilla%d" % cama)
+	ok(h2.ambulancia_estado == "resuelta" and Juego.reputacion >= rep_a + 14, "Andrés se estabiliza: +6 del caso y +8 extra")
+	ok(h2.npcs["Cristian Daniel"].position.y < 2000.0 and not h2.npcs["Cristian Daniel"].quieto, "Cristian vuelve a su ronda")
+	h2._epinefrina_perdida()
+	ok(h2.epinefrina_repuesto > 0.0, "si se desperdicia la epinefrina, Cristian trae otra dosis")
+	h2.epinefrina_repuesto = -1.0
+	h2.ambulancia_estado = ""
 
 	print("== Capacitación y ascenso")
 	Juego.respuestas_auto = ["Cerrar"]

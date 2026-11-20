@@ -54,6 +54,7 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - **Hora pico:** un accidente trae varios pacientes seguidos.
 - **Apagón:** el hospital se oscurece y los pacientes empeoran más rápido. Hay que avisar a Salgado para que llame al electricista **Paul Catelli**; tus consejos deciden si la luz vuelve a fallar y qué tan seguido se va.
 - **El director llama por el megáfono** cada pocos días para hablar del rendimiento.
+- **La ambulancia (ESC-02 del guion):** desde el día 2 suena el código rojo. Walter sale a la entrada, llega la ambulancia con sirena y **Cristian Daniel** baja a Andrés (24 años, alergia al maní) y lo lleva en camilla a urgencias. Si Lucía confía en Walter (amistad 3+), abre el botiquín rojo y vigila a los demás; si no, grita la clave del botiquín. La epinefrina es una sola dosis: si se desperdicia, Cristian corre por otra. Con Andrés crítico suena un latido. Salvarlo da +8 de reputación extra.
 - **Cafetería:** bebida energética (1 por turno: +15 % de energía y más velocidad por 1 minuto) y Doña Luz en la barra.
 
 **Personas, diálogos y sonido**
@@ -81,6 +82,10 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - La nevera se gasta al comer; se compra mercado o domicilio desde el celular. Mejoras: cafetera y cama nueva.
 - Celular (tecla C): mensajes de mamá, Lucía, Wilder, Diego y otros (algunos con respuesta), tienda y banco.
 - Sábado y domingo no hay turno: mercado, parque o visitar a mamá.
+
+## Menú de inicio
+
+El menú muestra el frente del Hospital de Pillbox (assets MetroCity: edificio, jardines, letrero, calle) con autos, patrullas y ambulancias pasando, y Walter esperando en la entrada.
 
 ## Estructura
 

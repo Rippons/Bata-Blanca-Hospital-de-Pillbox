@@ -26,6 +26,8 @@ const SALAS := {
 		"interior": Rect2(120, 40, 240, 180), "entrada": Vector2(334, 112)},
 	"consultorios": {"nombre": "Consultorio", "origen": Vector2(0, 6000), "tam": Vector2(480, 270),
 		"interior": Rect2(112, 40, 256, 180), "entrada": Vector2(340, 112)},
+	"entrada": {"nombre": "Entrada de ambulancias", "origen": Vector2(0, 7000), "tam": Vector2(480, 270),
+		"interior": Rect2(0, 18, 480, 252), "entrada": Vector2(226, 162)},
 }
 const ALTO_PARED := 48.0
 ## Puertas del pasillo: [id de sala, x de la puerta en el pasillo, cartel, x de la puerta dentro del área]
@@ -172,6 +174,18 @@ var llamado := ""                # "" | rendimiento | derivados
 var llamado_hora := -1.0
 var llamado_desde := 0.0
 var oscuridad: CanvasModulate
+var exterior: Exterior
+
+# Escena de la ambulancia (ESC-02): Cristian Daniel trae a Andrés
+var ambulancia_hora := -1.0
+var ambulancia_estado := ""        # "" | "llegando" | "activa" | "resuelta" | "perdida"
+var ambulancia_cama := -1
+var codigo_rojo := ""              # clave del botiquín rojo que grita Lucía ("" = abierto)
+var epinefrina := 1                # la epinefrina es una sola dosis
+var epinefrina_repuesto := -1.0    # hora en que Cristian trae otra dosis
+var _latido_t := 0.0
+var _cristian_inicio := Vector2.ZERO
+var _cristian_zona := Rect2()
 
 
 func construir() -> void:
@@ -182,6 +196,9 @@ func construir() -> void:
 	_construir_cafeteria()
 	_construir_direccion()
 	_construir_consultorio()
+	exterior = Exterior.new()
+	exterior.position = SALAS["entrada"]["origen"] + Vector2(0, EXT_Y)   # subido para que la calle no quede bajo el HUD
+	mundo.add_child(exterior)
 	origen = Vector2.ZERO
 	oscuridad = CanvasModulate.new()
 	oscuridad.color = Color.WHITE
@@ -806,6 +823,9 @@ func _deterioro(dm: float) -> void:
 		if Juego.minutos < p.vigilado_hasta:
 			continue
 		p.estabilidad -= p.caso["deterioro"] * dm * (0.7 if p.calmado else 1.0)
+		if p.estabilidad <= 0.0 and ambulancia_estado == "activa" and i == ambulancia_cama:
+			_ambulancia_perdida()
+			continue
 		if p.estabilidad <= 0.0:
 			transferidos += 1
 			Juego.sumar_reputacion(-5)
@@ -823,6 +843,10 @@ func _liberar(i: int) -> void:
 
 func _actualizar_lista() -> void:
 	var tareas: Array = []
+	if ambulancia_estado == "activa":
+		tareas.append(["¡Estabiliza a Andrés (camilla %d)!" % (ambulancia_cama + 1), false])
+		if codigo_rojo != "":
+			tareas.append(["Clave del botiquín rojo: %s" % codigo_rojo, false])
 	for i in 3:
 		var p: Paciente = pacientes[i]
 		if p and p.estado != "alta":
@@ -866,7 +890,7 @@ func interactuar(id: String) -> void:
 			"calle": hud.mostrar("Tu turno termina a las 7:30 PM. Son las %s." % Juego.hora_texto())
 			"recepcionista": await hablar_con("Erina")
 			"botiquin": await _botiquin(Casos.insumos_botiquin(), "Botiquín")
-			"botiquin_rojo": await _botiquin(INSUMOS_ROJO, "Botiquín rojo")
+			"botiquin_rojo": await _botiquin_rojo()
 			"casillero": await _casillero()
 			"ducha_hospital": await _ducha()
 			"almuerzo": await _almorzar()
@@ -969,6 +993,8 @@ func _camilla(i: int) -> void:
 		atendidos += 1
 		Juego.sonido("exito", 1.0, -8.0)
 		hud.mostrar("¡%s está estable! (+%d reputación)" % [p.nombre, premio])
+		if ambulancia_estado == "activa" and i == ambulancia_cama:
+			await _ambulancia_resuelta()
 		await get_tree().create_timer(2.5).timeout
 		if pacientes[i] == p:
 			_liberar(i)
@@ -977,6 +1003,8 @@ func _camilla(i: int) -> void:
 		var quien: String = ["Lucía", "Dr. Maximiliano Brown"].pick_random()
 		hud.mostrar("%s: «Eso no era. Para %s se usa %s. Vuelva al botiquín»." % [quien, p.caso["diagnostico"].to_lower(), p.caso["insumo"].to_lower()], 4.5)
 		hud.mostrar("%s no sirve para %s. Se desperdició el insumo." % [Juego.insumo_cargado, p.caso["diagnostico"].to_lower()])
+		if Juego.insumo_cargado == "Epinefrina" and ambulancia_estado == "activa":
+			_epinefrina_perdida()
 		Juego.insumo_cargado = ""
 
 
@@ -1246,10 +1274,17 @@ func _planear_eventos() -> void:
 	var ultima := int(Juego.flags.get("director_ultima_llamada", 0))
 	if Juego.dia >= 2 and Juego.dia - ultima >= randi_range(2, 3):
 		llamado_hora = randi_range(11 * 60, 17 * 60)
+	# La ambulancia de Andrés llega una vez, desde el día 2
+	if Juego.dia >= 2 and not Juego.flags.get("ambulancia_andres", false):
+		ambulancia_hora = randi_range(10 * 60, 12 * 60)
 
 
 func _eventos() -> void:
 	var m := Juego.minutos
+	if ambulancia_hora > 0.0 and m >= ambulancia_hora:
+		_intentar_ambulancia()
+	if ambulancia_estado == "activa":
+		_vigilar_ambulancia()
 	if evento_pico > 0.0 and m >= evento_pico:
 		evento_pico = -1.0
 		Juego.sonido("altavoz", 0.9, -6.0)
@@ -1642,6 +1677,10 @@ var _turno_sheyla := 0
 var cinematica_activa := false
 
 
+func en_cinematica() -> bool:
+	return cinematica_activa
+
+
 func _jinu_en_cafeteria() -> bool:
 	return int(Juego.flags.get("jinu_cafeteria_dia", 0)) == Juego.dia
 
@@ -1897,6 +1936,272 @@ func _dialogo_marcos():
 		["¿Reyes sigue tomando ese café horrible de la recepción? Ese muchacho no aprende."],
 		["Mis oficiales traen a los heridos y ustedes los arreglan. Buen equipo."],
 		["Dakota dice que la noche es más bonita. Yo digo que la noche tiene más papeleo."]].pick_random()
+
+
+# --- ESC-02 · La ambulancia: Cristian Daniel trae a Andrés --------------------------
+## Camilla de traslado que empuja Cristian (con el paciente acostado encima).
+class CamillaTraslado extends Node2D:
+	var apariencia := {}
+	func _ready() -> void:
+		var f := Personaje.new()
+		f.acostado = true
+		f.piel = apariencia.get("piel", 1)
+		f.ropa = apariencia.get("ropa", "casual_blanco")
+		f.pelo_hoja = apariencia.get("pelo_hoja", Personaje.PELOS)
+		f.pelo_fila = apariencia.get("pelo_fila", 1)
+		f.position = Vector2(0, -8)
+		add_child(f)
+		var sab := Paciente.Sabana.new()
+		sab.position = Vector2(0, -2)
+		add_child(sab)
+	func _draw() -> void:
+		draw_rect(Rect2(-14, -12, 28, 6), Color("d9dee5"))
+		draw_rect(Rect2(-14, -12, 28, 6), Color("6b7480"), false, 1.0)
+		draw_line(Vector2(-11, -6), Vector2(-11, -1), Color("6b7480"), 1.0)
+		draw_line(Vector2(11, -6), Vector2(11, -1), Color("6b7480"), 1.0)
+		draw_circle(Vector2(-11, 0), 1.6, Color("2b2b2b"))
+		draw_circle(Vector2(11, 0), 1.6, Color("2b2b2b"))
+
+
+## Luces de la sirena: parpadean rojo y azul sobre la ambulancia.
+class Sirena extends Node2D:
+	var _t := 0.0
+	func _process(d: float) -> void:
+		_t += d
+		queue_redraw()
+	func _draw() -> void:
+		var rojo := int(_t * 8.0) % 2 == 0
+		draw_circle(Vector2(0, 0), 2.5, Color("ff3b30") if rojo else Color("2f80ff"))
+		draw_circle(Vector2(0, 0), 6.0, Color(1, 0.2, 0.2, 0.25) if rojo else Color(0.2, 0.5, 1, 0.25))
+
+
+const EXT_Y := -52.0          # desplazamiento vertical del exterior dentro de su sala
+const APARIENCIA_ANDRES := {"piel": 1, "ropa": "casual_rojo", "pelo_hoja": Personaje.PELOS, "pelo_fila": 2}
+
+
+func _caso_andres() -> Dictionary:
+	var base: Dictionary = {}
+	for c in CASOS:
+		if c["diagnostico"] == "Reacción alérgica grave":
+			base = c
+	var caso := base.duplicate(true)
+	caso["relato"] = "Cristian: «Andrés, 24 años. Comió algo con maní y dice que le pica todo. ¡Le cuesta respirar!»"
+	caso["deterioro"] = 1.2
+	caso["inicial"] = 60.0
+	return caso
+
+
+func _intentar_ambulancia() -> void:
+	if cinematica_activa or _cambiando or hud.ocupado() or _terminando:
+		return
+	var libre := -1
+	for i in [2, 1, 0]:
+		if pacientes[i] == null:
+			libre = i
+			break
+	if libre == -1:
+		ambulancia_hora = Juego.minutos + 5.0       # sin camillas libres: Lucía la recibe cinco minutos después
+		return
+	ambulancia_hora = -1.0
+	await iniciar_ambulancia(libre)
+
+
+## Cinemática: llega la ambulancia, Cristian baja a Andrés y lo lleva a la camilla.
+func iniciar_ambulancia(i: int) -> void:
+	if not npcs.has("Cristian Daniel"):
+		return
+	cinematica_activa = true
+	ambulancia_estado = "llegando"
+	ambulancia_cama = i
+	Juego.flags["ambulancia_andres"] = true
+	var cristian: NPC = npcs["Cristian Daniel"]
+	_cristian_inicio = cristian.position
+	_cristian_zona = cristian.zona_paseo
+	var o_e: Vector2 = SALAS["entrada"]["origen"]
+	var o_u: Vector2 = SALAS["urgencias"]["origen"]
+	walter.bloqueado = true
+	hud.poner_aviso("")
+	Juego.sonido("altavoz", 1.0, -4.0)
+	hud.mostrar("Altavoz: «¡Código rojo! Ambulancia llegando. Dr. Walter Pinkman, a la entrada de urgencias»." , 3.5)
+	await get_tree().create_timer(1.5).timeout
+	# 1. Walter sale a la entrada
+	walter.camara.position = Vector2(0, -12)
+	await ir_a_sala("entrada", SALAS["entrada"]["entrada"], true)
+	walter.figura.mirando = Vector2.RIGHT
+	walter.figura.caminar(false, 0.0)
+	Juego.sonido("sirena", 1.0, -6.0)
+	var amb := exterior.vehiculo("ambulancia", true, 3.2, Exterior.PUERTA.x + 34.0)
+	var luz := Sirena.new()
+	luz.position = Vector2(57, 3)
+	amb.add_child(luz)
+	await get_tree().create_timer(3.4).timeout
+	Juego.sonido("puerta", 0.8, -6.0)
+	# 2. Cristian baja con la camilla
+	cristian.position = o_e + Vector2(Exterior.PUERTA.x + 52.0, 214 + EXT_Y)
+	cristian.visible = true
+	var camilla := CamillaTraslado.new()
+	camilla.apariencia = APARIENCIA_ANDRES
+	camilla.position = cristian.position + Vector2(-20, 0)
+	mundo.add_child(camilla)
+	cristian.mirar_a(walter.global_position)
+	await hud.dialogo("Cristian Daniel", ["¡Doctor! Traigo a Andrés, 24 años.", "Comió algo con maní en un restaurante y se le está cerrando la garganta. ¡Casi no respira!"])
+	var r: int = await hud.elegir("Responder a Cristian", "", ["¡Llévalo a la camilla %d, rápido!" % (i + 1), "¿Tiene alergias conocidas?"])
+	if r == 1:
+		await hud.dialogo("Cristian Daniel", ["¡Al maní! Lo dice en la pulsera. ¡Vamos, doctor!"])
+	# 3. Cristian empuja la camilla hacia la puerta
+	_enfocar([cristian])
+	var seguir := func(): camilla.position = cristian.position + Vector2(0, -16)
+	cristian.velocidad = 60.0
+	var t := create_tween().set_loops()
+	t.tween_callback(seguir).set_delay(0.016)
+	await cristian.ir_a([o_e + Vector2(Exterior.PUERTA.x, 214 + EXT_Y), o_e + Vector2(Exterior.PUERTA.x, 190 + EXT_Y)], 60.0, 4.0)
+	t.kill()
+	_enfocar([])
+	amb.queue_free()
+	# 4. En urgencias: hasta la camilla
+	walter.camara.position = Vector2(0, -12)
+	await ir_a_sala("urgencias", Vector2(CAMILLAS_X[i] - 40.0, 160), true)
+	cristian.position = o_u + Vector2(40, 100)
+	camilla.position = cristian.position + Vector2(0, 16)
+	_enfocar([cristian])
+	t = create_tween().set_loops()
+	t.tween_callback(func(): camilla.position = cristian.position + Vector2(18 if cristian.figura.mirando.x > 0 else 0, 16 if cristian.figura.mirando.y >= 0 else -16)).set_delay(0.016)
+	await cristian.ir_a([o_u + Vector2(40, 150), o_u + Vector2(CAMILLAS_X[i] + 26.0, 150), o_u + Vector2(CAMILLAS_X[i] + 26.0, CAMILLA_Y + 18.0)], 60.0, 5.0)
+	t.kill()
+	camilla.queue_free()
+	# 5. Andrés pasa a la camilla
+	if pacientes[i] != null:
+		_liberar(i)
+	var p := Paciente.new()
+	p.caso = _caso_andres()
+	p.nombre = "Andrés"
+	p.estabilidad = 60.0
+	p.apariencia = APARIENCIA_ANDRES
+	p.position = o_u + Vector2(CAMILLAS_X[i], CAMILLA_Y)
+	mundo.add_child(p)
+	pacientes[i] = p
+	interactuables["camilla%d" % i].etiqueta = "Atender a Andrés"
+	cristian.mirar_a(walter.global_position)
+	_enfocar([cristian, p])
+	# 6. Lucía: ¿abre el botiquín rojo o grita la clave?
+	epinefrina = 1
+	epinefrina_repuesto = -1.0
+	await hud.dialogo("Lucía", ["¡Ambulancia! Andrés, 24 años. Le cuesta respirar."])
+	if Juego.get_amistad("Lucía") >= 3:
+		codigo_rojo = ""
+		await hud.dialogo("Lucía", ["Yo me quedo con los demás pacientes; vaya usted con Andrés.", "Ya le abrí el botiquín rojo, doctor. ¡La epinefrina es una sola dosis, no la desperdicie!"])
+		for k in 3:
+			if pacientes[k] != null and k != i:
+				pacientes[k].vigilado_hasta = Juego.minutos + 30.0
+	else:
+		codigo_rojo = "%d-%d-%d" % [randi_range(1, 9), randi_range(0, 9), randi_range(0, 9)]
+		await hud.dialogo("Lucía", ["¡Tengo que ir al mostrador! ¡No descuide a los demás!", "El botiquín rojo tiene clave: ¡%s! Y la epinefrina es una sola dosis." % codigo_rojo])
+	await hud.dialogo("Cristian Daniel", ["Yo me quedo aquí por si necesita algo, doctor. ¡Usted puede!"])
+	cristian.zona_paseo = Rect2()
+	cristian.quieto = true
+	cristian.guion = false
+	cristian.dialogo_dinamico = _dialogo_cristian_ambulancia
+	_enfocar([])
+	ambulancia_estado = "activa"
+	walter.bloqueado = false
+	cinematica_activa = false
+	hud.mostrar("¡Estabiliza a Andrés! Examínalo, diagnostica y busca el insumo en el botiquín rojo.", 4.0)
+	refrescar_aviso()
+
+
+func _dialogo_cristian_ambulancia():
+	if epinefrina_repuesto > 0.0:
+		return ["¡Ya voy por otra dosis a la farmacia, doctor! Aguante, Andrés."]
+	return [["¡Rápido, doctor! Andrés está cada vez peor."], ["La pulsera dice: alérgico al maní. ¡Eso ayuda, ¿no?!"]].pick_random()
+
+
+## Latido cuando Andrés está crítico y la epinefrina de repuesto.
+func _vigilar_ambulancia() -> void:
+	var p = pacientes[ambulancia_cama] if ambulancia_cama >= 0 else null
+	if p != null and is_instance_valid(p) and p.estabilidad < 30.0 and not Juego.pausado:
+		_latido_t -= get_process_delta_time()
+		if _latido_t <= 0.0:
+			_latido_t = 0.55
+			Juego.sonido("latido", 1.15, -4.0 if sala_actual == "urgencias" else -14.0)
+	if epinefrina_repuesto > 0.0 and Juego.minutos >= epinefrina_repuesto:
+		epinefrina_repuesto = -1.0
+		epinefrina = 1
+		Juego.sonido("seleccion", 1.2, -6.0)
+		hud.mostrar("Cristian Daniel: «¡Aquí está la otra dosis de epinefrina! La dejé en el botiquín rojo»." , 4.0)
+
+
+func _epinefrina_perdida() -> void:
+	var demora := 4.0 if Juego.get_amistad("Cristian Daniel") >= 3 else 8.0
+	epinefrina_repuesto = Juego.minutos + demora
+	hud.mostrar("Lucía: «¡Esa era la única dosis de epinefrina!». Cristian corre a la farmacia por otra (%d min)." % int(demora), 4.5)
+
+
+func _botiquin_rojo() -> void:
+	if ambulancia_estado == "activa" and codigo_rojo != "" and Juego.insumo_cargado == "":
+		var claves: Array = [codigo_rojo]
+		while claves.size() < 3:
+			var otra := "%d-%d-%d" % [randi_range(1, 9), randi_range(0, 9), randi_range(0, 9)]
+			if not claves.has(otra):
+				claves.append(otra)
+		claves.shuffle()
+		claves.append("Cancelar")
+		var r: int = await hud.elegir("Botiquín rojo", "Está cerrado con clave. ¿Cuál dijo Lucía?", claves)
+		if r < 0 or r >= 3:
+			return
+		if claves[r] != codigo_rojo:
+			Juego.sonido("error", 1.0, -8.0)
+			hud.mostrar("Clave incorrecta. Lucía la dijo al llegar Andrés (también está en tu lista).", 3.5)
+			return
+		codigo_rojo = ""
+		Juego.sonido("seleccion", 1.3, -8.0)
+		hud.mostrar("¡Clic! El botiquín rojo está abierto.", 2.0)
+	var antes := Juego.insumo_cargado
+	var insumos: Array = INSUMOS_ROJO.duplicate()
+	if ambulancia_estado == "activa" and epinefrina <= 0 and Juego.insumo_cargado == "":
+		insumos.erase("Epinefrina")
+		hud.mostrar("No queda epinefrina: Cristian fue por otra dosis.", 3.0)
+	await _botiquin(insumos, "Botiquín rojo")
+	if ambulancia_estado != "activa":
+		return
+	if antes == "" and Juego.insumo_cargado == "Epinefrina":
+		epinefrina -= 1
+	elif antes == "Epinefrina" and Juego.insumo_cargado == "":
+		epinefrina += 1       # la devolvió
+
+
+func _ambulancia_resuelta() -> void:
+	ambulancia_estado = "resuelta"
+	Juego.sumar_reputacion(8)
+	Juego.cambiar_amistad("Cristian Daniel", 1)
+	Juego.cambiar_amistad("Lucía", 1)
+	Juego.flags["ambulancia_resultado"] = "bien"
+	Juego.sonido("exito", 1.25, -4.0)
+	await hud.dialogo("Cristian Daniel", ["¡Respira! ¡Andrés está respirando! ¡Lo logró, doctor!"])
+	Juego.sonido("altavoz", 1.0, -6.0)
+	await hud.dialogo("Dr. Salgado", ["(Por el altavoz) Así se trabaja en Pillbox, Dr. Pinkman. (+8 reputación extra)"])
+	_cristian_vuelve()
+
+
+func _ambulancia_perdida() -> void:
+	ambulancia_estado = "perdida"
+	Juego.flags["ambulancia_resultado"] = "mal"
+	transferidos += 1
+	Juego.sumar_reputacion(-8)
+	Juego.sonido("error", 0.7, -4.0)
+	hud.mostrar("Lucía: «¡Andrés se nos va! El equipo de reanimación se lo lleva a cuidados intensivos». (−8 reputación)", 5.0)
+	_liberar(ambulancia_cama)
+	_cristian_vuelve()
+
+
+func _cristian_vuelve() -> void:
+	codigo_rojo = ""
+	epinefrina_repuesto = -1.0
+	if npcs.has("Cristian Daniel"):
+		var c: NPC = npcs["Cristian Daniel"]
+		c.position = _cristian_inicio
+		c.quieto = false
+		c.zona_paseo = _cristian_zona
+		c.dialogo_dinamico = _dialogo_cristian
 
 
 # --- Efectos de las respuestas -------------------------------------------------------
