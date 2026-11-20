@@ -156,8 +156,11 @@ func hablar(hud: HUD, walter_pos: Vector2) -> void:
 
 ## Camina por los puntos dados (coordenadas del mundo) y espera a llegar.
 ## Si algo lo bloquea demasiado tiempo, aparece en el último punto.
-func ir_a(puntos: Array, vel := -1.0, limite := 12.0) -> void:
+func ir_a(puntos: Array, vel := -1.0, limite := 8.0) -> void:
 	var antes := velocidad
+	var mascara := collision_mask
+	collision_mask = 0               # en la cinemática el camino ya está planeado: no se traba con Walter ni con otros
+
 	if vel > 0.0:
 		velocidad = vel
 	guion = true
@@ -173,6 +176,7 @@ func ir_a(puntos: Array, vel := -1.0, limite := 12.0) -> void:
 			position = ruta[-1]
 			ruta.clear()
 	velocidad = antes
+	collision_mask = mascara
 	figura.caminar(false, 0.0)
 
 

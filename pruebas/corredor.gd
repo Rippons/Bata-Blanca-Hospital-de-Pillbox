@@ -191,7 +191,9 @@ func _ready() -> void:
 	await hosp.hablar_con("Dr. Maximiliano Brown")
 	ok(q.orientado, "el Dr. Brown orienta con un paciente")
 	var der0: int = Juego.derivados_semana
-	Juego.respuestas_auto = [0, q.caso["herramienta"], "Derivar a otro médico (no estoy seguro)"]
+	Juego.respuestas_auto = [q.caso["herramienta"], "Derivar a otro médico (no estoy seguro)"]
+	if not q.caso["historias"].is_empty():
+		Juego.respuestas_auto.push_front(0)       # los graves no hablan: no hay pregunta para calmarlo
 	await hosp.interactuar("camilla1")
 	ok(hosp.pacientes[1] == null and Juego.derivados_semana == der0 + 1, "derivar libera la camilla y suma un derivado")
 	# Diego: responder cambia la amistad
@@ -213,6 +215,7 @@ func _ready() -> void:
 	var enojo: Dictionary = hosp._dialogo_sheyla()
 	ok(str(enojo["lineas"][0]).contains("Diego Quiroz"), "Sheyla se enoja con Diego por las bromas")
 	# Cinemática de la broma
+	await hosp.ir_a_sala("pasillo", hosp.npcs["Diego Quiroz"].position + Vector2(-20, 0))
 	await hosp.hablar_con("Diego Quiroz")          # turno 1: anécdota
 	Juego.respuestas_auto = ["Dile que Sheyla lo busca en la cafetería."]
 	await hosp.hablar_con("Diego Quiroz")          # turno 2: la broma
@@ -229,7 +232,9 @@ func _ready() -> void:
 		if not vio_cafe and hosp.sala_actual == "cafeteria" and hosp.npcs["Jinu Blake"].ruta.size() <= 1:
 			vio_cafe = true
 			await captura("cinematica_broma")
-	ok(not hosp.cinematica_activa, "la cinemática termina")
+		if t_c > 2.9 and t_c < 3.2:
+			await captura("cinematica_camara")
+	ok(not hosp.cinematica_activa and t_c < 25.0, "la cinemática termina rápido (%.1f s) sin que Diego se trabe" % t_c)
 	var jin: NPC = hosp.npcs["Jinu Blake"]
 	var o_c: Vector2 = hosp.SALAS["cafeteria"]["origen"]
 	ok(hosp.sala_actual == "cafeteria" and jin.position.distance_to(o_c + Vector2(282, 206)) < 6.0, "Jinu termina junto a Sheyla en la cafetería")

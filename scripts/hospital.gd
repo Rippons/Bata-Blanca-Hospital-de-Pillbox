@@ -682,6 +682,7 @@ func _generar_agenda() -> void:
 func _process(_delta: float) -> void:
 	if _terminando:
 		return
+	_seguir_foco(_delta)
 	walter.actualizar_aspecto()
 	var dm := Juego.minutos - _ultimo_minuto
 	_ultimo_minuto = Juego.minutos
@@ -1735,6 +1736,24 @@ func _dialogo_sheyla():
 		["Comprendo que la gente piense que estudio demasiado. La gente se equivoca a menudo."]].pick_random()
 
 
+## Cámara de cinemática: sigue el punto medio de los personajes en «_foco» (vacío = vuelve a Walter).
+var _foco: Array = []
+
+
+func _seguir_foco(delta: float) -> void:
+	var meta := Vector2(0, -12)
+	if not _foco.is_empty():
+		var c := Vector2.ZERO
+		for n in _foco:
+			c += (n as Node2D).global_position
+		meta = c / _foco.size() - walter.global_position + Vector2(0, -12)
+	walter.camara.position = walter.camara.position.lerp(meta, clampf(delta * 4.0, 0.0, 1.0))
+
+
+func _enfocar(nodos: Array) -> void:
+	_foco = nodos
+
+
 ## Cinemática: Diego le dice a Jinu que Sheyla lo busca en la cafetería… y Sheyla sí está ahí.
 func _cinematica_broma() -> void:
 	if not (npcs.has("Jinu Blake") and npcs.has("Diego Quiroz") and npcs.has("Sheyla Escobedo")):
@@ -1752,21 +1771,27 @@ func _cinematica_broma() -> void:
 	# 1. Diego va donde Jinu
 	jinu.guion = true
 	jinu.ruta.clear()
+	_enfocar([diego])
 	await diego.ir_a([Vector2(jinu.position.x - 18, jinu.position.y)], 50.0)
+	_enfocar([diego, jinu])
 	diego.mirar_a(jinu.global_position)
 	jinu.mirar_a(diego.global_position)
 	await hud.dialogo("Diego Quiroz", ["¡Jinu! ¡Jinu! Adivina quién te está buscando en la cafetería…", "¡La señorita Sheyla! Dijo que era urgente. Jajaj… digo, ¡URGENTE!"])
 	await hud.dialogo("Jinu Blake", ["¿¡S-Sheyla!? ¿A mí? ¿¡Ahora!?", "¡Voy! ¡Voy corriendo!"])
 	# 2. Jinu sale corriendo hacia la puerta de la cafetería
 	var puerta := o_p + Vector2(480, 82)
+	_enfocar([jinu])
 	await jinu.ir_a([Vector2(jinu.position.x, o_p.y + 100), Vector2(puerta.x, o_p.y + 100), puerta], 95.0)
 	Juego.sonido("puerta", 1.2, -8.0)
 	jinu.visible = false
+	_enfocar([diego])
 	diego.mirar_a(walter.global_position)
 	await hud.dialogo("Diego Quiroz", ["¡JAJAJA! ¡Salió volando!", "Venga, doctor, vamos a ver la cara que pone cuando no encuentre a nadie."])
 	await diego.ir_a([Vector2(diego.position.x, o_p.y + 100), Vector2(puerta.x + 14, o_p.y + 100), puerta + Vector2(14, 0)], 55.0)
 	diego.visible = false
 	# 3. En la cafetería: Sheyla sí está ahí
+	_enfocar([])
+	walter.camara.position = Vector2(0, -12)
 	await ir_a_sala("cafeteria", SALAS["cafeteria"]["entrada"], true)
 	walter.bloqueado = true
 	walter.figura.mirando = Vector2.DOWN
@@ -1779,9 +1804,11 @@ func _cinematica_broma() -> void:
 	await get_tree().create_timer(0.4).timeout
 	jinu.mirar_a(o_c + Vector2(200, 128))
 	await hud.dialogo("Jinu Blake", ["¿Sheyla…? ¿Seño… digo, Sheyla?"])
+	_enfocar([jinu])
 	await jinu.ir_a([o_c + Vector2(100, 186), o_c + Vector2(282, 186), o_c + Vector2(282, 206)], 60.0)
 	jinu.mirar_a(sheyla.global_position)
 	sheyla.mirar_a(jinu.global_position)
+	_enfocar([jinu, sheyla])
 	await hud.dialogo("Sheyla Escobedo", ["Comprendo. Jinu Blake, interno de primer año. ¿Necesita algo?"])
 	await hud.dialogo("Jinu Blake", ["D-Diego me dijo que usted me estaba buscando… que era urgente…"])
 	await hud.dialogo("Sheyla Escobedo", ["Comprendo. No lo estaba buscando."])
@@ -1791,15 +1818,19 @@ func _cinematica_broma() -> void:
 	await hud.dialogo("Jinu Blake", ["¿¡Farmacología!? ¡Es mi materia favorita! ¡Sí! ¡Claro! ¡Digo… sí, con mucho gusto!"])
 	await hud.dialogo("Sheyla Escobedo", ["Comprendo. Siéntese."])
 	# 4. Sheyla descubre a Diego en la puerta
+	_enfocar([sheyla, diego])
 	sheyla.mirar_a(diego.global_position)
 	await hud.dialogo("Sheyla Escobedo", ["Y usted, Quiroz. Lo vi asomado en la puerta.",
 		"Comprendo perfectamente lo que intentaba. Su broma tuvo 0 % de gracia y 100 % de resultado contrario.",
 		"Vuelva a gritar «señorita Sheyla» en el pasillo y le lanzo las 1.200 páginas de este libro."])
 	diego.mirar_a(sheyla.global_position)
 	await hud.dialogo("Diego Quiroz", ["¡E-era una broma inocente!", "…Bueno. ¡De nada, Jinu! ¡Me debes una!"])
-	await diego.ir_a([o_c + Vector2(100, 104)], 70.0)
+	_enfocar([])
+	await diego.ir_a([Vector2(diego.position.x, o_c.y + 96), o_c + Vector2(100, 92)], 80.0, 3.0)
 	Juego.sonido("puerta", 1.0, -10.0)
+	diego.visible = false
 	diego.position = diego_inicio
+	diego.visible = true
 	diego.guion = false
 	# 5. Jinu se queda estudiando con Sheyla el resto del día
 	jinu.guion = false
@@ -1812,6 +1843,7 @@ func _cinematica_broma() -> void:
 	Juego.flags["jinu_cafeteria_dia"] = Juego.dia
 	Juego.cambiar_amistad("Jinu Blake", 1)
 	hud.mostrar("A Diego la broma le salió al revés: Jinu y Sheyla ahora estudian juntos.", 4.0)
+	_enfocar([])
 	walter.bloqueado = false
 	cinematica_activa = false
 	refrescar_aviso()
