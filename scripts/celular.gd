@@ -206,38 +206,46 @@ func _inicio() -> void:
 	_contenido.add_child(fondo_txt)
 	var rejilla := GridContainer.new()
 	rejilla.columns = 3
-	rejilla.add_theme_constant_override("h_separation", 6)
-	rejilla.add_theme_constant_override("v_separation", 6)
+	rejilla.add_theme_constant_override("h_separation", 4)
+	rejilla.add_theme_constant_override("v_separation", 5)
 	_contenido.add_child(rejilla)
 	for app in APPS:
+		# Cada app: el ícono (botón) arriba y su nombre centrado debajo
+		var celda := VBoxContainer.new()
+		celda.add_theme_constant_override("separation", 1)
+		celda.custom_minimum_size = Vector2(34, 0)
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(32, 38)
+		b.custom_minimum_size = Vector2(28, 28)
+		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		b.focus_mode = Control.FOCUS_ALL
-		b.add_theme_stylebox_override("normal", _caja(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 6))
-		b.add_theme_stylebox_override("hover", _caja(Color(0, 0, 0, 0.06), Color(0, 0, 0, 0), 0, 6))
-		b.add_theme_stylebox_override("focus", _caja(Color(0, 0, 0, 0.08), Color("007aff"), 1, 6))
-		b.add_theme_stylebox_override("pressed", _caja(Color(0, 0, 0, 0.12), Color(0, 0, 0, 0), 0, 6))
+		b.add_theme_stylebox_override("normal", _caja(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 7))
+		b.add_theme_stylebox_override("hover", _caja(Color(0, 0, 0, 0.06), Color(0, 0, 0, 0), 0, 7))
+		b.add_theme_stylebox_override("focus", _caja(Color(0, 0, 0, 0.0), Color("007aff"), 2, 7))
+		b.add_theme_stylebox_override("pressed", _caja(Color(0, 0, 0, 0.12), Color(0, 0, 0, 0), 0, 7))
 		var icono := IconoApp.new()
 		icono.tipo = app[0]
 		icono.color = app[2]
-		icono.position = Vector2(5, 1)
+		icono.position = Vector2(3, 3)
 		icono.size = Vector2(22, 22)
 		icono.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(icono)
-		var nombre := _label(app[1], 5, Color("1c1c1e"))
-		nombre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nombre.position = Vector2(-4, 25)
-		nombre.size = Vector2(40, 9)
-		nombre.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_child(nombre)
 		if app[0] == "mensajes" and Juego.mensajes_nuevos() > 0:
 			var globo := _label(str(Juego.mensajes_nuevos()), 6, Color.WHITE)
-			globo.add_theme_stylebox_override("normal", _caja(Color("ff3b30"), Color(0, 0, 0, 0), 0, 5))
-			globo.position = Vector2(22, -2)
+			var cg := _caja(Color("ff3b30"), Color(0, 0, 0, 0), 0, 4)
+			cg.content_margin_left = 2
+			cg.content_margin_right = 2
+			globo.add_theme_stylebox_override("normal", cg)
+			globo.position = Vector2(20, -2)
 			globo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			b.add_child(globo)
 		b.pressed.connect(func(): _ir(app[0]))
-		rejilla.add_child(b)
+		celda.add_child(b)
+		var nombre := _label(app[1], 6, Color("1c1c1e"))
+		nombre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nombre.custom_minimum_size = Vector2(34, 0)
+		nombre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		celda.add_child(nombre)
+		rejilla.add_child(celda)
 	var resumen := _label("", 6, Color("374151"))
 	resumen.name = "Resumen"
 	resumen.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
