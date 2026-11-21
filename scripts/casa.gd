@@ -93,7 +93,7 @@ func construir() -> void:
 	mueble(HOME + "Kitchen1-Sheet.png", Rect2(42, 7, 12, 25), Vector2(342, 182), false)
 	mueble(HOME + "Kitchen1-Sheet.png", Rect2(232, 9, 14, 23), Vector2(402, 182), false)
 	mueble(HOME + "Doors-Sheet.png", Rect2(31, 15, 34, 49), Vector2(452, PARED), false)
-	zona("puerta", "Salir de casa", Rect2(432, PARED, 40, 18))
+	zona("puerta", "Salir al frente de la casa", Rect2(432, PARED, 40, 18))
 	cartel("COCINA", Vector2(308, 238), Color(0, 0, 0, 0.45))
 
 
@@ -122,8 +122,8 @@ func al_entrar() -> void:
 		await get_tree().create_timer(4.0).timeout
 		if is_inside_tree():
 			despertador.sonando = false
-	else:
-		hud.mostrar("Llegaste a casa a las %s. Cena, ponte la pijama, pon la alarma y duerme." % Juego.hora_texto(), 5.0)
+	elif not Juego.es_manana() and not Juego.es_fin_de_semana():
+		hud.mostrar("Son las %s. Cena, ponte la pijama, pon la alarma y duerme." % Juego.hora_texto(), 5.0)
 
 
 func _sonar_alarma() -> void:
@@ -156,7 +156,7 @@ func _actualizar_lista() -> void:
 	if Juego.es_fin_de_semana() and h < 18 * 60 and h >= 5 * 60:
 		hud.poner_lista("%s · día libre" % Juego.nombre_dia(), [
 			["Hacer mercado (nevera: %d)" % Juego.comida, Juego.comida >= 4],
-			["Descansar o salir (puerta)", false],
+			["Descansar o salir (puerta → portón)", false],
 			["Revisar el celular (C)", Juego.mensajes_nuevos() == 0],
 		])
 		return
@@ -165,7 +165,7 @@ func _actualizar_lista() -> void:
 			["Bañarse", Juego.banado_hoy],
 			["Desayunar", Juego.desayuno_hoy],
 			["Ponerse la bata", Juego.ropa == "uniforme"],
-			["Salir antes de 7:10", false],
+			["Salir por el portón antes de 7:10", false],
 		])
 	else:
 		hud.poner_lista("Noche", [
@@ -335,36 +335,6 @@ func _cama() -> void:
 		_ir_a_dormir(false)
 
 
-func _salir_fin_de_semana() -> void:
-	var h := fmod(Juego.minutos, 1440.0)
-	if h >= 20 * 60 or h < 6 * 60:
-		hud.mostrar("Ya es tarde para salir. Mañana será otro día.")
-		return
-	var r: int = await hud.elegir("Día libre", "Hoy es %s. ¿Qué quieres hacer? (Saldo: $%d)" % [Juego.nombre_dia(), Juego.dinero], [
-		"Ir al mercado: 6 comidas por $70 (1 h)",
-		"Pasear por el parque (1 h, +energía)",
-		"Visitar a mamá (2 h, comes rico y te da comida)",
-		"Quedarme en casa"])
-	match r:
-		0:
-			if Juego.dinero < 70:
-				hud.mostrar("No te alcanza para el mercado ($70). Tienes $%d." % Juego.dinero, 3.5)
-				return
-			await _accion(60, "Haciendo mercado…\n1 hora después")
-			Juego.dinero -= 70
-			Juego.comida += 6
-			hud.mostrar("Compraste mercado. La nevera tiene %d comidas. (−$70)" % Juego.comida, 3.5)
-		1:
-			await _accion(60, "Paseando por el parque de Pillbox…\n1 hora después")
-			Juego.energia = minf(Juego.energia + 15.0, 100.0)
-			hud.mostrar("El aire libre te hizo bien. (+energía)", 3.0)
-		2:
-			await _accion(120, "En casa de mamá…\n2 horas después")
-			Juego.hambre = minf(Juego.hambre + 50.0, 100.0)
-			Juego.comida += 3
-			hud.mostrar("Mamá: «¡Estás muy flaco, mijo! Llévate este tupper». (+hambre, +3 comidas)", 4.5)
-
-
 func _ir_a_dormir(desmayado: bool) -> void:
 	if _cerrando:
 		return
@@ -374,27 +344,8 @@ func _ir_a_dormir(desmayado: bool) -> void:
 
 
 func _puerta() -> void:
-	if Juego.es_fin_de_semana():
-		await _salir_fin_de_semana()
-		return
-	if not Juego.es_manana():
-		hud.mostrar("Ya terminó el día de trabajo. Descansa para mañana.")
-		return
-	var pendientes: Array = []
-	if not Juego.banado_hoy:
-		pendientes.append("no te has bañado")
-	if not Juego.desayuno_hoy:
-		pendientes.append("no has desayunado")
-	if Juego.ropa != "uniforme":
-		pendientes.append("vas en pijama")
-	var texto := "Llegarías al hospital a las %s." % Juego.hora_texto(Juego.minutos + Juego.MINUTOS_VIAJE)
-	if not pendientes.is_empty():
-		texto += " Ojo: " + ", ".join(pendientes) + "."
-	var r: int = await hud.elegir("¿Salir hacia el hospital?", texto, ["Salir", "Quedarme un rato más"])
-	if r != 0:
-		return
+	# Afuera está el patio con el portón (ahí se decide si ir al hospital o a pasear)
 	_cerrando = true
 	Juego.sonido("puerta", 1.0, -8.0)
-	Juego.pasar_tiempo(Juego.MINUTOS_VIAJE)
-	Juego.punto_entrada = "puerta"
-	Juego.ir_a("res://escenas/hospital.tscn", "Hospital de Pillbox · %s" % Juego.hora_texto())
+	Juego.punto_entrada = "casa"
+	Juego.ir_a("res://escenas/frente_casa.tscn", "")

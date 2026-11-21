@@ -178,6 +178,66 @@ def musica_casa() -> np.ndarray:
     return _cerrar_ciclo(pasa_bajos(mezcla, 4500))
 
 
+def musica_barrio() -> np.ndarray:
+    """Exterior de la casa: 112 bpm, Sol mayor, alegre y al aire libre (pulsos, bajo saltarín, pajaritos)."""
+    bpm = 112
+    pulso = 60 / bpm
+    compas = 4 * pulso
+    progresion = [("G2", [0, 4, 7]), ("E2", [0, 3, 7]), ("C2", [0, 4, 7, 11]), ("D2", [0, 4, 7])]
+    compases = 16
+    total = int(compases * compas * SR)
+    acordes = np.zeros(total)
+    bajo = np.zeros(total)
+    mel = np.zeros(total)
+    perc = np.zeros(total)
+    aves = np.zeros(total)
+    frase_a = [
+        ["B4", "D5", "G5", None, "F#5", None, "D5", None],
+        ["E5", None, "G5", "B5", None, "A5", "G5", None],
+        ["E5", "G5", None, "C6", "B5", None, "G5", "E5"],
+        ["F#5", None, "A5", None, "D5", None, None, None],
+    ]
+    frase_b = [
+        ["D5", None, "B4", "D5", "G5", None, "A5", "B5"],
+        ["G5", None, "E5", None, "B4", None, "E5", None],
+        ["C5", "E5", "G5", None, "E5", None, "C5", None],
+        ["D5", "F#5", "A5", None, "F#5", None, "D5", None],
+    ]
+    rng = np.random.default_rng(7)
+    for c in range(compases):
+        raiz, iv = progresion[c % 4]
+        frecs = acorde(raiz, iv)
+        t0 = c * compas
+        for k in (1, 3, 5, 7):   # acordes a contratiempo, como guitarra
+            for f in frecs[1:]:
+                nota_en(acordes, t0 + k * pulso / 2, pulso * 0.3, f * 2, "cuadrada", 0.03, (0.003, 0.06, 0.3, 0.04), 0.25)
+        for k, mult in enumerate([1, 1.5, 2, 1.5]):
+            nota_en(bajo, t0 + k * pulso, pulso * 0.7, frecs[0] * mult, "triangulo", 0.28, (0.005, 0.1, 0.5, 0.05))
+        for k in range(8):
+            vol = 0.02 if k % 2 == 1 else 0.008
+            nota_en(perc, t0 + k * pulso / 2, 0.03, 9000.0, "ruido", vol, (0.001, 0.02, 0.0, 0.005))
+        nota_en(perc, t0, 0.08, 120.0, "triangulo", 0.25, (0.001, 0.06, 0.0, 0.02))
+        nota_en(perc, t0 + 2 * pulso, 0.08, 120.0, "triangulo", 0.2, (0.001, 0.06, 0.0, 0.02))
+        if c >= 2:
+            frase = frase_a if (c // 4) % 2 == 0 else frase_b
+            for k, nota in enumerate(frase[c % 4]):
+                nota_en(mel, t0 + k * pulso / 2, pulso / 2 * 0.75, nota, "triangulo", 0.16, (0.003, 0.08, 0.4, 0.05))
+                nota_en(mel, t0 + k * pulso / 2, pulso / 2 * 0.5, nota, "cuadrada", 0.03, (0.003, 0.05, 0.2, 0.03), 0.125)
+        if c % 3 == 1:   # pajaritos: silbidos cortos que suben
+            for j in range(rng.integers(2, 4)):
+                ini = t0 + rng.uniform(0, compas - 0.3)
+                n = int(0.09 * SR)
+                f = np.linspace(rng.uniform(2600, 3200), rng.uniform(3600, 4300), n)
+                ph = 2 * np.pi * np.cumsum(f) / SR
+                tono = np.sin(ph) * np.hanning(n) * 0.03
+                i0 = int(ini * SR)
+                aves[i0:i0 + n] += tono[: max(0, min(n, total - i0))]
+    acordes = pasa_bajos(acordes, 3000)
+    mel = pasa_bajos(mel, 4500)
+    mezcla = acordes + bajo + pasa_bajos(perc, 7000) + eco(mel, pulso * 0.5, 0.3, 0.25) + aves
+    return _cerrar_ciclo(pasa_bajos(mezcla, 6000))
+
+
 def _cerrar_ciclo(x: np.ndarray) -> np.ndarray:
     """Suaviza el punto de bucle con un fundido muy corto."""
     n = int(0.03 * SR)
@@ -243,6 +303,7 @@ if __name__ == "__main__":
     np.random.seed(7)
     guardar("musica_hospital.wav", musica_hospital(), 0.7)
     guardar("musica_casa.wav", musica_casa(), 0.7)
+    guardar("musica_barrio.wav", musica_barrio(), 0.7)
     guardar("blip.wav", blip(), 0.6)
     guardar("seleccion.wav", seleccion(), 0.5)
     guardar("altavoz.wav", altavoz(), 0.7)

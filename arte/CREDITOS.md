@@ -19,3 +19,7 @@ Toda la música y los efectos de `audio/` fueron sintetizados por el equipo con 
 `exterior/`: recortes de los paquetes MetroCity 1, 2, 2.0 y 2.1 de JIK-A-4 (hospital, ambulancia, camión de bomberos, autos, patrulla, árboles, letrero, banca, adoquines, flores, hidrante, cono y canecas), con la misma licencia que el resto de MetroCity.
 
 `audio/sirena.wav` y `audio/latido.wav`: sintetizados por el equipo (obra propia).
+
+`exterior/barrio/`: casas del paquete MetroCity 1 (JIK-A-4) y la cerca de madera de `Tiles.png` recoloreada en blanco por el equipo.
+
+`audio/musica_barrio.wav`: compuesta y sintetizada por el equipo con `herramientas/generar_audio.py` (obra propia).

@@ -2464,5 +2464,5 @@ func _terminar_turno() -> void:
 	if pendientes > 0:
 		resumen += "\n%d paciente(s) quedan con el turno de la noche." % pendientes
 	Juego.pasar_tiempo(Juego.MINUTOS_VIAJE)
-	Juego.punto_entrada = "puerta"
-	Juego.ir_a("res://escenas/casa.tscn", resumen)
+	Juego.punto_entrada = "calle"
+	Juego.ir_a("res://escenas/frente_casa.tscn", resumen)

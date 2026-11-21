@@ -98,6 +98,10 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - Celular (tecla C): mensajes de mamá, Lucía, Wilder, Diego y otros (algunos con respuesta), tienda y banco.
 - Sábado y domingo no hay turno: mercado, parque o visitar a mamá.
 
+## Frente de la casa
+
+Al salir de la casa, Walter aparece en su patio (`escenas/frente_casa.tscn`): casa de dos pisos con techo azul, un árbol grande, cerca blanca, camino de piedra hasta la puerta, buzón y las casas vecinas. Suena una música propia del barrio. Por el portón sale al hospital entre semana o a pasear el fin de semana; al volver del turno llega por la calle y el patio se oscurece de noche.
+
 ## Menú de inicio
 
 El menú muestra el frente del Hospital de Pillbox (assets MetroCity: edificio, jardines, letrero, calle) con autos, patrullas y ambulancias pasando, y Walter esperando en la entrada.

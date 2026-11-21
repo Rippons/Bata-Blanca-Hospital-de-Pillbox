@@ -56,8 +56,16 @@ func _ready() -> void:
 	await esperar(0.4)
 	await captura("casa_lista")
 	print("   ", estado())
-	Juego.respuestas_auto = [0]
 	await casa.interactuar("puerta")
+	await esperar(2.5)
+	var frente = get_tree().current_scene
+	ok(frente.name == "FrenteCasa", "al salir aparece el frente de la casa")
+	ok(Juego._musica_actual == "barrio", "afuera suena la música del barrio")
+	ok(frente.interactuables.has("arbol") and frente.interactuables.has("calle"), "hay árbol grande y portón")
+	await esperar(0.6)
+	await captura("frente_casa")
+	Juego.respuestas_auto = [0]
+	await frente.interactuar("calle")
 	await esperar(3.0)
 
 	print("== Día 1: hospital")
@@ -262,8 +270,16 @@ func _ready() -> void:
 	await esperar(4.0)
 
 	print("== Día 1: noche en casa")
+	var frente_n = get_tree().current_scene
+	ok(frente_n.name == "FrenteCasa" and Juego.turno_terminado, "vuelve al frente de su casa tras el turno")
+	ok(frente_n.walter.position.y > 200.0, "llega por el portón")
+	Juego.minutos = maxf(Juego.minutos, 19 * 60 + 50)
+	await esperar(0.8)
+	await captura("frente_casa_noche")
+	await frente_n.interactuar("puerta_casa")
+	await esperar(2.5)
 	casa = get_tree().current_scene
-	ok(casa.name == "Casa" and Juego.turno_terminado, "vuelve a casa tras el turno")
+	ok(casa.name == "Casa", "entra a la casa")
 	ok(Juego.turnos_bata == 1, "la bata suma un turno")
 	await captura("casa_noche")
 	Juego.respuestas_auto = [0]
@@ -298,8 +314,10 @@ func _ready() -> void:
 	await captura("casa_olor")
 	Juego.reputacion = 40
 	var rep3: int = Juego.reputacion
-	Juego.respuestas_auto = [0]
 	await casa.interactuar("puerta")
+	await esperar(2.5)
+	Juego.respuestas_auto = [0]
+	await get_tree().current_scene.interactuar("calle")
 	await esperar(3.0)
 	ok(Juego.retrasos == 1, "llegar 8:00 cuenta como retraso")
 	ok(Juego.reputacion <= rep3 - 10, "retraso + pijama + olor bajan reputación (%d → %d)" % [rep3, Juego.reputacion])
@@ -625,8 +643,10 @@ func _ready() -> void:
 	ok(Juego.es_fin_de_semana() and not Juego.es_manana(), "el sábado no hay turno")
 	Juego.minutos = 10 * 60
 	var din1: int = Juego.dinero
-	Juego.respuestas_auto = ["Ir al mercado: 6 comidas por $70 (1 h)"]
 	await c2.interactuar("puerta")
+	await esperar(2.5)
+	Juego.respuestas_auto = ["Ir al mercado: 6 comidas por $70 (1 h)"]
+	await get_tree().current_scene.interactuar("calle")
 	ok(Juego.dinero == din1 - 70 and Juego.comida == 18, "el sábado se puede ir al mercado")
 	Juego.minutos = 12 * 60 + 5
 	await esperar(0.5)
