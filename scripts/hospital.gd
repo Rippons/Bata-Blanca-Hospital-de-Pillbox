@@ -647,12 +647,43 @@ func al_entrar() -> void:
 	_generar_agenda()
 	_ultimo_minuto = Juego.minutos
 	var notas := Juego.llegar_al_hospital()
-	hud.mostrar("Erina: «Buenos días, Dr. Pinkman. Las áreas están por el pasillo; urgencias es la primera puerta».", 4.5)
-	for nota in notas:
-		hud.mostrar(nota, 4.5)
 	walter.actualizar_aspecto()
 	Juego.musica("hospital")
 	Juego.pausado = false
+	if Juego.medio_hoy == "auto" and not Juego.auto_dialogo and Juego.respuestas_auto.is_empty():
+		await _llegada_en_auto()
+	for nota in Juego.notas_viaje:
+		hud.mostrar(nota, 4.0)
+	Juego.notas_viaje = []
+	hud.mostrar("Erina: «Buenos días, Dr. Pinkman. Las áreas están por el pasillo; urgencias es la primera puerta».", 4.5)
+	for nota in notas:
+		hud.mostrar(nota, 4.5)
+
+
+## Walter llega en su auto: se estaciona frente al hospital y entra caminando.
+func _llegada_en_auto() -> void:
+	cinematica_activa = true
+	walter.bloqueado = true
+	walter.visible = false
+	sala_actual = "entrada"
+	var o: Vector2 = SALAS["entrada"]["origen"]
+	walter.position = o + SALAS["entrada"]["entrada"]
+	walter.limitar_camara(_rect_sala("entrada"))
+	walter.camara.reset_smoothing()
+	var carro := exterior.vehiculo("auto1", true, 2.2, 140.0)
+	carro.name = "AutoDeWalter"
+	await get_tree().create_timer(2.4).timeout
+	Juego.sonido("puerta", 0.8, -8.0)
+	walter.position = o + Vector2(200, 162)
+	walter.visible = true
+	walter.figura.mirando = Vector2(40, -12)
+	var tw := create_tween()
+	tw.tween_property(walter, "position", o + Vector2(240, 150), 0.9)
+	tw.parallel().tween_method(func(_v): walter.figura.caminar(true, get_process_delta_time()), 0.0, 1.0, 0.9)
+	await tw.finished
+	walter.figura.caminar(false, 0.0)
+	await ir_a_sala("recepcion", posicion_inicial())
+	cinematica_activa = false
 
 
 func _rect_sala(id: String) -> Rect2:

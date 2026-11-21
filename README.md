@@ -98,6 +98,17 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - Celular (tecla C): mensajes de mamá, Lucía, Wilder, Diego y otros (algunos con respuesta), tienda y banco.
 - Sábado y domingo no hay turno: mercado, parque o visitar a mamá.
 
+## Celular en pantalla
+
+La tecla **C** saca el celular de Walter (`scripts/celular.gd`): un teléfono dibujado en pantalla con apps de **Chats** (mensajes y respuestas), **Tienda** (mercado, domicilio, cafetera, cama, bicicleta y auto), **Banco**, **Viajes** (cómo ir al hospital, reparar la llanta), **Agenda** (turno y requisitos de ascenso) y **Clima**. Se maneja con flechas/WASD, E/Espacio para abrir y C/Esc para volver, o con el ratón. **El tiempo sigue corriendo** mientras se usa; Walter se queda quieto.
+
+## Bicicleta y auto
+
+- Caminando, Walter tarda **20 min** en llegar al hospital.
+- **Bicicleta ($350):** 12 min, cansa un poco; con calor llega sudado y a veces se pincha la llanta (se repara por $20 desde el celular).
+- **Auto ($2.000):** 8 min y $10 de gasolina por viaje; a veces hay trancón (25 min). Al llegar en auto se ve cómo se estaciona frente al hospital. El fin de semana permite ir a la playa.
+- En el portón se elige cómo ir. Diego y Wilder comentan la primera vez que Walter llega en bici o en auto.
+
 ## Frente de la casa
 
 Al salir de la casa, Walter aparece en su patio (`escenas/frente_casa.tscn`): casa de dos pisos con techo azul, un árbol grande, cerca blanca, camino de piedra hasta la puerta, buzón y las casas vecinas. Suena una música propia del barrio. Por el portón sale al hospital entre semana o a pasear el fin de semana; al volver del turno llega por la calle y el patio se oscurece de noche.

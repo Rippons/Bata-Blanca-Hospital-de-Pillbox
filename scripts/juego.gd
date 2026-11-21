@@ -41,6 +41,11 @@ var dinero := 200
 var comida := 6                 # comidas en la nevera
 var cafetera := false           # desayuno completo en 10 min
 var cama_buena := false         # descansa 25 % más
+var bicicleta := false          # viaje de 12 min (cansa un poco)
+var auto := false               # viaje de 8 min ($10 de gasolina, a veces trancón)
+var llanta_pinchada := false    # la bici no sirve hasta repararla
+var medio_hoy := ""             # cómo llegó hoy al hospital: "pie" | "bici" | "auto"
+var notas_viaje: Array = []     # lo que pasó en el camino (se muestra al llegar)
 var mensajes: Array = []        # celular: {de, texto, opciones, leido, respondido}
 var semana := {"turnos": 0, "atendidos": 0, "transferidos": 0, "retrasos": 0}
 var derivados_semana := 0       # pacientes que Walter derivó por no estar seguro
@@ -294,6 +299,7 @@ func pago_por_turno() -> int:
 ## Cosas que pasan al empezar un día nuevo: arriendo los lunes y mensajes nuevos.
 func _nuevo_dia() -> String:
 	var t := ""
+	medio_hoy = ""
 	if (dia - 1) % 7 == 0 and dia > 1:
 		dinero -= ARRIENDO
 		t += " Se pagó el arriendo de la semana (−$%d)." % ARRIENDO
@@ -333,6 +339,114 @@ func _mensajes_del_dia() -> void:
 		pool.append(["Dr. Zacarías Flores", "¡El café con la oficial Dakota fue increíble! Gracias por el consejo, doctor.", []])
 	var m: Array = pool.pick_random()
 	mensaje(m[0], m[1], m[2])
+
+
+# --- Tienda y transporte (los usa el celular) -------------------------------------
+const PRECIO_BICI := 350
+const PRECIO_AUTO := 2000
+const GASOLINA := 10
+const REPARAR_LLANTA := 20
+
+
+## Lo que se puede comprar ahora: [id, nombre, precio, descripción].
+func articulos_tienda() -> Array:
+	var a: Array = [["mercado", "Mercado de la semana", 90, "6 comidas para la nevera"],
+		["domicilio", "Domicilio", 25, "Comer ya (tarda 15 min)"]]
+	if not cafetera:
+		a.append(["cafetera", "Cafetera", 250, "Desayuno completo en 10 min"])
+	if not cama_buena:
+		a.append(["cama", "Cama nueva", 400, "Descansas 25 % más"])
+	if not bicicleta:
+		a.append(["bicicleta", "Bicicleta", PRECIO_BICI, "Al hospital en 12 min"])
+	if not auto:
+		a.append(["auto", "Auto usado", PRECIO_AUTO, "Al hospital en 8 min (+gasolina)"])
+	if bicicleta and llanta_pinchada:
+		a.append(["llanta", "Reparar llanta", REPARAR_LLANTA, "La bici vuelve a funcionar"])
+	return a
+
+
+## Compra un artículo. Devuelve el mensaje para mostrar (vacío si no alcanzó).
+func comprar(id: String) -> String:
+	var art: Array = []
+	for a in articulos_tienda():
+		if a[0] == id:
+			art = a
+	if art.is_empty():
+		return ""
+	if dinero < int(art[2]):
+		sonido("error", 1.0, -8.0)
+		return "No te alcanza: tienes $%d." % dinero
+	dinero -= int(art[2])
+	sonido("exito", 1.2, -10.0)
+	match id:
+		"mercado":
+			comida += 6
+			return "Llegó el mercado: la nevera tiene %d comidas." % comida
+		"domicilio":
+			pasar_tiempo(15)
+			hambre = minf(hambre + 45.0, 100.0)
+			return "Llegó el domicilio y comiste. (+hambre)"
+		"cafetera":
+			cafetera = true
+			return "¡Cafetera nueva! El desayuno completo ahora tarda 10 minutos."
+		"cama":
+			cama_buena = true
+			return "¡Cama nueva! Ahora descansas mejor."
+		"bicicleta":
+			bicicleta = true
+			return "¡Bicicleta nueva! Te espera junto a la cerca del patio."
+		"auto":
+			auto = true
+			return "¡Compraste un auto! Está estacionado frente a tu casa."
+		"llanta":
+			llanta_pinchada = false
+			return "Llanta reparada. La bici está lista."
+	return ""
+
+
+## Medios para ir al hospital: [id, texto, minutos].
+func medios_de_viaje() -> Array:
+	var m: Array = [["pie", "Caminar (%d min)" % MINUTOS_VIAJE, MINUTOS_VIAJE]]
+	if bicicleta and not llanta_pinchada:
+		m.append(["bici", "Bicicleta (12 min)", 12])
+	if auto and dinero >= GASOLINA:
+		m.append(["auto", "Auto (8 min · $%d de gasolina)" % GASOLINA, 8])
+	return m
+
+
+## Hace el viaje al hospital y devuelve las notas del camino.
+func viajar(medio: String) -> Array:
+	var notas: Array = []
+	var mins := MINUTOS_VIAJE
+	medio_hoy = medio
+	match medio:
+		"bici":
+			mins = 12
+			energia = maxf(energia - 3.0, 0.0)
+			if flags.get("calor_dia", -1) == dia:
+				higiene = maxf(higiene - 8.0, 0.0)
+				notas.append("Llegaste en bici… y sudado por el calor. (−higiene)")
+			if randf() < 0.1:
+				llanta_pinchada = true
+				mins = 25
+				notas.append("¡Se pinchó la llanta a mitad de camino! Terminaste caminando. Repárala desde el celular.")
+		"auto":
+			mins = 8
+			dinero -= GASOLINA
+			if randf() < 0.2:
+				mins = 25
+				notas.append("¡Trancón en la avenida! El viaje en auto tardó 25 minutos.")
+	pasar_tiempo(mins)
+	notas_viaje = notas
+	return notas
+
+
+func clima_de_hoy() -> Array:
+	if flags.get("calor_dia", -1) == dia:
+		return ["36 °C", "Ola de calor", "Toma mucha agua."]
+	var opciones := [["24 °C", "Soleado", "Buen día para ir en bici."], ["21 °C", "Nublado", "Fresco y tranquilo."],
+		["19 °C", "Lluvia ligera", "Lleva paraguas."], ["26 °C", "Soleado", "Mucho sol en el parque."]]
+	return opciones[(dia * 7 + 3) % opciones.size()]
 
 
 ## Respuestas a mensajes del celular.
@@ -459,6 +573,10 @@ func nueva_partida() -> void:
 	comida = 6
 	cafetera = false
 	cama_buena = false
+	bicicleta = false
+	auto = false
+	llanta_pinchada = false
+	medio_hoy = ""
 	mensajes = [{"de": "Mamá", "texto": "¡Mucha suerte en tu primer día, mijo! Estoy muy orgullosa de ti.", "opciones": [], "leido": false, "respondido": false}]
 	semana = {"turnos": 0, "atendidos": 0, "transferidos": 0, "retrasos": 0}
 	derivados_semana = 0
@@ -477,6 +595,7 @@ func guardar() -> void:
 		"amistad": amistad, "favores": favores, "flags": _flags_persistentes(),
 		"especialidad": especialidad, "horas_estudio": horas_estudio, "dias_trabajados": dias_trabajados,
 		"dinero": dinero, "comida": comida, "cafetera": cafetera, "cama_buena": cama_buena,
+		"bicicleta": bicicleta, "auto": auto, "llanta_pinchada": llanta_pinchada,
 		"mensajes": mensajes, "semana": semana, "derivados_semana": derivados_semana,
 	}
 	var f := FileAccess.open(RUTA_GUARDADO, FileAccess.WRITE)
@@ -521,6 +640,9 @@ func cargar() -> bool:
 	comida = int(datos.get("comida", 6))
 	cafetera = bool(datos.get("cafetera", false))
 	cama_buena = bool(datos.get("cama_buena", false))
+	bicicleta = bool(datos.get("bicicleta", false))
+	auto = bool(datos.get("auto", false))
+	llanta_pinchada = bool(datos.get("llanta_pinchada", false))
 	mensajes = datos.get("mensajes", [])
 	semana = datos.get("semana", semana)
 	derivados_semana = int(datos.get("derivados_semana", 0))

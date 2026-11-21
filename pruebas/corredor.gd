@@ -628,12 +628,55 @@ func _ready() -> void:
 	await Juego.ir_a("res://escenas/casa.tscn", "")
 	await esperar(0.5)
 	var c2 = get_tree().current_scene
-	Juego.respuestas_auto = [1, "Mercado de la semana: 6 comidas ($90)", 3]
+	Juego.respuestas_auto = [1, "Mercado de la semana ($90)", 3]
 	await c2.celular()
 	ok(Juego.dinero == 110 and Juego.comida == 12, "comprar mercado por el celular (−$90, +6 comidas)")
 	Juego.respuestas_auto = [0, 0, 1, 3]
 	await c2.celular()
 	ok(Juego.mensajes_nuevos() == 0, "leer el mensaje lo marca como leído")
+	print("== Celular en pantalla, bicicleta y auto")
+	var cel: Celular = c2.hud.celular
+	cel.abrir()
+	await esperar(0.4)
+	ok(cel.abierto and c2.walter.bloqueado, "el celular se abre en pantalla y Walter se queda quieto")
+	var m_cel: float = Juego.minutos
+	await esperar(1.5)
+	ok(Juego.minutos > m_cel + 0.5, "el tiempo sigue corriendo con el celular abierto")
+	ok(c2.hud.ocupado(), "con el celular abierto no se interactúa con otras cosas")
+	await captura("celular_inicio")
+	Juego.dinero = 3000
+	cel._ir("tienda")
+	await esperar(0.3)
+	await captura("celular_tienda")
+	for nombre in ["Bicicleta", "Auto usado"]:
+		for b in cel._botones(cel._contenido):
+			if b.text.begins_with(nombre):
+				b.pressed.emit()
+				break
+		await esperar(0.3)
+	ok(Juego.bicicleta and Juego.auto and Juego.dinero == 3000 - Juego.PRECIO_BICI - Juego.PRECIO_AUTO, "comprar bicicleta y auto en la tienda del celular")
+	cel._ir("banco")
+	await esperar(0.6)
+	await captura("celular_banco")
+	cel._ir("mensajes")
+	await esperar(0.3)
+	var botones_msg: Array = cel._botones(cel._contenido)
+	if not botones_msg.is_empty():
+		botones_msg[0].pressed.emit()
+		await esperar(0.4)
+		ok(cel.pantalla == "chat", "abrir un chat en la app de mensajes")
+		await captura("celular_chat")
+	cel.cerrar()
+	await esperar(0.4)
+	ok(not cel.abierto and not c2.walter.bloqueado, "guardar el celular devuelve el control")
+	ok(Juego.medios_de_viaje().size() == 3, "en el portón hay 3 formas de ir: a pie, bici y auto")
+	var m_v: float = Juego.minutos
+	var d_v: int = Juego.dinero
+	Juego.viajar("auto")
+	ok(Juego.dinero == d_v - Juego.GASOLINA and (Juego.minutos - m_v == 8.0 or Juego.minutos - m_v == 25.0), "en auto: 8 min (o trancón de 25) y $10 de gasolina")
+	Juego.minutos = m_v
+	Juego.dinero = d_v
+	Juego.medio_hoy = ""
 	Juego.semana = {"turnos": 5, "atendidos": 20, "transferidos": 1, "retrasos": 0}
 	var din0: int = Juego.dinero
 	var ev: Array = Juego.evaluacion_semanal()
@@ -645,6 +688,9 @@ func _ready() -> void:
 	var din1: int = Juego.dinero
 	await c2.interactuar("puerta")
 	await esperar(2.5)
+	var fr2 = get_tree().current_scene
+	ok(fr2._bici != null and fr2._auto != null, "la bici y el auto se ven frente a la casa")
+	await captura("frente_con_vehiculos")
 	Juego.respuestas_auto = ["Ir al mercado: 6 comidas por $70 (1 h)"]
 	await get_tree().current_scene.interactuar("calle")
 	ok(Juego.dinero == din1 - 70 and Juego.comida == 18, "el sábado se puede ir al mercado")

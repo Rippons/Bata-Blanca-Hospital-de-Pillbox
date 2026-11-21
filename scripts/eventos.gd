@@ -167,6 +167,11 @@ func dialogo(nombre: String):
 				return {"lineas": ["¡Doctor, sale humo de la cafetería! ¡Hay que sacar a los pacientes de la sala de espera!"],
 					"opciones": [{"texto": "¡Evacuemos a recepción, ahora!", "efecto": "ev:evacuar"},
 						{"texto": "Espere, primero termino aquí.", "amistad": -1}]}
+		"Dr. Wilder Noctis":
+			var w = _comentario_vehiculo("Dr. Wilder Noctis", {"auto": ["Walter… ¿me prestas el carro? Es para dormir la siesta adentro.", "Tiene aire acondicionado, ¿no? Promesa de garrita que no lo ensucio."],
+				"bici": ["¿Bicicleta? ¿A propósito? ¿Haciendo ejercicio? Me cansé solo de imaginarlo."]})
+			if w != null:
+				return w
 		"Doña Luz":
 			if cumple in ["plan", "hora"] and not pastel:
 				return {"lineas": ["¿Viene por el pastel de Erina, doctor? Lo escondí detrás de las ollas."],
@@ -187,6 +192,10 @@ func dialogo(nombre: String):
 					"opciones": [{"texto": "Erina, ¿me ayudas a buscar una historia clínica en el archivo?", "efecto": "ev:distraer", "amistad": 0},
 						{"texto": "Ni idea, Erina. Ya sabes cómo es Diego.", "amistad": 0}]}
 		"Diego Quiroz":
+			var v = _comentario_vehiculo("Diego Quiroz", {"auto": ["¡Uy, doctor, ya tiene carro! ¿Me lleva el viernes a la playa?", "Yo pongo la música. Bueno, yo pongo los gritos."],
+				"bici": ["¿Vino en bici, doctor? ¡Con razón ese peinado!", "Jajaja. Igual se ve muy deportivo."]})
+			if v != null:
+				return v
 			if mama_dice("Diego Quiroz"):
 				return ["¡Doctor! Su mamá dice que de niño quería ser bombero y le daba miedo el agua.", "Jajaja. Eso me lo guardo para siempre."]
 			if sin_estetoscopio:
@@ -245,6 +254,18 @@ func dialogo(nombre: String):
 		opciones.append({"texto": "Está bien, váyase.", "efecto": "ev:fuga_dejar", "amistad": 0})
 		return {"lineas": ["¡Ya me cansé de esperar, doctor! Llevo horas y nadie me atiende.", "Me voy a otro hospital."], "opciones": opciones}
 	return null
+
+
+## Comentario (una sola vez) cuando Walter llega por primera vez en bici o en auto.
+func _comentario_vehiculo(nombre: String, lineas: Dictionary):
+	var m: String = Juego.medio_hoy
+	if not lineas.has(m):
+		return null
+	var clave := "coment_%s_%s" % [m, nombre]
+	if Juego.flags.get(clave, false):
+		return null
+	Juego.flags[clave] = true
+	return lineas[m]
 
 
 func mama_dice(nombre: String) -> bool:
@@ -803,6 +824,7 @@ func _accidente() -> void:
 func _calor() -> void:
 	calor = true
 	jugo_tomado = false
+	Juego.flags["calor_dia"] = Juego.dia
 	for k in 3:
 		var c: String = CASOS_CALOR[k % 2]
 		_sumar_a_la_agenda(_caso(c), ["Don Aurelio", "Yesenia", "Don Fabio"][k], randf_range(120.0, 420.0))

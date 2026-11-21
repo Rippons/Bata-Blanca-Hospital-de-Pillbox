@@ -16,6 +16,30 @@ const Y_CALLE := 216.0
 var _cerrando := false
 var _t_lista := 0.0
 var _noche: CanvasModulate
+var _bici: Node2D
+var _auto: Sprite2D
+
+
+## Bicicleta apoyada en la cerca.
+class Bici extends Node2D:
+	var pinchada := false
+	func _draw() -> void:
+		var marco := Color("d64541")
+		var rueda := Color("2b2b2b")
+		draw_arc(Vector2(-8, -5), 5.0, 0, TAU, 16, rueda, 1.5)
+		if pinchada:
+			draw_line(Vector2(9, -1), Vector2(15, -1), rueda, 1.5)
+			draw_arc(Vector2(12, -4), 4.0, PI * 0.1, PI * 0.9, 8, rueda, 1.5)
+		else:
+			draw_arc(Vector2(12, -5), 5.0, 0, TAU, 16, rueda, 1.5)
+		draw_line(Vector2(-8, -5), Vector2(0, -12), marco, 1.5)
+		draw_line(Vector2(0, -12), Vector2(10, -12), marco, 1.5)
+		draw_line(Vector2(10, -12), Vector2(12, -5), marco, 1.5)
+		draw_line(Vector2(0, -12), Vector2(2, -5), marco, 1.5)
+		draw_line(Vector2(-8, -5), Vector2(2, -5), marco, 1.5)
+		draw_line(Vector2(-1, -13), Vector2(-4, -15), Color("333333"), 1.5)
+		draw_line(Vector2(10, -12), Vector2(10, -16), Color("333333"), 1.2)
+		draw_line(Vector2(8, -16), Vector2(12, -16), Color("333333"), 1.5)
 
 
 ## Buzón al lado del portón.
@@ -75,6 +99,21 @@ func construir() -> void:
 	mundo.add_child(buzon)
 	zona("buzon", "Revisar el buzón", Rect2(PORTON.x + 14.0, Y_CERCA - 2.0, 18, 14))
 	mueble(R + "hidrante.png", Rect2(0, 0, 12, 18), Vector2(60, Y_ANDEN + 12.0), true, 6)
+
+	# Vehículos de Walter
+	if Juego.bicicleta:
+		_bici = Bici.new()
+		_bici.pinchada = Juego.llanta_pinchada
+		_bici.position = Vector2(196, Y_CERCA + 1.0)
+		mundo.add_child(_bici)
+		zona("bici", "Ver la bicicleta", Rect2(184, Y_CERCA - 4.0, 26, 10))
+	if Juego.auto:
+		_auto = Sprite2D.new()
+		_auto.texture = textura(R + "auto1.png")
+		_auto.centered = false
+		_auto.offset = Vector2(0, -_auto.texture.get_height())
+		_auto.position = Vector2(286, 262)
+		mundo.add_child(_auto)
 
 	# Bordes: no se puede salir de la pantalla ni meterse a la calle
 	solido_rect(Rect2(-10, 0, 10, 270))
@@ -205,6 +244,8 @@ func interactuar(id: String) -> void:
 				"Una postal de mamá: «Come bien, mijo. Te quiero». ",
 				"Nada. Solo una hoja seca del árbol.",
 				"Factura de la luz. Mejor no mirarla hoy."].pick_random(), 3.5)
+		"bici":
+			hud.mostrar("Tu bicicleta roja. " + ("La llanta está pinchada: repárala desde el celular (Transporte)." if Juego.llanta_pinchada else "Lista para rodar."), 3.5)
 		"arbol":
 			hud.mostrar(["Un roble enorme. Da la mejor sombra de toda la calle.",
 				"Walter grabó sus iniciales aquí de niño: «W. P.». Todavía se ven.",
@@ -236,14 +277,28 @@ func _calle() -> void:
 		pendientes.append("no has desayunado")
 	if Juego.ropa != "uniforme":
 		pendientes.append("vas en pijama")
-	var texto := "Llegarías al hospital a las %s." % Juego.hora_texto(Juego.minutos + Juego.MINUTOS_VIAJE)
+	var medios: Array = Juego.medios_de_viaje()
+	var texto := "Son las %s. ¿Cómo vas al hospital? (el turno empieza a las 7:30)" % Juego.hora_texto()
 	if not pendientes.is_empty():
 		texto += " Ojo: " + ", ".join(pendientes) + "."
-	var r: int = await hud.elegir("¿Salir hacia el hospital?", texto, ["Salir", "Quedarme un rato más"])
-	if r != 0:
+	if Juego.bicicleta and Juego.llanta_pinchada:
+		texto += " La bici tiene la llanta pinchada."
+	var opciones: Array = medios.map(func(m): return "%s → llegas %s" % [m[1], Juego.hora_texto(Juego.minutos + m[2])])
+	opciones.append("Quedarme un rato más")
+	var r: int = await hud.elegir("¿Salir hacia el hospital?", texto, opciones)
+	if r < 0 or r >= medios.size():
 		return
 	_cerrando = true
-	Juego.pasar_tiempo(Juego.MINUTOS_VIAJE)
+	var medio: String = medios[r][0]
+	if medio == "auto" and _auto:
+		Juego.sonido("puerta", 0.8, -8.0)
+		var tw := create_tween()
+		walter.visible = false
+		tw.tween_property(_auto, "position:x", 520.0, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		await tw.finished
+	elif medio == "bici" and _bici:
+		_bici.visible = false
+	Juego.viajar(medio)
 	Juego.punto_entrada = "puerta"
 	Juego.ir_a("res://escenas/hospital.tscn", "Hospital de Pillbox · %s" % Juego.hora_texto())
 
@@ -257,6 +312,7 @@ func _salir_fin_de_semana() -> void:
 		"Ir al mercado: 6 comidas por $70 (1 h)",
 		"Pasear por el parque (1 h, +energía)",
 		"Visitar a mamá (2 h, comes rico y te da comida)",
+		"Ir a la playa en auto (4 h, $20, +30 energía)" if Juego.auto else "Ir a la playa (necesitas un auto)",
 		"Quedarme en casa"])
 	match r:
 		0:
@@ -276,3 +332,14 @@ func _salir_fin_de_semana() -> void:
 			Juego.hambre = minf(Juego.hambre + 50.0, 100.0)
 			Juego.comida += 3
 			hud.mostrar("Mamá: «¡Estás muy flaco, mijo! Llévate este tupper». (+hambre, +3 comidas)", 4.5)
+		3:
+			if not Juego.auto:
+				hud.mostrar("La playa queda lejos. Con un auto podrías ir (Tienda del celular).", 3.5)
+				return
+			if Juego.dinero < 20:
+				hud.mostrar("No te alcanza para la gasolina ($20).", 3.0)
+				return
+			await _accion(240, "En la playa de Pillbox…\n4 horas después")
+			Juego.dinero -= 20
+			Juego.energia = minf(Juego.energia + 30.0, 100.0)
+			hud.mostrar("Sol, arena y cero pacientes. Volviste como nuevo. (+energía, −$20)", 4.0)

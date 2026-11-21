@@ -202,8 +202,11 @@ func dialogo(nombre: String, lineas: Array, tono: float = -1.0, con_amistad := t
 	Juego.pausado = estaba_pausado
 
 
+var celular: Celular     # el celular en pantalla (lo crea la sala)
+
+
 func ocupado() -> bool:
-	return _menu_abierto or _dialogo_abierto
+	return _menu_abierto or _dialogo_abierto or (celular != null and celular.abierto)
 
 
 # --- Menú de opciones -------------------------------------------------------------

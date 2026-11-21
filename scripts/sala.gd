@@ -24,6 +24,10 @@ func _ready() -> void:
 	hud = HUD.new()
 	add_child(hud)
 	construir()
+	var cel := Celular.new()
+	cel.sala = self
+	hud.add_child(cel)
+	hud.celular = cel
 	walter = Walter.new()
 	walter.position = posicion_inicial()
 	mundo.add_child(walter)
@@ -182,7 +186,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		celular()
 
 
+## Abre el celular en pantalla. En las pruebas automáticas usa los menús de texto.
 func celular() -> void:
+	if Juego.respuestas_auto.is_empty() and not Juego.auto_dialogo:
+		hud.celular.abrir()
+		await hud.celular.cerrado
+		return
 	while true:
 		var texto := "Saldo: $%d · Nevera: %d comida(s)" % [Juego.dinero, Juego.comida]
 		var r: int = await hud.elegir("Celular", texto,
@@ -221,38 +230,13 @@ func _mensajes() -> void:
 
 
 func _tienda() -> void:
-	var items: Array = [["Mercado de la semana: 6 comidas ($90)", "mercado", 90],
-		["Domicilio: comer ya, 15 min ($25)", "domicilio", 25]]
-	if not Juego.cafetera:
-		items.append(["Cafetera: desayuno completo en 10 min ($250)", "cafetera", 250])
-	if not Juego.cama_buena:
-		items.append(["Cama nueva: descansas 25 % más ($400)", "cama", 400])
-	var textos: Array = items.map(func(i): return i[0])
+	var items: Array = Juego.articulos_tienda()
+	var textos: Array = items.map(func(a): return "%s ($%d)" % [a[1], a[2]])
 	textos.append("Volver")
 	var r: int = await hud.elegir("Tienda en línea", "Saldo: $%d" % Juego.dinero, textos)
 	if r < 0 or r >= items.size():
 		return
-	var it: Array = items[r]
-	if Juego.dinero < it[2]:
-		Juego.sonido("error", 1.0, -8.0)
-		hud.mostrar("No te alcanza: tienes $%d." % Juego.dinero, 3.0)
-		return
-	Juego.dinero -= it[2]
-	Juego.sonido("exito", 1.2, -10.0)
-	match it[1]:
-		"mercado":
-			Juego.comida += 6
-			hud.mostrar("Llegó el mercado: la nevera tiene %d comidas." % Juego.comida, 3.0)
-		"domicilio":
-			Juego.pasar_tiempo(15)
-			Juego.hambre = minf(Juego.hambre + 45.0, 100.0)
-			hud.mostrar("Llegó el domicilio y comiste. (+hambre)", 3.0)
-		"cafetera":
-			Juego.cafetera = true
-			hud.mostrar("¡Cafetera nueva! El desayuno completo ahora tarda 10 minutos.", 3.5)
-		"cama":
-			Juego.cama_buena = true
-			hud.mostrar("¡Cama nueva! Ahora descansas mejor.", 3.5)
+	hud.mostrar(Juego.comprar(items[r][0]), 3.0)
 
 
 func _banco() -> void:
