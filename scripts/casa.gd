@@ -276,9 +276,10 @@ func _alarma() -> void:
 
 
 func _estudiar() -> void:
-	var meta := "Llevas %.1f h de estudio (la capacitación pide %.0f h)." % [Juego.horas_estudio, Juego.REQ_HORAS_ESTUDIO]
-	if Juego.rango != "Interno":
-		meta = "Llevas %.1f h de estudio. Estudiar te mantiene al día como %s." % [Juego.horas_estudio, Juego.rango]
+	var sig := Juego.siguiente_rango()
+	var meta := "Llevas %.1f h de estudio. Estudiar te mantiene al día como %s." % [Juego.horas_estudio, Juego.rango]
+	if sig != "":
+		meta = "Llevas %.1f h de estudio (%s pide %.0f h)." % [Juego.horas_estudio, sig, Juego.REQUISITOS[sig]["estudio"]]
 	var r: int = await hud.elegir("Escritorio", meta + " Estudiar cansa un poco.",
 		["Estudiar 30 minutos", "Estudiar 1 hora", "Ahora no"])
 	if r != 0 and r != 1:

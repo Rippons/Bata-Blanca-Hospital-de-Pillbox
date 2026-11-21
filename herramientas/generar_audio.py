@@ -238,6 +238,41 @@ def musica_barrio() -> np.ndarray:
     return _cerrar_ciclo(pasa_bajos(mezcla, 6000))
 
 
+def sfx_aplausos() -> np.ndarray:
+    """Aplausos: muchos chasquidos cortos de ruido, 2.5 s."""
+    rng = np.random.default_rng(11)
+    total = int(2.5 * SR)
+    x = np.zeros(total)
+    for _ in range(260):
+        i0 = int(rng.uniform(0, 2.3) * SR)
+        n = int(0.012 * SR)
+        golpe = rng.normal(0, 1, n) * np.exp(-np.linspace(0, 6, n))
+        x[i0:i0 + n] += golpe * rng.uniform(0.15, 0.35)
+    env = np.minimum(1, np.linspace(0, 2.5, total) / 0.2) * np.minimum(1, (2.5 - np.linspace(0, 2.5, total)) / 0.6)
+    return pasa_bajos(x * env, 5000) * 0.6
+
+
+def sfx_llanto() -> np.ndarray:
+    """Llanto de bebé: «uaaa» que sube y baja, dos veces."""
+    t = np.arange(int(1.6 * SR)) / SR
+    f = 420 + 160 * np.sin(2 * np.pi * 1.25 * t) ** 2
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    voz = np.sign(np.sin(ph)) * 0.25 + np.sin(ph * 2) * 0.2
+    env = (np.sin(np.pi * np.clip(t / 0.8, 0, 1)) + np.sin(np.pi * np.clip((t - 0.8) / 0.8, 0, 1))) * 0.8
+    return pasa_bajos(voz * env, 2500) * 0.6
+
+
+def sfx_trueno() -> np.ndarray:
+    """Trueno: estallido de ruido grave con retumbo largo."""
+    rng = np.random.default_rng(5)
+    total = int(3.0 * SR)
+    t = np.arange(total) / SR
+    ruido = rng.normal(0, 1, total)
+    env = np.exp(-t * 1.4) * (1 + 0.6 * np.sin(2 * np.pi * 3 * t) ** 2)
+    env[: int(0.03 * SR)] *= np.linspace(0, 1, int(0.03 * SR))
+    return pasa_bajos(ruido * env, 400) * 0.9
+
+
 def _cerrar_ciclo(x: np.ndarray) -> np.ndarray:
     """Suaviza el punto de bucle con un fundido muy corto."""
     n = int(0.03 * SR)
@@ -304,6 +339,9 @@ if __name__ == "__main__":
     guardar("musica_hospital.wav", musica_hospital(), 0.7)
     guardar("musica_casa.wav", musica_casa(), 0.7)
     guardar("musica_barrio.wav", musica_barrio(), 0.7)
+    guardar("aplausos.wav", sfx_aplausos(), 0.8)
+    guardar("llanto.wav", sfx_llanto(), 0.7)
+    guardar("trueno.wav", sfx_trueno(), 0.9)
     guardar("blip.wav", blip(), 0.6)
     guardar("seleccion.wav", seleccion(), 0.5)
     guardar("altavoz.wav", altavoz(), 0.7)

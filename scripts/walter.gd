@@ -68,6 +68,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _buscar_objetivo() -> void:
+	if objetivo != null and not is_instance_valid(objetivo):
+		objetivo = null                 # su NPC desapareció (p. ej. al final de una cinemática)
+		objetivo_cambiado.emit(null)
 	var mejor: Interactuable = null
 	var mejor_d := INF
 	for area in detector.get_overlapping_areas():

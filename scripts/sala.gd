@@ -262,4 +262,4 @@ func en_cinematica() -> bool:
 
 
 func refrescar_aviso() -> void:
-	_on_objetivo_cambiado(walter.objetivo)
+	_on_objetivo_cambiado(walter.objetivo if is_instance_valid(walter.objetivo) else null)

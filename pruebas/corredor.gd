@@ -14,6 +14,18 @@ func esperar(s: float) -> void:
 	await get_tree().create_timer(s).timeout
 
 
+## Toma una captura cuando una cinemática llega a su momento clave.
+func vigilar_momento(hosp, nombre: String, archivo: String) -> void:
+	var t := 0.0
+	while t < 40.0:
+		if is_instance_valid(hosp) and hosp.cin and hosp.cin.momento == nombre:
+			await esperar(0.5)
+			await captura(archivo)
+			return
+		await esperar(0.1)
+		t += 0.1
+
+
 func captura(nombre: String) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
@@ -109,7 +121,7 @@ func _ready() -> void:
 	for nombre in ["Dr. Maximiliano Brown", "Dr. Máximo Stone", "Dr. Enzo Escobar", "Dr. Zacarías Flores", "Dr. Wilder Noctis", "Cristian Daniel", "Diego Quiroz"]:
 		ok(hosp.npcs.has(nombre), "NPC " + nombre)
 	await hosp.interactuar("npc:Dr. Wilder Noctis")
-	ok(not hosp.npcs["Alejandro Reyes"].figura._pelo.visible, "los policías no muestran pelo sobre la gorra")
+	ok(hosp.npcs["Alejandro Reyes"].figura._pelo.visible, "a los policías se les ve el pelo bajo la gorra")
 	var fig := Personaje.new()
 	add_child(fig)
 	fig.mirando = Vector2.RIGHT
@@ -172,7 +184,7 @@ func _ready() -> void:
 	await hosp.interactuar("botiquin_rojo" if p.caso["grave"] else "botiquin")
 	ok(Juego.insumo_cargado == p.caso["insumo"], "toma el insumo %s" % p.caso["insumo"])
 	await hosp.interactuar("camilla0")
-	ok(Juego.reputacion == rep + 1, "paciente estable; con un fallo solo da +1 de reputación (rep %d)" % Juego.reputacion)
+	ok(Juego.reputacion == rep, "paciente estable; con un fallo no suma reputación (rep %d)" % Juego.reputacion)
 	await esperar(3.0)
 	ok(hosp.pacientes[0] == null, "camilla liberada")
 	# Wilder: cubrirlo da un favor; cobrarlo hace que atienda a un paciente
@@ -393,7 +405,7 @@ func _ready() -> void:
 	ok(andres.estado == "tratar", "diagnóstico: reacción alérgica grave")
 	var rep_a: int = Juego.reputacion
 	await h2.interactuar("camilla%d" % cama)
-	ok(h2.ambulancia_estado == "resuelta" and Juego.reputacion >= rep_a + 14, "Andrés se estabiliza: +6 del caso y +8 extra")
+	ok(h2.ambulancia_estado == "resuelta" and Juego.reputacion >= rep_a + 8, "Andrés se estabiliza: +4 del caso y +4 extra")
 	ok(h2.npcs["Cristian Daniel"].position.y < 2000.0 and not h2.npcs["Cristian Daniel"].quieto, "Cristian vuelve a su ronda")
 	h2._epinefrina_perdida()
 	ok(h2.epinefrina_repuesto > 0.0, "si se desperdicia la epinefrina, Cristian trae otra dosis")
@@ -538,6 +550,98 @@ func _ready() -> void:
 	await esperar_hasta.call(func(): return not h2.cinematica_activa, 5.0)
 	ok(evh.cumple == "listo" and Juego.get_amistad("Erina") >= 2, "fiesta sorpresa para Erina")
 
+	print("== Aspecto: Stone y policías")
+	ok(h2.npcs["Dr. Máximo Stone"].figura.pelo_hoja == Personaje.PELO_STONE and h2.npcs["Dr. Máximo Stone"].figura.piel == 0, "Stone: piel blanca y pelo aguamarina")
+	ok(h2.npcs["Alejandro Reyes"].figura._pelo.visible and h2.npcs["Alejandro Reyes"].figura.pelo_hoja == Personaje.PELOS_LSPD, "los policías tienen pelo bajo la gorra")
+	print("== Más ambulancias")
+	ok(h2.dias_de_ambulancia(1).size() == 2 and h2.dias_de_ambulancia(1).all(func(x): return x >= 8 and x <= 12), "2 ambulancias por semana, de lunes a viernes")
+	var cama2 := -1
+	for k in [2, 1, 0]:
+		if h2.pacientes[k] == null:
+			cama2 = k
+			break
+	if cama2 == -1:
+		h2._liberar(2)
+		cama2 = 2
+	h2.amb = {}
+	h2.iniciar_ambulancia(cama2)
+	var t_a2 := 0.0
+	while h2.ambulancia_estado != "activa" and t_a2 < 30.0:
+		await esperar(0.2)
+		t_a2 += 0.2
+	var p2 = h2.pacientes[cama2]
+	ok(p2 != null and p2.nombre != "Andrés" and p2.caso["grave"], "otra ambulancia trae un grave distinto (%s)" % (p2.nombre if p2 else "?"))
+	await captura("ambulancia_2")
+	p2.estabilidad = 0.5
+	await esperar_hasta.call(func(): return h2.ambulancia_estado == "perdida", 6.0)
+	ok(h2.ambulancia_estado == "perdida" and not h2.npcs.has(h2.PARAMEDICA), "si el paciente se pierde, el paramédico se va")
+	h2.ambulancia_estado = ""
+	print("== Cinemáticas")
+	Juego.respuestas_auto = [0, 0, 0]
+	vigilar_momento(h2, "parto", "cin_parto")
+	await evh.iniciar("parto")
+	ok(Juego.flags.get("bebe_walter", false) and not h2.cinematica_activa, "parto en el ascensor: nace Walter chiquito")
+	Juego.respuestas_auto = [0]
+	vigilar_momento(h2, "fuga", "cin_fuga")
+	await evh.iniciar("fuga_psiq")
+	ok(not h2.cinematica_activa and not h2.npcs.has("Don Ernesto"), "fuga de Don Ernesto: se calma y vuelve")
+	Juego.respuestas_auto = [0]
+	vigilar_momento(h2, "alcalde", "cin_alcalde")
+	await evh.iniciar("alcalde")
+	ok(Juego.flags.get("ev_alcalde", false) and not h2.cinematica_activa, "visita del alcalde")
+	vigilar_momento(h2, "tormenta", "cin_tormenta")
+	await evh.iniciar("tormenta")
+	ok(h2.apagon and h2.agenda.any(func(a): return str(a["nombre"]).contains("tormenta")), "tormenta: se va la luz y llegan heridos")
+	await esperar(1.0)   # deja terminar el oscurecimiento del apagón antes de restaurar la luz
+	h2.cin._lluvia.queue_free()
+	h2.cin._lluvia = null
+	h2.apagon = false
+	h2.oscuridad.color = Color.WHITE
+	Juego.flags["zac_novios"] = true
+	await h2.ir_a_sala("urgencias", Vector2(240, 180))
+	evh.iniciar("cita_zac")
+	var vio_cita := false
+	var t_ci := 0.0
+	while not Juego.flags.get("ev_cita_zac", false) or h2.cinematica_activa:
+		await esperar(0.1)
+		t_ci += 0.1
+		if not vio_cita and h2.cin.momento == "cita":
+			vio_cita = true
+			await esperar(0.5)
+			await captura("cin_cita_zac_dakota")
+		if t_ci > 30.0:
+			break
+	ok(Juego.flags.get("ev_cita_zac", false) and vio_cita and h2.npcs["Dr. Zacarías Flores"].position.y < 4000.0, "Diego avisa y se ve la cita de Zacarías y Dakota")
+	Juego.flags.erase("zac_novios")
+	await h2.ir_a_sala("vestidor", Vector2(300, 180))
+	if h2.npcs.has("Dakota"):
+		h2.cin.cafe_zac()
+		var vio_cafe2 := false
+		var t_cf := 0.0
+		while not Juego.flags.get("ev_cafe_zac", false) or h2.cinematica_activa:
+			await esperar(0.1)
+			t_cf += 0.1
+			if not vio_cafe2 and h2.cin.momento == "cafe":
+				vio_cafe2 = true
+				await esperar(0.5)
+				await captura("cin_cafe_zac_recepcion")
+			if t_cf > 30.0:
+				break
+		ok(h2.sala_actual == "recepcion" and h2.npcs["Dr. Zacarías Flores"].position.y > 2999.0, "Zacarías invita a Dakota en recepción y vuelve al vestidor")
+	Juego.flags["jinu_sheyla"] = true
+	vigilar_momento(h2, "graduacion", "cin_graduacion_jinu")
+	await evh.iniciar("graduacion_jinu")
+	ok(Juego.flags.get("ev_graduacion_jinu", false) and not h2.cinematica_activa, "graduación de Jinu")
+	vigilar_momento(h2, "wilder", "cin_wilder")
+	await evh.iniciar("wilder_salva")
+	ok(Juego.flags.get("ev_wilder_salva", false) and not h2.cinematica_activa, "Wilder salva a un paciente frente a Salgado")
+	vigilar_momento(h2, "despedida", "cin_despedida_erina")
+	await evh.iniciar("despedida_erina")
+	var dia_e: int = Juego.dia
+	Juego.dia = dia_e + 4
+	ok(Cinematicas.erina_de_vacaciones(), "Erina se va de vacaciones (llega Brenda)")
+	Juego.dia = dia_e
+
 	print("== Capacitación y ascenso")
 	Juego.respuestas_auto = ["Cerrar"]
 	await h2.interactuar("tablon")
@@ -545,7 +649,11 @@ func _ready() -> void:
 	Juego.reputacion = 90
 	Juego.horas_estudio = 5.0
 	Juego.dias_trabajados = 3
-	ok(Juego.puede_ser_residente(), "con 90 de reputación, 5 h y 3 turnos se cumplen los requisitos")
+	ok(not Juego.puede_ser_residente(), "con 90 de reputación ya no alcanza (ahora se piden 150)")
+	Juego.reputacion = 160
+	Juego.horas_estudio = 8.0
+	Juego.dias_trabajados = 6
+	ok(Juego.puede_ser_residente(), "con 150+ de reputación, 8 h y 6 turnos se cumplen los requisitos")
 	Juego.respuestas_auto = ["Pediatría"]
 	await h2.interactuar("tablon")
 	ok(Juego.rango == "Residente" and Juego.especialidad == "Pediatría", "asciende a Residente de Pediatría")
@@ -703,6 +811,59 @@ func _ready() -> void:
 	Juego.alarma_puesta = true
 	Juego.dormir()
 	ok(Juego.nombre_dia() == "Lunes" and Juego.dinero == din2 - Juego.ARRIENDO, "el lunes se cobra el arriendo")
+
+	print("== Ascenso hasta Director y final")
+	Juego.dia = 9
+	Juego.minutos = 9 * 60
+	await Juego.ir_a("res://escenas/hospital.tscn", "")
+	await esperar(2.0)
+	var h3 = get_tree().current_scene
+	Juego.rango = "Residente"
+	Juego.reputacion = 360
+	Juego.horas_estudio = 16.0
+	Juego.dias_trabajados = 15
+	Juego.respuestas_auto = ["Tomar la capacitación (1 h 30 min)"]
+	await h3.interactuar("tablon")
+	ok(Juego.rango == "Especialista", "asciende a Especialista (con ceremonia)")
+	Juego.reputacion = 700
+	Juego.horas_estudio = 24.0
+	Juego.dias_trabajados = 25
+	Juego.respuestas_auto = ["Cerrar"]
+	await h3.interactuar("tablon")
+	ok(Juego.rango == "Especialista", "Jefe de servicio pide un equipo de amigos")
+	for n in ["Lucía", "Erina", "Cristian Daniel", "Diego Quiroz", "Jinu Blake", "Doña Luz"]:
+		Juego.amistad[n] = 6
+	Juego.respuestas_auto = ["Tomar la capacitación (1 h 30 min)"]
+	h3.interactuar("tablon")
+	var vio_cer := false
+	var t_ce := 0.0
+	while Juego.rango != "Jefe de servicio" or h3.cinematica_activa:
+		await esperar(0.1)
+		t_ce += 0.1
+		if not vio_cer and h3.cin.momento == "ceremonia":
+			vio_cer = true
+			await esperar(0.5)
+			await captura("cin_ceremonia_ascenso")
+		if t_ce > 30.0:
+			break
+	ok(Juego.rango == "Jefe de servicio" and Juego.pago_por_turno() == 220, "asciende a Jefe de servicio")
+	Juego.reputacion = 1000
+	Juego.horas_estudio = 32.0
+	Juego.dias_trabajados = 35
+	Juego.respuestas_auto = ["Ir a la evaluación final", 0]
+	h3.interactuar("tablon")
+	var vio_cred := false
+	var t_fi := 0.0
+	while not Juego.flags.get("final_visto", false) or h3.cinematica_activa:
+		await esperar(0.1)
+		t_fi += 0.1
+		if not vio_cred and h3.cin.momento == "creditos":
+			vio_cred = true
+			await esperar(0.3)
+			await captura("cin_creditos")
+		if t_fi > 90.0:
+			break
+	ok(Juego.rango == "Director" and Juego.flags.get("final_visto", false), "final: Walter es Director del Hospital de Pillbox")
 
 	print("RESULTADO: %d fallo(s)" % fallos)
 	get_tree().quit(1 if fallos > 0 else 0)

@@ -29,9 +29,19 @@ var horas_estudio := 0.0
 var dias_trabajados := 0
 
 ## Requisitos para tomar la primera capacitación y ser Residente
-const REQ_REPUTACION := 80
-const REQ_HORAS_ESTUDIO := 5.0
-const REQ_DIAS := 3
+const REQ_REPUTACION := 150        # para Residente
+const REQ_HORAS_ESTUDIO := 8.0
+const REQ_DIAS := 6
+## Escalera de rangos y lo que pide cada capacitación ("equipo" = compañeros con amistad 5+).
+const RANGOS := ["Interno", "Residente", "Especialista", "Jefe de servicio", "Director"]
+const REQUISITOS := {
+	"Residente": {"reputacion": 150, "estudio": 8.0, "turnos": 6, "equipo": 0},
+	"Especialista": {"reputacion": 350, "estudio": 16.0, "turnos": 15, "equipo": 0},
+	"Jefe de servicio": {"reputacion": 650, "estudio": 24.0, "turnos": 25, "equipo": 4},
+	"Director": {"reputacion": 1000, "estudio": 32.0, "turnos": 35, "equipo": 6},
+}
+const EQUIPO := ["Lucía", "Dr. Maximiliano Brown", "Erina", "Cristian Daniel", "Diego Quiroz", "Jinu Blake",
+	"Sheyla Escobedo", "Dr. Zacarías Flores", "Dr. Wilder Noctis", "Doña Luz", "Dr. Máximo Stone", "Dr. Enzo Escobar"]
 const ESPECIALIDADES := ["Urgencias", "Pediatría", "Cirugía"]
 var racha_puntual := 0
 var retrasos := 0
@@ -50,7 +60,7 @@ var mensajes: Array = []        # celular: {de, texto, opciones, leido, respondi
 var semana := {"turnos": 0, "atendidos": 0, "transferidos": 0, "retrasos": 0}
 var derivados_semana := 0       # pacientes que Walter derivó por no estar seguro
 const LIMITE_DERIVADOS := 4     # con tantos en la semana, Salgado llama a Walter y a Noctis
-const PAGO_TURNO := {"Interno": 60, "Residente": 110}
+const PAGO_TURNO := {"Interno": 60, "Residente": 110, "Especialista": 160, "Jefe de servicio": 220, "Director": 300}
 const ARRIENDO := 150
 var amistad := {}               # nombre del NPC -> 0..10
 var favores := {}               # nombre del NPC -> favores que le debe a Walter
@@ -181,20 +191,42 @@ func velocidad_walter() -> float:
 
 ## Requisitos de la capacitación: lista de [texto, cumplido].
 func requisitos_residente() -> Array:
-	return [
-		["Reputación %d / %d" % [reputacion, REQ_REPUTACION], reputacion >= REQ_REPUTACION],
-		["Horas de estudio %.1f / %.0f" % [horas_estudio, REQ_HORAS_ESTUDIO], horas_estudio >= REQ_HORAS_ESTUDIO],
-		["Turnos trabajados %d / %d" % [dias_trabajados, REQ_DIAS], dias_trabajados >= REQ_DIAS],
+	return requisitos_de("Residente")
+
+
+func siguiente_rango() -> String:
+	var i := RANGOS.find(rango)
+	return RANGOS[i + 1] if i >= 0 and i < RANGOS.size() - 1 else ""
+
+
+func amigos_del_equipo() -> int:
+	return EQUIPO.filter(func(n): return get_amistad(n) >= 5).size()
+
+
+func requisitos_de(r: String) -> Array:
+	var q: Dictionary = REQUISITOS[r]
+	var l: Array = [
+		["Reputación %d / %d" % [reputacion, q["reputacion"]], reputacion >= q["reputacion"]],
+		["Horas de estudio %.1f / %.0f" % [horas_estudio, q["estudio"]], horas_estudio >= q["estudio"]],
+		["Turnos trabajados %d / %d" % [dias_trabajados, q["turnos"]], dias_trabajados >= q["turnos"]],
 	]
+	if q["equipo"] > 0:
+		l.append(["Compañeros con amistad 5+: %d / %d" % [amigos_del_equipo(), q["equipo"]], amigos_del_equipo() >= q["equipo"]])
+	return l
 
 
-func puede_ser_residente() -> bool:
-	if rango != "Interno":
+func puede_ascender() -> bool:
+	var sig := siguiente_rango()
+	if sig == "":
 		return false
-	for r in requisitos_residente():
+	for r in requisitos_de(sig):
 		if not r[1]:
 			return false
 	return true
+
+
+func puede_ser_residente() -> bool:
+	return rango == "Interno" and puede_ascender()
 
 
 func sumar_reputacion(n: int) -> void:
@@ -469,10 +501,10 @@ func evaluacion_semanal() -> Array:
 	var bono_rep := 0
 	if puntaje >= 30:
 		nota = "Excelente"
-		bono_rep = 10
+		bono_rep = 6
 	elif puntaje >= 15:
 		nota = "Bien"
-		bono_rep = 5
+		bono_rep = 3
 	elif puntaje < 0:
 		nota = "Mal"
 		bono_rep = -5
@@ -511,8 +543,8 @@ func llegar_al_hospital() -> Array:
 	else:
 		racha_puntual += 1
 		if racha_puntual % 5 == 0:
-			sumar_reputacion(5)
-			notas.append("Dr. Salgado: «%d días seguidos puntual. Así me gusta». (+5 reputación)" % racha_puntual)
+			sumar_reputacion(3)
+			notas.append("Dr. Salgado: «%d días seguidos puntual. Así me gusta». (+3 reputación)" % racha_puntual)
 	if ropa == "pijama":
 		sumar_reputacion(-3)
 		notas.append("Lucía: «¡Doctor, vino en pijama!». En el vestidor (2.ª puerta del pasillo) hay batas. (−3 reputación)")

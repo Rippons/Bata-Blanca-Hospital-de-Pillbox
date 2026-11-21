@@ -176,6 +176,8 @@ var llamado_desde := 0.0
 var oscuridad: CanvasModulate
 var exterior: Exterior
 var eventos: EventosHospital
+var cin: Cinematicas
+var recepcionista := "Erina"     # Brenda la reemplaza cuando Erina está de vacaciones
 
 # Escena de la ambulancia (ESC-02): Cristian Daniel trae a Andrés
 var ambulancia_hora := -1.0
@@ -199,6 +201,8 @@ func construir() -> void:
 	_construir_consultorio()
 	eventos = EventosHospital.new(self)
 	add_child(eventos)
+	cin = Cinematicas.new(self)
+	add_child(cin)
 	origen = Vector2.ZERO
 	eventos.construir()
 	exterior = Exterior.new()
@@ -270,12 +274,17 @@ func _construir_recepcion() -> void:
 	deco(Rect2(1583, 33, 34, 14), 346, 52)
 	deco(Rect2(2103, 36, 18, 10), 190, 46)
 	# mostrador con Erina (recepcionista, no camina), monitor y papeles
-	var erina := persona("Erina", 1, "fucsia", Personaje.PELOS2, 0, Vector2(240, 140), Rect2(), [], true)
-	erina.dialogo_dinamico = _dialogo_erina
+	if Cinematicas.erina_de_vacaciones():
+		recepcionista = "Brenda (suplente)"
+		var brenda := persona(recepcionista, 2, "rosa", Personaje.PELOS2, 3, Vector2(240, 140), Rect2(), [], true)
+		brenda.dialogo_dinamico = Cinematicas.dialogo_brenda
+	else:
+		var erina := persona("Erina", 1, "fucsia", Personaje.PELOS2, 0, Vector2(240, 140), Rect2(), [], true)
+		erina.dialogo_dinamico = _dialogo_erina
 	mueble(MISC, Rect2(2819, 15, 122, 45), Vector2(240, 176), true, 30)
 	deco(Rect2(569, 21, 14, 18), 206, 150)
 	deco(Rect2(1209, 23, 12, 16), 276, 148)
-	zona("recepcionista", "Hablar con Erina (recepción)", Rect2(190, 176, 100, 16))
+	zona("recepcionista", "Hablar con %s (recepción)" % recepcionista.split(" ")[0], Rect2(190, 176, 100, 16))
 	# sala de espera izquierda
 	mueble(HOME + "LivingRoom1-Sheet.png", Rect2(24, 501, 48, 26), Vector2(56, 112), true, 14)
 	mueble(HOME + "LivingRoom1-Sheet.png", Rect2(24, 501, 48, 26), Vector2(120, 112), true, 14)
@@ -309,10 +318,10 @@ func _construir_recepcion() -> void:
 		["Mi esposa dice que el turno de noche es peor. ¿Usted también hace noches?"],
 		["Traje arepas para todos los de urgencias. ¿Quiere una, doctor?"],
 	])
-	var reyes := persona("Alejandro Reyes", 2, "policia", Personaje.PELOS, 0, Vector2(300, 222), Rect2(300, 196, 150, 50))
+	var reyes := persona("Alejandro Reyes", 2, "policia", Personaje.PELOS_LSPD, 0, Vector2(300, 222), Rect2(300, 196, 150, 50))
 	reyes.dialogo_dinamico = _dialogo_reyes
 	if _pawlak_de_guardia(Juego.dia):
-		var rhea := persona("Rhea Pawlak", 0, "policia", Personaje.PELOS2, 0, Vector2(360, 230), Rect2(300, 200, 150, 46))
+		var rhea := persona("Rhea Pawlak", 0, "policia", Personaje.PELOS_LSPD, 3, Vector2(360, 230), Rect2(300, 200, 150, 46))
 		rhea.velocidad = 20.0
 		rhea.dialogo_dinamico = _dialogo_pawlak_guardia
 	if _dakota_en_recepcion(Juego.dia):
@@ -377,7 +386,7 @@ func _construir_pasillo() -> void:
 	suelo_color(Rect2(30, 211, 60, 8), Color("6b4a2b"))
 	cartel("↓ RECEPCIÓN", Vector2(36, 220), Color("9fc4e8"))
 	zona("ir_recepcion", "Volver a recepción", Rect2(30, 196, 60, 18))
-	persona("John McClane", 0, "policia", Personaje.PELOS, 0, Vector2(700, 150), Rect2(520, 112, 400, 80), [
+	persona("John McClane", 0, "policia", Personaje.PELOS_LSPD, 1, Vector2(700, 150), Rect2(520, 112, 400, 80), [
 		["McClane, policía. Estoy esperando para tomar una declaración.", "Los hospitales me ponen nervioso: demasiados pasillos y ascensores."],
 		["¿La cafetería? Tercera puerta. Gracias, doc."],
 		["Un consejo de policía viejo: nunca ande descalzo en un edificio grande."],
@@ -396,7 +405,7 @@ func _construir_pasillo() -> void:
 	])
 	var cristian := persona("Cristian Daniel", 3, "overol", Personaje.PELOS, 5, Vector2(420, 170), Rect2(200, 112, 500, 80))
 	cristian.dialogo_dinamico = _dialogo_cristian
-	persona("Dr. Máximo Stone", 5, "uniforme", Personaje.PELOS, 7, Vector2(340, 170), Rect2(260, 112, 300, 80), [
+	persona("Dr. Máximo Stone", 0, "uniforme", Personaje.PELO_STONE, 0, Vector2(340, 170), Rect2(260, 112, 300, 80), [
 		["Stone, traumatología. Si llega alguien con un esguince: férula y reposo.", "Y nada de volver a la cancha en una semana."],
 		["Este pasillo es más largo que mis turnos, y eso es mucho decir."],
 		["Un yeso bien puesto es una obra de arte, Pinkman. Que no se le olvide."],
@@ -454,7 +463,7 @@ func _construir_urgencias() -> void:
 	if _wilder_redimido():
 		var w := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(240, 190), Rect2(200, 176, 100, 30))
 		w.dialogo_dinamico = _dialogo_wilder
-	persona("Jaiden Mendoza", 3, "policia", Personaje.PELOS2, 2, Vector2(300, 170), Rect2(250, 150, 200, 40), [
+	persona("Jaiden Mendoza", 3, "policia", Personaje.PELOS_LSPD, 2, Vector2(300, 170), Rect2(250, 150, 200, 40), [
 		["Agente Jaiden Mendoza. Traje a un herido hace un rato.", "Usted haga su trabajo, doctor; yo me quedo por si acaso."],
 		["El café de la cafetería es lo único que me mantiene despierto."],
 		["Reyes cuida la entrada y McClane anda por el pasillo. Somos un buen equipo."],
@@ -927,7 +936,7 @@ func interactuar(id: String) -> void:
 			"ir_pasillo": await ir_a_sala("pasillo", Vector2(60, 180))
 			"ir_recepcion": await ir_a_sala("recepcion", Vector2(240, 92))
 			"calle": hud.mostrar("Tu turno termina a las 7:30 PM. Son las %s." % Juego.hora_texto())
-			"recepcionista": await hablar_con("Erina")
+			"recepcionista": await hablar_con(recepcionista)
 			"botiquin": await _botiquin(Casos.insumos_botiquin(), "Botiquín")
 			"botiquin_rojo": await _botiquin_rojo()
 			"casillero": await _casillero()
@@ -1027,7 +1036,7 @@ func _camilla(i: int) -> void:
 		hud.mostrar("%s necesita tratamiento (%s). Busca el insumo en un botiquín." % [p.nombre, p.caso["diagnostico"]])
 		return
 	if Juego.insumo_cargado == p.caso["insumo"]:
-		var premio: int = int(p.caso["premio"]) if p.fallos == 0 else 1
+		var premio: int = int(p.caso["premio"]) if p.fallos == 0 else 0
 		Juego.sumar_reputacion(premio)
 		Juego.insumo_cargado = ""
 		p.estado = "alta"
@@ -1206,10 +1215,10 @@ func _dialogo_salgado():
 		return especial
 	var l := ["Pinkman. Lleva %d de reputación." % Juego.reputacion,
 		"%d día(s) seguidos puntual y %d retraso(s)." % [Juego.racha_puntual, Juego.retrasos]]
-	if Juego.rango != "Interno":
-		l.append("Como Residente de %s, espero mucho de usted. No me decepcione." % Juego.especialidad)
-	elif Juego.puede_ser_residente():
-		l.append("Ya cumple los requisitos. Vaya al tablón de capacitaciones del pasillo.")
+	if Juego.puede_ascender():
+		l.append("Ya cumple los requisitos para %s. Vaya al tablón de capacitaciones del pasillo." % Juego.siguiente_rango())
+	elif Juego.rango != "Interno":
+		l.append("Como %s de %s, espero mucho de usted. No me decepcione." % [Juego.rango, Juego.especialidad])
 	else:
 		l.append("Para su primera capacitación necesita %d de reputación, %.0f horas de estudio y %d turnos." % [Juego.REQ_REPUTACION, Juego.REQ_HORAS_ESTUDIO, Juego.REQ_DIAS])
 		l.append("Revise el tablón del pasillo; ahí está todo.")
@@ -1266,37 +1275,54 @@ func _dialogo_wilder():
 
 # --- Capacitaciones ---------------------------------------------------------------
 func _tablon() -> void:
-	if Juego.rango != "Interno":
-		await hud.elegir("Tablón de capacitaciones",
-			"Ya eres %s de %s. Las próximas capacitaciones (Especialista) llegarán pronto." % [Juego.rango, Juego.especialidad], ["Cerrar"])
+	var sig := Juego.siguiente_rango()
+	if sig == "":
+		await hud.elegir("Tablón de capacitaciones", "Eres el Director del Hospital de Pillbox. Ya no hay más capacitaciones… solo reuniones.", ["Cerrar"])
 		return
-	var lineas: Array = ["Primera capacitación: Interno → Residente"]
-	for r in Juego.requisitos_residente():
+	var nombres := {"Residente": "Primera capacitación", "Especialista": "Segunda capacitación",
+		"Jefe de servicio": "Capacitación de liderazgo", "Director": "Evaluación final del Dr. Salgado"}
+	var lineas: Array = ["%s: %s → %s" % [nombres[sig], Juego.rango, sig]]
+	for r in Juego.requisitos_de(sig):
 		lineas.append(("[x] " if r[1] else "[ ] ") + r[0])
 	var texto := "\n".join(lineas)
-	if not Juego.puede_ser_residente():
-		texto += "\nEstudia en el escritorio de tu casa, atiende bien y sé puntual."
+	if not Juego.puede_ascender():
+		texto += "\nEstudia en tu casa, atiende bien, sé puntual" + (" y llévate bien con tu equipo." if Juego.REQUISITOS[sig]["equipo"] > 0 else ".")
 		await hud.elegir("Tablón de capacitaciones", texto, ["Cerrar"])
 		return
-	var opciones: Array = Juego.ESPECIALIDADES.duplicate()
-	opciones.append("Todavía no")
-	var r: int = await hud.elegir("Tablón de capacitaciones", texto + "\n¡Cumples los requisitos! Elige tu especialidad:", opciones)
-	if r < 0 or r >= Juego.ESPECIALIDADES.size():
+	if sig == "Residente":
+		var opciones: Array = Juego.ESPECIALIDADES.duplicate()
+		opciones.append("Todavía no")
+		var r: int = await hud.elegir("Tablón de capacitaciones", texto + "\n¡Cumples los requisitos! Elige tu especialidad:", opciones)
+		if r < 0 or r >= Juego.ESPECIALIDADES.size():
+			return
+		var esp: String = Juego.ESPECIALIDADES[r]
+		await _accion(60, "Capacitación en %s…\n1 hora después" % esp)
+		Juego.rango = "Residente"
+		Juego.especialidad = esp
+		Juego.sonido("exito", 1.0, -4.0)
+		await cin.ceremonia("Residente")
+		await hud.dialogo("Dr. Salgado", ["Su consultorio ya está abierto: quinta puerta del pasillo.", "Y no se le suba a la cabeza: mañana a las 7:30, como siempre."])
+		if _puerta_consultorios:
+			_puerta_consultorios.modulate = Color.WHITE
+			for c in _puerta_consultorios.get_children():
+				c.modulate = Color.WHITE
+		interactuables["puerta_consultorios"].etiqueta = "Entrar: Consultorio"
+		refrescar_aviso()
+		hud.mostrar("Ahora eres Residente de %s. Llegarán casos nuevos de tu especialidad." % esp, 4.5)
 		return
-	var esp: String = Juego.ESPECIALIDADES[r]
-	await _accion(60, "Capacitación en %s…\n1 hora después" % esp)
-	Juego.rango = "Residente"
-	Juego.especialidad = esp
+	if sig == "Director":
+		var rd: int = await hud.elegir("Tablón de capacitaciones", texto + "\n¡Cumples todo! El Dr. Salgado te espera para la evaluación final.", ["Ir a la evaluación final", "Todavía no"])
+		if rd == 0:
+			await cin.final_director()
+		return
+	var r2: int = await hud.elegir("Tablón de capacitaciones", texto + "\n¡Cumples los requisitos!", ["Tomar la capacitación (1 h 30 min)", "Todavía no"])
+	if r2 != 0:
+		return
+	await _accion(90, "Capacitación para %s…\n1 hora y media después" % sig)
+	Juego.rango = sig
 	Juego.sonido("exito", 1.0, -4.0)
-	await hud.dialogo("Dr. Salgado", ["¡Felicitaciones, Dr. Pinkman!", "Desde hoy es Residente de %s." % esp,
-		"Su consultorio ya está abierto: quinta puerta del pasillo.", "Y no se le suba a la cabeza: mañana a las 7:30, como siempre."])
-	if _puerta_consultorios:
-		_puerta_consultorios.modulate = Color.WHITE
-		for c in _puerta_consultorios.get_children():
-			c.modulate = Color.WHITE
-	interactuables["puerta_consultorios"].etiqueta = "Entrar: Consultorio"
-	refrescar_aviso()
-	hud.mostrar("Ahora eres Residente de %s. Llegarán casos nuevos de tu especialidad." % esp, 4.5)
+	await cin.ceremonia(sig)
+	hud.mostrar("Ahora eres %s. Tu sueldo sube a $%d por turno." % [sig, Juego.pago_por_turno()], 4.5)
 
 
 func _revisar_historias() -> void:
@@ -1320,9 +1346,11 @@ func _planear_eventos() -> void:
 	var ultima := int(Juego.flags.get("director_ultima_llamada", 0))
 	if Juego.dia >= 2 and Juego.dia - ultima >= randi_range(2, 3):
 		llamado_hora = randi_range(11 * 60, 17 * 60)
-	# La ambulancia de Andrés llega una vez, desde el día 2
+	# Ambulancias con cinemática: Andrés llega el día 2 y luego 2 días al azar de cada semana
 	if Juego.dia >= 2 and not Juego.flags.get("ambulancia_andres", false):
 		ambulancia_hora = randi_range(10 * 60, 12 * 60)
+	elif Juego.dia > 2 and Juego.dia in dias_de_ambulancia(int((Juego.dia - 1) / 7)):
+		ambulancia_hora = randi_range(9 * 60, 16 * 60)
 	eventos.planear()
 
 
@@ -1640,7 +1668,7 @@ func _agenda_pawlak() -> void:
 	var viene := d == 2 or d == 5 or (d >= 8 and d % 3 == 2 and (_pawlak_interes() != "si" or randf() < 0.5))
 	if not viene:
 		return
-	var ap := {"piel": 0, "ropa": "policia", "pelo_hoja": Personaje.PELOS2, "pelo_fila": 0}
+	var ap := {"piel": 0, "ropa": "policia", "pelo_hoja": Personaje.PELOS_LSPD, "pelo_fila": 3}
 	agenda.append({"hora": randi_range(9 * 60, 14 * 60), "caso": CASO_PAWLAK, "nombre": "Rhea Pawlak", "apariencia": ap})
 	agenda.sort_custom(func(x, y): return x["hora"] < y["hora"])
 
@@ -2037,16 +2065,51 @@ const EXT_Y := -52.0          # desplazamiento vertical del exterior dentro de s
 const APARIENCIA_ANDRES := {"piel": 1, "ropa": "casual_rojo", "pelo_hoja": Personaje.PELOS, "pelo_fila": 2}
 
 
+## Datos de la ambulancia en curso (paciente, caso, paramédico y lo que dicen).
+var amb := {}
+
+const PARAMEDICA := "Paramédica Valentina Ruiz"
+## Pacientes que pueden llegar en ambulancia (los graves): nombre, apariencia y lo que cuenta el paramédico.
+const LLEGADAS_AMBULANCIA := {
+	"Reacción alérgica grave": [["Camila, 19 años. Le picó una avispa en el parque y se está hinchando toda.", "¡Casi no puede respirar!"], "¿Es alérgica a algo?", ["¡A las picaduras! Lo dice su mamá por teléfono."]],
+	"Golpe de calor": [["Don Hernán, 58 años. Albañil. Se desmayó en una obra a pleno sol.", "¡Está ardiendo y casi no responde!"], "¿Cuánto tiempo estuvo al sol?", ["¡Toda la mañana, sin agua! Sus compañeros lo dijeron."]],
+	"Infarto": [["Doña Gloria, 67 años. Dolor fuerte en el pecho que le baja al brazo.", "¡Está sudando frío!"], "¿Toma algún medicamento?", ["¡Para la presión! Pero hoy no se lo tomó."]],
+	"Crisis convulsiva": [["Felipe, 30 años. Se desplomó en la parada del bus y empezó a convulsionar.", "¡Lleva más de cinco minutos así!"], "¿Le había pasado antes?", ["¡Nunca! Eso dijo su novia."]],
+	"Hemorragia grave": [["Mateo, 22 años. Accidente de moto en la avenida.", "¡Perdió mucha sangre por la pierna y se está desmayando!"], "¿Llevaba casco?", ["¡Sí, gracias a Dios! El problema es la pierna."]],
+}
+
+
 func _caso_andres() -> Dictionary:
-	var base: Dictionary = {}
-	for c in CASOS:
-		if c["diagnostico"] == "Reacción alérgica grave":
-			base = c
-	var caso := base.duplicate(true)
+	var caso := _caso_grave("Reacción alérgica grave")
 	caso["relato"] = "Cristian: «Andrés, 24 años. Comió algo con maní y dice que le pica todo. ¡Le cuesta respirar!»"
 	caso["deterioro"] = 1.2
-	caso["inicial"] = 60.0
 	return caso
+
+
+func _caso_grave(diagnostico: String) -> Dictionary:
+	for c in CASOS:
+		if c["diagnostico"] == diagnostico:
+			var caso: Dictionary = c.duplicate(true)
+			caso["inicial"] = 60.0
+			return caso
+	return {}
+
+
+## Prepara la próxima ambulancia: la primera siempre es Andrés con Cristian; después, un grave al azar.
+func _preparar_ambulancia() -> void:
+	if not Juego.flags.get("ambulancia_andres", false):
+		amb = {"nombre": "Andrés", "caso": _caso_andres(), "apariencia": APARIENCIA_ANDRES, "paramedico": "Cristian Daniel",
+			"lineas": ["¡Doctor! Traigo a Andrés, 24 años.", "Comió algo con maní en un restaurante y se le está cerrando la garganta. ¡Casi no respira!"],
+			"pregunta": "¿Tiene alergias conocidas?", "respuesta": ["¡Al maní! Lo dice en la pulsera. ¡Vamos, doctor!"], "andres": true}
+		return
+	var diag: String = LLEGADAS_AMBULANCIA.keys().pick_random()
+	var datos: Array = LLEGADAS_AMBULANCIA[diag]
+	var nombre: String = str(datos[0][0]).split(",")[0]
+	var caso := _caso_grave(diag)
+	var paramedico: String = "Cristian Daniel" if randf() < 0.5 else PARAMEDICA
+	caso["relato"] = "%s: «%s»" % [paramedico.split(" ")[0] if paramedico == "Cristian Daniel" else "Valentina", " ".join(datos[0])]
+	amb = {"nombre": nombre, "caso": caso, "apariencia": Paciente.apariencia_al_azar(), "paramedico": paramedico,
+		"lineas": ["¡Doctor!"] + datos[0], "pregunta": datos[1], "respuesta": datos[2], "andres": false}
 
 
 func _intentar_ambulancia() -> void:
@@ -2061,20 +2124,45 @@ func _intentar_ambulancia() -> void:
 		ambulancia_hora = Juego.minutos + 5.0       # sin camillas libres: Lucía la recibe cinco minutos después
 		return
 	ambulancia_hora = -1.0
+	amb = {}
 	await iniciar_ambulancia(libre)
 
 
-## Cinemática: llega la ambulancia, Cristian baja a Andrés y lo lleva a la camilla.
+## Dos días al azar de cada semana (lunes a viernes) llega una ambulancia con cinemática.
+func dias_de_ambulancia(semana: int) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = semana * 7919 + 17
+	var dias: Array = [1, 2, 3, 4, 5]
+	var elegidos: Array = []
+	while elegidos.size() < 2:
+		var d: int = dias[rng.randi_range(0, dias.size() - 1)]
+		dias.erase(d)
+		elegidos.append(semana * 7 + d)
+	return elegidos
+
+
+## Cinemática: llega la ambulancia, el paramédico baja al paciente y lo lleva a la camilla.
 func iniciar_ambulancia(i: int) -> void:
-	if not npcs.has("Cristian Daniel"):
-		return
+	if amb.is_empty():
+		_preparar_ambulancia()
+	var nombre_par: String = amb["paramedico"]
+	var temporal := false
+	if nombre_par != "Cristian Daniel" or not npcs.has("Cristian Daniel"):
+		nombre_par = PARAMEDICA
+		temporal = true
+		amb["paramedico"] = PARAMEDICA
+		var nueva := persona(PARAMEDICA, 1, "rojo", Personaje.PELOS2, 3, Vector2(-100, -100), Rect2(), [], true)
+		nueva.visible = false
 	cinematica_activa = true
 	ambulancia_estado = "llegando"
 	ambulancia_cama = i
-	Juego.flags["ambulancia_andres"] = true
-	var cristian: NPC = npcs["Cristian Daniel"]
-	_cristian_inicio = cristian.position
-	_cristian_zona = cristian.zona_paseo
+	if amb["andres"]:
+		Juego.flags["ambulancia_andres"] = true
+	var nombre: String = amb["nombre"]
+	var par: NPC = npcs[nombre_par]
+	amb["temporal"] = temporal
+	_cristian_inicio = par.position
+	_cristian_zona = par.zona_paseo
 	var o_e: Vector2 = SALAS["entrada"]["origen"]
 	var o_u: Vector2 = SALAS["urgencias"]["origen"]
 	walter.bloqueado = true
@@ -2088,92 +2176,95 @@ func iniciar_ambulancia(i: int) -> void:
 	walter.figura.mirando = Vector2.RIGHT
 	walter.figura.caminar(false, 0.0)
 	Juego.sonido("sirena", 1.0, -6.0)
-	var amb := exterior.vehiculo("ambulancia", true, 3.2, Exterior.PUERTA.x + 34.0)
+	var vehiculo := exterior.vehiculo("ambulancia", true, 3.2, Exterior.PUERTA.x + 34.0)
 	var luz := Sirena.new()
-	luz.position = Vector2(57, 3) + amb.offset
-	amb.add_child(luz)
+	luz.position = Vector2(57, 3) + vehiculo.offset
+	vehiculo.add_child(luz)
 	await get_tree().create_timer(3.4).timeout
 	Juego.sonido("puerta", 0.8, -6.0)
-	# 2. Cristian baja con la camilla
-	cristian.position = o_e + Vector2(Exterior.PUERTA.x + 52.0, 208 + EXT_Y)
-	cristian.visible = true
+	# 2. El paramédico baja con la camilla
+	par.position = o_e + Vector2(Exterior.PUERTA.x + 52.0, 208 + EXT_Y)
+	par.visible = true
 	var camilla := CamillaTraslado.new()
-	camilla.apariencia = APARIENCIA_ANDRES
-	camilla.position = cristian.position + Vector2(-20, 0)
+	camilla.apariencia = amb["apariencia"]
+	camilla.position = par.position + Vector2(-20, 0)
 	mundo.add_child(camilla)
-	cristian.mirar_a(walter.global_position)
-	await hud.dialogo("Cristian Daniel", ["¡Doctor! Traigo a Andrés, 24 años.", "Comió algo con maní en un restaurante y se le está cerrando la garganta. ¡Casi no respira!"])
-	var r: int = await hud.elegir("Responder a Cristian", "", ["¡Llévalo a la camilla %d, rápido!" % (i + 1), "¿Tiene alergias conocidas?"])
+	par.mirar_a(walter.global_position)
+	await hud.dialogo(nombre_par, amb["lineas"])
+	var r: int = await hud.elegir("Responder a %s" % nombre_par.split(" ")[0 if nombre_par == "Cristian Daniel" else 1], "", ["¡A la camilla %d, rápido!" % (i + 1), amb["pregunta"]])
 	if r == 1:
-		await hud.dialogo("Cristian Daniel", ["¡Al maní! Lo dice en la pulsera. ¡Vamos, doctor!"])
-	# 3. Cristian empuja la camilla hacia la puerta
-	_enfocar([cristian])
-	var seguir := func(): camilla.position = cristian.position + Vector2(0, -16)
-	cristian.velocidad = 60.0
+		await hud.dialogo(nombre_par, amb["respuesta"] + ["¡Vamos, doctor!"] if not amb["andres"] else amb["respuesta"])
+	# 3. Empuja la camilla hacia la puerta
+	_enfocar([par])
+	var seguir := func(): camilla.position = par.position + Vector2(0, -16)
+	par.velocidad = 60.0
 	var t := create_tween().set_loops()
 	t.tween_callback(seguir).set_delay(0.016)
-	await cristian.ir_a([o_e + Vector2(Exterior.PUERTA.x, 214 + EXT_Y), o_e + Vector2(Exterior.PUERTA.x, 190 + EXT_Y)], 60.0, 4.0)
+	await par.ir_a([o_e + Vector2(Exterior.PUERTA.x, 214 + EXT_Y), o_e + Vector2(Exterior.PUERTA.x, 190 + EXT_Y)], 60.0, 4.0)
 	t.kill()
 	_enfocar([])
-	amb.queue_free()
+	vehiculo.queue_free()
 	# 4. En urgencias: hasta la camilla
 	walter.camara.position = Vector2(0, -12)
 	await ir_a_sala("urgencias", Vector2(CAMILLAS_X[i] - 40.0, 160), true)
-	cristian.position = o_u + Vector2(40, 100)
-	camilla.position = cristian.position + Vector2(0, 16)
-	_enfocar([cristian])
+	par.position = o_u + Vector2(40, 100)
+	camilla.position = par.position + Vector2(0, 16)
+	_enfocar([par])
 	t = create_tween().set_loops()
-	t.tween_callback(func(): camilla.position = cristian.position + Vector2(18 if cristian.figura.mirando.x > 0 else 0, 16 if cristian.figura.mirando.y >= 0 else -16)).set_delay(0.016)
-	await cristian.ir_a([o_u + Vector2(40, 150), o_u + Vector2(CAMILLAS_X[i] + 26.0, 150), o_u + Vector2(CAMILLAS_X[i] + 26.0, CAMILLA_Y + 18.0)], 60.0, 5.0)
+	t.tween_callback(func(): camilla.position = par.position + Vector2(18 if par.figura.mirando.x > 0 else 0, 16 if par.figura.mirando.y >= 0 else -16)).set_delay(0.016)
+	await par.ir_a([o_u + Vector2(40, 150), o_u + Vector2(CAMILLAS_X[i] + 26.0, 150), o_u + Vector2(CAMILLAS_X[i] + 26.0, CAMILLA_Y + 18.0)], 60.0, 5.0)
 	t.kill()
 	camilla.queue_free()
-	# 5. Andrés pasa a la camilla
+	# 5. El paciente pasa a la camilla
 	if pacientes[i] != null:
 		_liberar(i)
 	var p := Paciente.new()
-	p.caso = _caso_andres()
-	p.nombre = "Andrés"
+	p.caso = amb["caso"]
+	p.nombre = nombre
 	p.estabilidad = 60.0
-	p.apariencia = APARIENCIA_ANDRES
+	p.apariencia = amb["apariencia"]
 	p.position = o_u + Vector2(CAMILLAS_X[i], CAMILLA_Y)
 	mundo.add_child(p)
 	pacientes[i] = p
-	interactuables["camilla%d" % i].etiqueta = "Atender a Andrés"
-	cristian.mirar_a(walter.global_position)
-	_enfocar([cristian, p])
+	interactuables["camilla%d" % i].etiqueta = "Atender a %s" % nombre
+	par.mirar_a(walter.global_position)
+	_enfocar([par, p])
 	# 6. Lucía: ¿abre el botiquín rojo o grita la clave?
 	epinefrina = 1
 	epinefrina_repuesto = -1.0
-	await hud.dialogo("Lucía", ["¡Ambulancia! Andrés, 24 años. Le cuesta respirar."])
+	var con_epi: bool = p.caso["insumo"] == "Epinefrina"
+	var dosis := " ¡La epinefrina es una sola dosis, no la desperdicie!" if con_epi else ""
+	await hud.dialogo("Lucía", ["¡Ambulancia! %s. ¡Está grave!" % nombre])
 	if Juego.get_amistad("Lucía") >= 3:
 		codigo_rojo = ""
-		await hud.dialogo("Lucía", ["Yo me quedo con los demás pacientes; vaya usted con Andrés.", "Ya le abrí el botiquín rojo, doctor. ¡La epinefrina es una sola dosis, no la desperdicie!"])
+		await hud.dialogo("Lucía", ["Yo me quedo con los demás pacientes; vaya usted con %s." % nombre, "Ya le abrí el botiquín rojo, doctor." + dosis])
 		for k in 3:
 			if pacientes[k] != null and k != i:
 				pacientes[k].vigilado_hasta = Juego.minutos + 30.0
 	else:
 		codigo_rojo = "%d-%d-%d" % [randi_range(1, 9), randi_range(0, 9), randi_range(0, 9)]
-		await hud.dialogo("Lucía", ["¡Tengo que ir al mostrador! ¡No descuide a los demás!", "El botiquín rojo tiene clave: ¡%s! Y la epinefrina es una sola dosis." % codigo_rojo])
-	await hud.dialogo("Cristian Daniel", ["Yo me quedo aquí por si necesita algo, doctor. ¡Usted puede!"])
-	cristian.zona_paseo = Rect2()
-	cristian.quieto = true
-	cristian.guion = false
-	cristian.dialogo_dinamico = _dialogo_cristian_ambulancia
+		await hud.dialogo("Lucía", ["¡Tengo que ir al mostrador! ¡No descuide a los demás!", "El botiquín rojo tiene clave: ¡%s!%s" % [codigo_rojo, dosis]])
+	await hud.dialogo(nombre_par, ["Yo me quedo aquí por si necesita algo, doctor. ¡Usted puede!"])
+	par.zona_paseo = Rect2()
+	par.quieto = true
+	par.guion = false
+	par.dialogo_dinamico = _dialogo_cristian_ambulancia
 	_enfocar([])
 	ambulancia_estado = "activa"
 	walter.bloqueado = false
 	cinematica_activa = false
-	hud.mostrar("¡Estabiliza a Andrés! Examínalo, diagnostica y busca el insumo en el botiquín rojo.", 4.0)
+	hud.mostrar("¡Estabiliza a %s! Examínalo, diagnostica y busca el insumo en el botiquín rojo." % nombre, 4.0)
 	refrescar_aviso()
 
 
 func _dialogo_cristian_ambulancia():
+	var n: String = amb.get("nombre", "el paciente")
 	if epinefrina_repuesto > 0.0:
-		return ["¡Ya voy por otra dosis a la farmacia, doctor! Aguante, Andrés."]
-	return [["¡Rápido, doctor! Andrés está cada vez peor."], ["La pulsera dice: alérgico al maní. ¡Eso ayuda, ¿no?!"]].pick_random()
+		return ["¡Ya voy por otra dosis a la farmacia, doctor! Aguante, %s." % n]
+	return [["¡Rápido, doctor! %s está cada vez peor." % n], ["¡Usted puede, doctor! El botiquín rojo está a la derecha."]].pick_random()
 
 
-## Latido cuando Andrés está crítico y la epinefrina de repuesto.
+## Latido cuando el paciente de la ambulancia está crítico, y la epinefrina de repuesto.
 func _vigilar_ambulancia() -> void:
 	var p = pacientes[ambulancia_cama] if ambulancia_cama >= 0 else null
 	if p != null and is_instance_valid(p) and p.estabilidad < 30.0 and not Juego.pausado:
@@ -2185,13 +2276,13 @@ func _vigilar_ambulancia() -> void:
 		epinefrina_repuesto = -1.0
 		epinefrina = 1
 		Juego.sonido("seleccion", 1.2, -6.0)
-		hud.mostrar("Cristian Daniel: «¡Aquí está la otra dosis de epinefrina! La dejé en el botiquín rojo»." , 4.0)
+		hud.mostrar("%s: «¡Aquí está la otra dosis de epinefrina! La dejé en el botiquín rojo»." % amb.get("paramedico", "Cristian Daniel"), 4.0)
 
 
 func _epinefrina_perdida() -> void:
 	var demora := 4.0 if Juego.get_amistad("Cristian Daniel") >= 3 else 8.0
 	epinefrina_repuesto = Juego.minutos + demora
-	hud.mostrar("Lucía: «¡Esa era la única dosis de epinefrina!». Cristian corre a la farmacia por otra (%d min)." % int(demora), 4.5)
+	hud.mostrar("Lucía: «¡Esa era la única dosis de epinefrina!». Corren a la farmacia por otra (%d min)." % int(demora), 4.5)
 
 
 func _botiquin_rojo() -> void:
@@ -2208,7 +2299,7 @@ func _botiquin_rojo() -> void:
 			return
 		if claves[r] != codigo_rojo:
 			Juego.sonido("error", 1.0, -8.0)
-			hud.mostrar("Clave incorrecta. Lucía la dijo al llegar Andrés (también está en tu lista).", 3.5)
+			hud.mostrar("Clave incorrecta. Lucía la dijo al llegar la ambulancia (también está en tu lista).", 3.5)
 			return
 		codigo_rojo = ""
 		Juego.sonido("seleccion", 1.3, -8.0)
@@ -2217,7 +2308,7 @@ func _botiquin_rojo() -> void:
 	var insumos: Array = INSUMOS_ROJO.duplicate()
 	if ambulancia_estado == "activa" and epinefrina <= 0 and Juego.insumo_cargado == "":
 		insumos.erase("Epinefrina")
-		hud.mostrar("No queda epinefrina: Cristian fue por otra dosis.", 3.0)
+		hud.mostrar("No queda epinefrina: fueron por otra dosis.", 3.0)
 	await _botiquin(insumos, "Botiquín rojo")
 	if ambulancia_estado != "activa":
 		return
@@ -2229,14 +2320,14 @@ func _botiquin_rojo() -> void:
 
 func _ambulancia_resuelta() -> void:
 	ambulancia_estado = "resuelta"
-	Juego.sumar_reputacion(8)
-	Juego.cambiar_amistad("Cristian Daniel", 1)
+	Juego.sumar_reputacion(4)
+	Juego.cambiar_amistad("Cristian Daniel", 1 if amb.get("paramedico", "") == "Cristian Daniel" else 0)
 	Juego.cambiar_amistad("Lucía", 1)
 	Juego.flags["ambulancia_resultado"] = "bien"
 	Juego.sonido("exito", 1.25, -4.0)
-	await hud.dialogo("Cristian Daniel", ["¡Respira! ¡Andrés está respirando! ¡Lo logró, doctor!"])
+	await hud.dialogo(amb.get("paramedico", "Cristian Daniel"), ["¡Se estabilizó! ¡%s va a estar bien! ¡Lo logró, doctor!" % amb.get("nombre", "")])
 	Juego.sonido("altavoz", 1.0, -6.0)
-	await hud.dialogo("Dr. Salgado", ["(Por el altavoz) Así se trabaja en Pillbox, Dr. Pinkman. (+8 reputación extra)"])
+	await hud.dialogo("Dr. Salgado", ["(Por el altavoz) Así se trabaja en Pillbox, Dr. Pinkman. (+4 reputación extra)"])
 	_cristian_vuelve()
 
 
@@ -2246,7 +2337,7 @@ func _ambulancia_perdida() -> void:
 	transferidos += 1
 	Juego.sumar_reputacion(-8)
 	Juego.sonido("error", 0.7, -4.0)
-	hud.mostrar("Lucía: «¡Andrés se nos va! El equipo de reanimación se lo lleva a cuidados intensivos». (−8 reputación)", 5.0)
+	hud.mostrar("Lucía: «¡%s se nos va! El equipo de reanimación se lo lleva a cuidados intensivos». (−8 reputación)" % amb.get("nombre", ""), 5.0)
 	_liberar(ambulancia_cama)
 	_cristian_vuelve()
 
@@ -2254,12 +2345,16 @@ func _ambulancia_perdida() -> void:
 func _cristian_vuelve() -> void:
 	codigo_rojo = ""
 	epinefrina_repuesto = -1.0
-	if npcs.has("Cristian Daniel"):
+	if amb.get("temporal", false):
+		if npcs.has(PARAMEDICA):
+			_quitar_npc(npcs[PARAMEDICA])
+	elif npcs.has("Cristian Daniel"):
 		var c: NPC = npcs["Cristian Daniel"]
 		c.position = _cristian_inicio
 		c.quieto = false
 		c.zona_paseo = _cristian_zona
 		c.dialogo_dinamico = _dialogo_cristian
+	amb = {}
 
 
 # --- Efectos de las respuestas -------------------------------------------------------
@@ -2310,6 +2405,8 @@ func efecto_npc(nombre: String, efecto: String) -> void:
 			Juego.flags["zac_consejo"] = "cafe"
 			Juego.flags["zac_animo"] = "valor"
 			_avanzar("zac", 2)
+			if npcs.has("Dakota") and sala_actual == "vestidor":
+				await cin.cafe_zac()
 		else:
 			Juego.flags["zac_final"] = "rendido"
 			_avanzar("zac", 5)
@@ -2418,6 +2515,8 @@ func efecto_npc(nombre: String, efecto: String) -> void:
 		if partes[1] == "1":
 			Juego.flags["zac_consejo"] = partes[2]
 			_avanzar("zac", 1)
+			if partes[2] == "cafe" and npcs.has("Dakota") and sala_actual == "vestidor":
+				await cin.cafe_zac()
 		else:
 			Juego.flags["zac_animo"] = partes[2]
 			_avanzar("zac", 2)

@@ -73,12 +73,26 @@ func planear() -> void:
 		_programar("mama", randi_range(12 * 60, 13 * 60))
 	if d >= 9 and h._pawlak_interes() == "si" and not Juego.flags.get("ev_pawlak_herida", false) and randf() < 0.4:
 		_programar("pawlak_herida", randi_range(10 * 60, 16 * 60))
+	# Cinemáticas de historia
+	if Juego.flags.get("zac_novios", false) and not Juego.flags.get("ev_cita_zac", false) and randf() < 0.6:
+		_programar("cita_zac", randi_range(10 * 60, 16 * 60))
+	if Juego.flags.get("jinu_sheyla", false) and not Juego.flags.get("ev_graduacion_jinu", false) \
+			and d >= int(Juego.flags.get("jinu_cafeteria_dia", d)) + 3 and randf() < 0.7:
+		_programar("graduacion_jinu", randi_range(11 * 60, 16 * 60))
+	if h._wilder_redimido() and not Juego.flags.get("ev_wilder_salva", false) and randf() < 0.4:
+		_programar("wilder_salva", randi_range(10 * 60, 16 * 60))
+	if d >= 8 and Juego.es_viernes() and not Juego.flags.get("ev_despedida_erina", false):
+		_programar("despedida_erina", 16 * 60)
 	# Un evento al azar casi todos los días
 	if d < 2 or randf() > 0.65:
 		return
 	var pool: Array = ["fuga", "inspeccion", "insumos", "examen", "estetoscopio"]
 	if d >= 3:
-		pool += ["incendio", "accidente", "calor"]
+		pool += ["incendio", "accidente", "calor", "fuga_psiq"]
+	if d >= 4:
+		pool += ["parto", "tormenta"]
+	if d >= 5 and not Juego.flags.get("ev_alcalde", false):
+		pool.append("alcalde")
 	if h._visita_marcos(d) and h.apagon_hora < 0.0:
 		pool.append("ascensor")
 	if h._dakota_en_recepcion(d):
@@ -90,6 +104,8 @@ func planear() -> void:
 	Juego.flags["ev_ultimo_" + e] = d
 	if e in ["insumos", "estetoscopio", "calor"]:
 		iniciar(e)                 # duran todo el día
+	elif e == "tormenta":
+		_programar(e, randi_range(16 * 60, 17 * 60 + 30))
 	else:
 		_programar(e, randi_range(9 * 60, 16 * 60))
 
@@ -156,6 +172,14 @@ func iniciar(e: String) -> void:
 		"calor": _calor()
 		"mama": _mama()
 		"arrendador": await _arrendador()
+		"parto": await h.cin.parto()
+		"fuga_psiq": await h.cin.fuga_psiq()
+		"alcalde": await h.cin.alcalde()
+		"tormenta": await h.cin.tormenta()
+		"cita_zac": await h.cin.cita_zac()
+		"graduacion_jinu": await h.cin.graduacion_jinu()
+		"wilder_salva": await h.cin.wilder_salva()
+		"despedida_erina": await h.cin.despedida_erina()
 
 
 # --- Ganchos que usa el hospital ----------------------------------------------------
@@ -185,6 +209,10 @@ func dialogo(nombre: String):
 				Juego.flags["luz_disculpa_%d" % Juego.dia] = true
 				return ["Perdón, doctor… dejé los frijoles en el fogón y me puse a ver la novela.", "¡Los bomberos dijeron que olía a frijol quemado hasta la avenida!"]
 		"Erina":
+			var v_er = Juego.flags.get("erina_vacaciones", [])
+			if v_er is Array and v_er.size() == 2 and Juego.dia > int(v_er[1]) and not Juego.flags.get("erina_volvio", false):
+				Juego.flags["erina_volvio"] = true
+				return ["¡Volví, Dr. Pinkman! ¡Bronceadísima!", "…¿Brenda le dijo «Dr. Pinkerton» toda la semana? Ay, perdón. Y me contaron lo de la pizzería."]
 			if mama_dice("Erina"):
 				return ["Su mamá me enseñó fotos de usted de bebé, doctor. ¡Tenía unos cachetes!", "Ya todo el hospital las vio. Perdón."]
 			if cumple == "plan" and not distraida:
@@ -443,8 +471,8 @@ func _evacuar() -> void:
 		return
 	incendio = "evacuado"
 	await h._accion(5, "Walter, Lucía y Cristian llevan a los pacientes a recepción…")
-	Juego.sumar_reputacion(4)
-	h.hud.mostrar("¡Sala de espera evacuada a tiempo! (+4 reputación)", 3.0)
+	Juego.sumar_reputacion(2)
+	h.hud.mostrar("¡Sala de espera evacuada a tiempo! (+2 reputación)", 3.0)
 	await _bomberos()
 
 
@@ -572,8 +600,8 @@ func _inspeccion_resultado() -> void:
 		notas.append("hubo pacientes transferidos")
 	var lineas: Array
 	if puntos >= 3:
-		Juego.sumar_reputacion(5)
-		lineas = ["Terminé la inspección, Dr. Pinkman.", "Urgencias está ordenado y limpio. Le diré al Dr. Salgado que lo felicite. (+5 reputación)"]
+		Juego.sumar_reputacion(3)
+		lineas = ["Terminé la inspección, Dr. Pinkman.", "Urgencias está ordenado y limpio. Le diré al Dr. Salgado que lo felicite. (+3 reputación)"]
 		Juego.flags["inspeccion_resultado"] = "bien"
 	else:
 		Juego.sumar_reputacion(-4)
@@ -634,7 +662,7 @@ func _ascensor_rescate(tono: String) -> void:
 	m.dialogo_dinamico = h._dialogo_marcos
 	await h.hud.dialogo("Capitán Marcos Rojas", ["¡Aire! Gracias, Pinkman. Y gracias… Catelli. Supongo.",
 		"Esto no sale de aquí. Si McClane se entera, me lo recuerda hasta que me jubile."])
-	Juego.sumar_reputacion(2)
+	Juego.sumar_reputacion(1)
 	if h.npcs.has("Paul Catelli"):
 		h._quitar_npc(h.npcs["Paul Catelli"])
 
@@ -706,7 +734,7 @@ func _examen() -> void:
 	if wilder:
 		lineas.append("Noctis: 3 de 3… ¿Noctis? ¿Usted estudió? Estoy sorprendido." if h._wilder_redimido() else "Noctis: 0 de 3. «Para el infarto… ¿una siesta?» No, Noctis.")
 	await h.hud.dialogo("Dr. Maximiliano Brown", lineas)
-	var premio := bien + (2 if bien == 3 else 0)
+	var premio := (bien + 1) / 2 + (1 if bien == 3 else 0)
 	Juego.sumar_reputacion(premio)
 	Juego.cambiar_amistad("Dr. Maximiliano Brown", 1 if bien >= 2 else 0)
 	h.hud.mostrar("Examen de Brown: %d/3 (+%d reputación)" % [bien, premio], 3.0)
@@ -748,9 +776,9 @@ func _cumple_fiesta() -> void:
 	if h.npcs.has("Jinu Blake"):
 		await h.hud.dialogo("Jinu Blake", ["¡Yo infle los globos! Bueno, tres. Diego infló uno y se mareó."])
 	Juego.cambiar_amistad("Erina", 2 if distraida else 1)
-	Juego.sumar_reputacion(2)
+	Juego.sumar_reputacion(1)
 	Juego.pasar_tiempo(15)
-	h.hud.mostrar("La fiesta duró 15 minutos. Erina está feliz. (+2 reputación)", 3.5)
+	h.hud.mostrar("La fiesta duró 15 minutos. Erina está feliz. (+1 reputación)", 3.5)
 	_devolver_todos()
 	h.walter.bloqueado = false
 	h.cinematica_activa = false
@@ -778,7 +806,7 @@ func _pawlak_herida() -> void:
 	caso["historias"] = [["Esta vez no me caí de la moto, doctor. Un vidrio en el operativo de la avenida.", "No le diga a Reyes que me dolió. Se va a poner peor que yo."]]
 	caso["deterioro"] = 0.6
 	caso["premio"] = 5
-	_llegar({"nombre": "Oficial Rhea Pawlak", "caso": caso, "apariencia": {"piel": 1, "ropa": "policia", "pelo_hoja": Personaje.PELOS2, "pelo_fila": 0}})
+	_llegar({"nombre": "Oficial Rhea Pawlak", "caso": caso, "apariencia": {"piel": 0, "ropa": "policia", "pelo_hoja": Personaje.PELOS_LSPD, "pelo_fila": 3}})
 	if h.npcs.has("Alejandro Reyes"):
 		_mover("Alejandro Reyes", h.SALAS["urgencias"]["origen"] + Vector2(286, 186), Vector2.RIGHT)
 	h.hud.mostrar("Rhea Pawlak llega herida de verdad. Reyes entra detrás de ella, pálido.", 4.5)

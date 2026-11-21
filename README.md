@@ -76,7 +76,7 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - 20 NPC con nombre propio y diálogos (E para hablar). Todos caminan por su zona, menos las enfermeras de mostrador (Erina en recepción y Lucía en urgencias).
 - Policías: **Alejandro Reyes** (entrada), **Jaiden Mendoza** (urgencias) y **John McClane** (pasillo). Médicos: **Dr. Maximiliano Brown** (urgencias), **Dr. Máximo Stone** y **Dr. Enzo Escobar** (pasillo), **Dr. Zacarías Flores** (vestidor, nervioso porque le gusta la oficial Dakota del LSPD) y Dr. Ramírez, **Dr. Wilder Noctis** (cafetería, el más perezoso) y el Dr. Salgado (dirección). También: Paola, el enfermero **Diego Quiroz** (siempre riéndose de los chistes de la señorita Sheyla), el camillero **Cristian Daniel**, Sofía, Doña Gloria, Don Ernesto, Samuel y Don Pedro.
 - Los textos se escriben letra por letra con un sonidito de voz retro distinto para cada personaje; E salta o avanza.
-- Música tranquila en el hospital y otra, más hogareña, en la casa. Efectos: altavoz, puertas, alarma, acierto y error.
+- Música tranquila en el hospital y otra, más hogareña, en la casa. Efectos: altavoz, puertas, alarma, acierto, error, sirena, aplausos, llanto de bebé y truenos.
 
 **Relaciones y diálogos con respuesta**
 - Muchas conversaciones terminan con respuestas para elegir. Cada NPC tiene un medidor de amistad (corazones junto a su nombre) que se guarda.
@@ -87,13 +87,32 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 
 **Carrera: estudiar y ascender**
 - Escritorio de la casa: estudiar 30 min o 1 h, con una pregunta de repaso (acertar suma media hora).
-- Tablón de capacitaciones en el pasillo: con reputación 80, 5 h de estudio y 3 turnos, Walter elige especialidad (Urgencias, Pediatría o Cirugía) y pasa a **Residente**. Se abre su consultorio y llegan casos e insumos de su especialidad.
+- Tablón de capacitaciones en el pasillo, con 5 rangos: **Interno → Residente → Especialista → Jefe de servicio → Director**.
+  | Rango | Reputación | Estudio | Turnos | Amigos del equipo |
+  |---|---|---|---|---|
+  | Residente (elige especialidad) | 150 | 8 h | 6 | — |
+  | Especialista | 350 | 16 h | 15 | — |
+  | Jefe de servicio | 650 | 24 h | 25 | 4 |
+  | Director (evaluación final) | 1000 | 32 h | 35 | 6 |
+- La reputación sube despacio: +2 por paciente común, +4 por grave, +3 por caso de la especialidad y 0 si hubo un error. Al ser Residente se abre el consultorio con casos de la especialidad.
+- Cada ascenso tiene una **ceremonia** en dirección: Salgado entrega el carné nuevo y el equipo aplaude.
+- **Final:** al pedir la evaluación final, Salgado se jubila y nombra Director a Walter. Recorrido de despedida por todas las salas (las frases cambian según las historias que viviste) y **créditos finales** con el grupo de trabajo. Después se puede seguir jugando como Director.
+
+**Cinemáticas**
+- **Ambulancias** dos días por semana con casos graves variados (reacción alérgica, crisis convulsiva, hemorragia grave…), con Cristian Daniel o la paramédica Valentina Ruiz.
+- **Parto en el ascensor:** la señora Carmen da a luz en el ascensor del pasillo; tres decisiones y el bebé se llama… Walter.
+- **Fuga psiquiátrica:** Don Ernesto huye por el pasillo; McClane y Reyes lo persiguen y la cámara los sigue. Walter lo calma.
+- **Visita del alcalde** (una sola vez): llega con escolta de patrullas y le pregunta a Walter qué necesita el hospital.
+- **Noche de tormenta:** lluvia, relámpagos y truenos, apagón y dos heridos más en la agenda.
+- **Cita de Zacarías y Dakota** (si son novios): Diego entra a urgencias gritando «¡WALTER, TIENES QUE VER ESTO!» y desde la barra, con Doña Luz, ven a Zacarías nervioso y a Dakota comiendo donas.
+- **El café en recepción:** cuando Walter le dice a Zacarías que invite a Dakota a un café (y ella está en recepción), salen juntos del vestidor; Walter se queda en el mostrador con Erina («el león salió a cazar») y ven a los dos ponerse nerviosos.
+- **Graduación de Jinu** (si estudia con Sheyla), **Wilder salva a un paciente** frente a Salgado (si se redimió) y **despedida de Erina:** una semana de vacaciones en la que la reemplaza Brenda, la suplente que lo hace todo mal.
 
 **Sala de espera y triaje**
 - Los pacientes entran caminando a urgencias y esperan frente a las sillas. Lucía los marca en rojo, amarillo o verde y Walter decide a quién pasa a cada camilla.
 
 **Dinero, celular y fin de semana**
-- Sueldo por turno ($60 Interno, $110 Residente) que se paga el viernes, junto con la **evaluación semanal** de Salgado (nota y bono de reputación). Arriendo de $150 cada lunes.
+- Sueldo por turno ($60 Interno, $110 Residente, $160 Especialista, $220 Jefe de servicio, $300 Director) que se paga el viernes, junto con la **evaluación semanal** de Salgado (nota y bono de reputación). Arriendo de $150 cada lunes.
 - La nevera se gasta al comer; se compra mercado o domicilio desde el celular. Mejoras: cafetera y cama nueva.
 - Celular (tecla C): mensajes de mamá, Lucía, Wilder, Diego y otros (algunos con respuesta), tienda y banco.
 - Sábado y domingo no hay turno: mercado, parque o visitar a mamá.
@@ -124,6 +143,7 @@ project.godot
 escenas/   menu.tscn · casa.tscn · hospital.tscn
 scripts/   juego.gd (autoload «Juego»: reloj, necesidades, dinero, amistad, guardado)
            casos.gd (casos clínicos, herramientas e insumos)
+           eventos.gd (sucesos del día) · cinematicas.gd (cinemáticas, ceremonia y final con créditos)
            sala.gd (base de casa y hospital) · casa.gd · hospital.gd
            walter.gd · npc.gd (NPC que caminan y hablan) · personaje.gd (sprites MetroCity por capas) · hud.gd · interactuable.gd · fondo.gd · menu.gd
 pruebas/   prueba.tscn + corredor.gd (juega un día y medio automáticamente)
@@ -143,4 +163,4 @@ Las salas se construyen por código en `construir()` (muebles, zonas interactuab
 
 ## Pendiente para la versión 2
 
-- Estrés, eventos aleatorios, horas extra y capacitaciones siguientes (Especialista → Jefe de servicio → Director).
+- Estrés y horas extra.

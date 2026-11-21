@@ -10,6 +10,10 @@ const CUERPO := BASE + "metrocity1/CharacterModel/Character Model.png"
 const SOMBRA := BASE + "metrocity1/CharacterModel/Shadow.png"
 const PELOS := BASE + "metrocity1/Hair/Hairs.png"         # 8 filas
 const PELOS2 := BASE + "metrocity2/Hair.png"              # 5 filas
+## Pelo de los oficiales del LSPD ya recortado debajo de la gorra:
+## 0 Reyes (castaño) · 1 McClane (negro con canas) · 2 Mendoza (castaño) · 3 Pawlak (castaño claro, largo)
+const PELOS_LSPD := BASE + "propios/pelos_lspd.png"
+const PELO_STONE := BASE + "propios/pelo_stone.png"        # peinado antiguo de Walter en aguamarina
 const TRAJES := BASE + "metrocity2/Suit1.png"             # 0 blanco · 1 rosa · 2 azul · 3 celeste · 4 fucsia
 const TRAJES_B := BASE + "metrocity2/Suit.png"            # 0 policía · 1 rojo · 2 overol · 3 naranja
 const OUTFIT := BASE + "metrocity1/Outfits/Outfit%d.png"  # 1..6, una fila
@@ -202,5 +206,6 @@ func _actualizar_cuadro() -> void:
 	_cuerpo.region_rect = Rect2(x, piel * 32.0, 32, 32)
 	_ropa.region_rect = Rect2(x, int(_ropa.get_meta("fila", 0)) * 32.0, 32, 32)
 	_pelo.region_rect = Rect2(x, pelo_fila * 32.0, 32, 32)
-	_pelo.visible = ropa != "policia"     # la gorra de policía ya cubre la cabeza
+	# Con gorra de policía solo se ve el pelo recortado del LSPD (debajo de la gorra)
+	_pelo.visible = ropa != "policia" or pelo_hoja == PELOS_LSPD
 	_sombra.visible = not acostado
