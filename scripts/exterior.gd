@@ -12,9 +12,10 @@ const CARRIL_DER := 262.0      # base de los autos que van hacia la derecha
 const CARRIL_IZQ := 246.0      # base de los autos que van hacia la izquierda
 const PUERTA := Vector2(240, 203)   # entrada principal (bajo la cruz)
 const AUTOS := ["auto0", "auto1", "auto2", "auto3", "auto4"]
-## Sprites que vienen dibujados mirando a la izquierda (la trompa a la izquierda).
-## El resto (ambulancia, bomberos, auto1, auto2) mira a la derecha.
-const MIRAN_IZQUIERDA := ["patrulla", "auto0", "auto3", "auto4"]
+## Sprites que vienen dibujados mirando a la izquierda. En la hoja de MetroCity, la primera
+## mitad (ambulancia, patrulla, auto0, auto3, auto4) mira a la derecha y la segunda mitad,
+## de donde salen auto1 y auto2, es el espejo: mira a la izquierda.
+const MIRAN_IZQUIERDA := ["auto1", "auto2"]
 
 @export var trafico := false   # en el menú pasan autos solos
 var _prox := 1.0

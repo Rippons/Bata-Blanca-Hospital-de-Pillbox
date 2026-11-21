@@ -112,6 +112,7 @@ func construir() -> void:
 		_auto.texture = textura(R + "auto1.png")
 		_auto.centered = false
 		_auto.offset = Vector2(0, -_auto.texture.get_height())
+		_auto.flip_h = "auto1" in Exterior.MIRAN_IZQUIERDA   # estacionado mirando a la derecha (sale hacia allá)
 		_auto.position = Vector2(286, 262)
 		mundo.add_child(_auto)
 
