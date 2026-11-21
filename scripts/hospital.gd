@@ -1700,7 +1700,7 @@ func dialogo_prioritario(nombre: String):
 
 func poner_sirena(s: Node2D, pos: Vector2) -> void:
 	var luz := Sirena.new()
-	luz.position = pos
+	luz.position = pos + (s.offset if s is Sprite2D else Vector2.ZERO)
 	s.add_child(luz)
 
 
@@ -2059,12 +2059,12 @@ func iniciar_ambulancia(i: int) -> void:
 	Juego.sonido("sirena", 1.0, -6.0)
 	var amb := exterior.vehiculo("ambulancia", true, 3.2, Exterior.PUERTA.x + 34.0)
 	var luz := Sirena.new()
-	luz.position = Vector2(57, 3)
+	luz.position = Vector2(57, 3) + amb.offset
 	amb.add_child(luz)
 	await get_tree().create_timer(3.4).timeout
 	Juego.sonido("puerta", 0.8, -6.0)
 	# 2. Cristian baja con la camilla
-	cristian.position = o_e + Vector2(Exterior.PUERTA.x + 52.0, 214 + EXT_Y)
+	cristian.position = o_e + Vector2(Exterior.PUERTA.x + 52.0, 208 + EXT_Y)
 	cristian.visible = true
 	var camilla := CamillaTraslado.new()
 	camilla.apariencia = APARIENCIA_ANDRES
