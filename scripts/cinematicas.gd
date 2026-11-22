@@ -14,6 +14,8 @@ extends Node
 ##  despedida_erina · Erina se va de vacaciones y llega Brenda, la suplente
 ##  ceremonia       · ceremonia de ascenso en dirección
 ##  final_director  · Salgado se jubila: recorrido final y créditos
+##  gianna_intro    · Doña Luz presenta a Gianna, su nueva ayudante
+##  mama_gianna     · mamá conoce a Gianna en la cafetería e intenta emparejarlos
 
 var h
 var _guardados := {}           # nombre -> [posición, zona, quieto, mirada, visible]
@@ -553,6 +555,17 @@ func ceremonia(rango: String) -> void:
 	if h.npcs.has("Jinu Blake"):
 		await _decir("Jinu Blake", ["¡Usted es mi ejemplo, Dr. Pinkman! ¡Algún día quiero un carné así!"])
 	await _decir("Diego Quiroz", ["¡Discurso! ¡Discurso! …¿No? Bueno, yo aplaudo más fuerte."])
+	if h.npcs.has(RivalVance.NOMBRE) and Juego.flags.get("vance_intro", false):
+		var v := _mover(RivalVance.NOMBRE, "direccion", Vector2(340, 200), Vector2.LEFT)
+		var antes: String = Juego._musica_actual
+		Juego.musica(RivalVance.MUSICA)
+		h._enfocar([v])
+		if RivalVance.respeto():
+			await _decir(RivalVance.NOMBRE, ["(Aplaudiendo de mala gana) …Felicitaciones, Pinkman. Te lo ganaste.", "Pero el próximo carné es mío."])
+		else:
+			await _decir(RivalVance.NOMBRE, ["(Desde la puerta) ¡Esto no se queda así, Pinkman!", "¡El próximo ascenso es MÍO! ¡Muajajaja!"])
+			await _decir("Dr. Salgado", ["Vance, deje de reírse así en mi oficina."])
+		Juego.musica(antes)
 	await _terminar()
 
 
@@ -585,10 +598,12 @@ func final_director() -> void:
 		["Lucía", ["Urgencias va a seguir funcionando como reloj, Director. Usted nos enseñó."]],
 		["Dr. Maximiliano Brown", ["Pinkman, el mejor interno que entrené. No se lo diga a nadie."]],
 		["Cristian Daniel", ["¡Las camillas siempre listas, jefe!"]],
+		[RivalVance.NOMBRE, [_linea_vance()]],
 	])
 	await _recorrido("vestidor", Vector2(300, 186), [["Dr. Zacarías Flores", [_linea_zacarias()]]])
 	await _recorrido("cafeteria", Vector2(206, 188), [
 		["Doña Luz", ["El director come gratis. Bueno, los martes. No abuse, mijo."]],
+		["Gianna", [_linea_gianna()]],
 		["Dr. Wilder Noctis", [_linea_wilder()]],
 	])
 	await _ir("direccion", Vector2(240, 166), Vector2.DOWN)
@@ -627,6 +642,20 @@ func _linea_zacarias() -> String:
 	return "D-Director… gracias por los consejos. Algún día voy a ser valiente como usted."
 
 
+func _linea_gianna() -> String:
+	if Juego.flags.get("gianna_cita", false):
+		return "Director… ¿eso significa que ahora sí va a tener tiempo para mí? (Sonríe) Le guardé el postre de siempre."
+	if Juego.get_amistad("Gianna") >= 4:
+		return "¡Director Pinkman! A ver si ahora el altavoz lo deja comer tranquilo."
+	return "Felicitaciones, Director. La sopa de hoy va por cuenta de la casa."
+
+
+func _linea_vance() -> String:
+	if RivalVance.respeto():
+		return "Director, ¿eh? …Bien merecido, Walter. Primera vez que te digo Walter. No te acostumbres."
+	return "¿DIRECTOR? ¡Esto es un complot! …Felicitaciones. Me duele decirlo. Físicamente."
+
+
 func _linea_wilder() -> String:
 	if Juego.flags.get("wilder_heroe", false) or h._wilder_redimido():
 		return "Director Walter… prometo trabajar todos los días. Promesa de garrita. Esta vez de verdad."
@@ -658,6 +687,7 @@ func creditos() -> void:
 		["Erina · Lucía · Dr. Salgado · Dr. Maximiliano Brown · Cristian Daniel", 7, Color.WHITE],
 		["Diego Quiroz · Jinu Blake · Sheyla Escobedo · Doña Luz", 7, Color.WHITE],
 		["Dr. Zacarías Flores · Dakota · Dr. Wilder Noctis · Paul Catelli", 7, Color.WHITE],
+		["Gianna · Dr. Bruno Vance (el rival)", 7, Color.WHITE],
 		["Alejandro Reyes · John McClane · Jaiden Mendoza · Rhea Pawlak · Capitán Marcos Rojas", 7, Color.WHITE],
 		["", 6, Color.WHITE], ["Arte: MetroCity de JIK-A-4, con ediciones del equipo", 7, Color("9fb3c8")],
 		["Música y sonidos: originales del equipo", 7, Color("9fb3c8")], ["Hecho con Godot 4.5", 7, Color("9fb3c8")],
@@ -686,3 +716,72 @@ func creditos() -> void:
 	tw3.parallel().tween_property(caja, "modulate:a", 0.0, 0.8)
 	await tw3.finished
 	capa.queue_free()
+
+
+# --- Gianna llega a la cafetería -------------------------------------------------------
+func gianna_intro() -> void:
+	if not h.npcs.has("Gianna"):
+		return
+	_empezar()
+	Juego.flags["gianna_intro"] = true
+	var gi: NPC = h.npcs["Gianna"]
+	h._enfocar([gi])
+	await _momento("gianna")
+	await _decir("Doña Luz", ["¡Doctor, venga! Le presento a Gianna, mi nueva ayudante.",
+		"Es chef de verdad, de las que estudiaron. Viene a ayudarme con tanto almuerzo."])
+	gi.mirar_a(h.walter.global_position)
+	await _decir("Gianna", ["Mucho gusto, doctor. Gianna.", "(Lo mira un segundo de más) …Doña Luz no me había dicho que los doctores de aquí eran tan…",
+		"…tan ocupados. Eso. Ocupados."])
+	Juego.sonido("altavoz", 1.0, -6.0)
+	h.hud.mostrar("Altavoz: «Dr. Walter Pinkman, lo necesitan en urgencias».", 3.0)
+	await _decir("Gianna", ["¿Ve? Ocupado. (Sonríe) Vaya, doctor. Otro día me cuenta qué le gusta comer."])
+	await _decir("Doña Luz", ["(A Gianna, bajito) Ese muchacho no se sienta ni para comer. Hay que cuidarlo."])
+	await _terminar(false)
+
+
+# --- Mamá conoce a Gianna (y hace de casamentera) -------------------------------------------
+func mama_gianna() -> void:
+	if not h.npcs.has("Gianna"):
+		return
+	_empezar()
+	Juego.flags["ev_mama_gianna"] = true
+	_altavoz("Dr. Walter Pinkman, lo busca… su mamá. En la cafetería")
+	await _pausa(1.0)
+	await _ir("cafeteria", Vector2(318, 204), Vector2.LEFT)
+	var mama := _temporal("Mamá de Walter", 0, "rosa", Personaje.PELOS2, 4, "cafeteria", Vector2(210, 214), Vector2.RIGHT)
+	var gi := _mover("Gianna", "cafeteria", Vector2(284, 206), Vector2.LEFT)
+	_mover("Doña Luz", "cafeteria", Vector2(240, 146), Vector2.LEFT)
+	h._enfocar([mama, gi])
+	await _momento("mama_gianna")
+	await _decir("Mamá de Walter", ["¡Mijo! ¡Aquí estoy! Te traje el almuerzo, pero esta muchacha tan linda ya me atendió.",
+		"Se llama Gianna. Cocina como los ángeles, es educadísima… y NO tiene novio. Ya le pregunté."])
+	await _decir("Gianna", ["¡Señora! …(Se pone roja) Hola, doctor."])
+	var a := Juego.get_amistad("Gianna")
+	if a >= 7:
+		await _decir("Mamá de Walter", ["Ustedes dos harían una pareja divina. ¿Verdad que sí, Gianna?"])
+		await _decir("Gianna", ["Yo… bueno… si el doctor algún día tuviera tiempo…"])
+		var r: int = await h.hud.elegir("Mamá te mira fijamente", "", ["«Gianna, ¿salimos el sábado? Sin altavoces.»", "«Mamá, me estás haciendo pasar pena…»"])
+		if r == 0:
+			Juego.flags["gianna_cita"] = true
+			Juego.cambiar_amistad("Gianna", 2)
+			await _decir("Gianna", ["¿En serio? ¡Sí! …Digo: sí. Normal. Sí."])
+			await _decir("Mamá de Walter", ["¡AY! ¡Lo sabía! ¡Le voy a contar a tu tía Carmenza!"])
+		else:
+			await _decir("Gianna", ["(Se ríe) Tranquila, señora. El doctor es tímido. A mí me cae bien igual."])
+	else:
+		await _decir("Mamá de Walter", ["Gianna, mija, ¿por qué no vienes el domingo a almorzar a la casa?", "Walter también va. ¿Cierto, mijo?"])
+		var r2: int = await h.hud.elegir("Mamá te mira fijamente", "", ["«Claro, me encantaría que vinieras.»", "«Mamá, yo trabajo mucho…»"])
+		if r2 == 0:
+			Juego.flags["gianna_domingo"] = true
+			Juego.cambiar_amistad("Gianna", 1)
+			await _decir("Gianna", ["Entonces… el domingo. Yo llevo el postre."])
+		else:
+			await _decir("Mamá de Walter", ["¡Siempre trabajando! Así no me vas a dar nietos nunca."])
+			await _decir("Gianna", ["(Se tapa la boca para no reírse)"])
+	Juego.sonido("altavoz", 1.0, -6.0)
+	h.hud.mostrar("Altavoz: «Dr. Walter Pinkman, a urgencias. Código amarillo».", 3.0)
+	await _decir("Gianna", ["(Sonríe) Como siempre. Vaya, doctor."])
+	await _decir("Mamá de Walter", ["Ve, mijo, ve. Nosotras nos quedamos hablando de ti."])
+	Juego.sumar_estres(-3)
+	await _terminar(false)
+	await h.ir_a_sala("urgencias", Vector2(200, 186))

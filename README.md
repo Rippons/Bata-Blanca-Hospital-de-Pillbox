@@ -76,7 +76,7 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - 20 NPC con nombre propio y diálogos (E para hablar). Todos caminan por su zona, menos las enfermeras de mostrador (Erina en recepción y Lucía en urgencias).
 - Policías: **Alejandro Reyes** (entrada), **Jaiden Mendoza** (urgencias) y **John McClane** (pasillo). Médicos: **Dr. Maximiliano Brown** (urgencias), **Dr. Máximo Stone** y **Dr. Enzo Escobar** (pasillo), **Dr. Zacarías Flores** (vestidor, nervioso porque le gusta la oficial Dakota del LSPD) y Dr. Ramírez, **Dr. Wilder Noctis** (cafetería, el más perezoso) y el Dr. Salgado (dirección). También: Paola, el enfermero **Diego Quiroz** (siempre riéndose de los chistes de la señorita Sheyla), el camillero **Cristian Daniel**, Sofía, Doña Gloria, Don Ernesto, Samuel y Don Pedro.
 - Los textos se escriben letra por letra con un sonidito de voz retro distinto para cada personaje; E salta o avanza.
-- Música tranquila en el hospital y otra, más hogareña, en la casa. Efectos: altavoz, puertas, alarma, acierto, error, sirena, aplausos, llanto de bebé y truenos.
+- Música tranquila en el hospital y otra, más hogareña, en la casa. Efectos: altavoz, puertas, alarma, acierto, error, sirena, aplausos, llanto de bebé, truenos, guitarra y aguja. Tema propio del villano (Vance).
 
 **Relaciones y diálogos con respuesta**
 - Muchas conversaciones terminan con respuestas para elegir. Cada NPC tiene un medidor de amistad (corazones junto a su nombre) que se guarda.
@@ -107,6 +107,16 @@ El Dr. **Walter Pinkman** empieza como interno en el Hospital de Pillbox. Cada d
 - **Cita de Zacarías y Dakota** (si son novios): Diego entra a urgencias gritando «¡WALTER, TIENES QUE VER ESTO!» y desde la barra, con Doña Luz, ven a Zacarías nervioso y a Dakota comiendo donas.
 - **El café en recepción:** cuando Walter le dice a Zacarías que invite a Dakota a un café (y ella está en recepción), salen juntos del vestidor; Walter se queda en el mostrador con Erina («el león salió a cazar») y ven a los dos ponerse nerviosos.
 - **Graduación de Jinu** (si estudia con Sheyla), **Wilder salva a un paciente** frente a Salgado (si se redimió) y **despedida de Erina:** una semana de vacaciones en la que la reemplaza Brenda, la suplente que lo hace todo mal.
+
+**Estrés, horas extra y minijuegos**
+- Medidor de **estrés** (barra morada). Sube con los graves, los errores, los pacientes transferidos, las burlas del rival y las horas extra. Con estrés alto Walter camina más lento; con estrés muy alto, además, se le caen los insumos de las manos.
+- Para bajarlo: dormir bien, almorzar, el plato de Gianna, **tocar guitarra** en casa, **llamar a mamá** (o a Gianna) desde el celular y salir el fin de semana (parque, mamá, playa).
+- **Horas extra:** a las 7:30 PM Walter puede quedarse a la guardia nocturna hasta las 11:00 PM, con pago doble y pacientes con historias rarísimas.
+- **Minijuegos clínicos** (E, Espacio o clic): **tomar el pulso** al examinar con el tensiómetro, **suturar** heridas profundas y hemorragias, y **RCP** al ritmo cuando un infarto entra en paro. Hacerlo perfecto da reputación extra; hacerlo mal hace que Brown tome el relevo. En el vestidor hay un **maniquí** para practicar (suma estudio).
+
+**El rival y Gianna**
+- **Dr. Bruno Vance**, interno arrogante del Hospital Central, llega el día 3. Se burla de Walter, a veces le roba pacientes de la sala de espera y los viernes Salgado compara cuántos atendió cada uno (se puede apostar). **Cada vez que habla suena su tema de villano**, movido y divertido. Su historia termina cuando se equivoca con una paciente: corregirlo en privado lo vuelve un rival respetuoso.
+- **Gianna**, chef morena de pelo castaño largo, llega a ayudar a Doña Luz. Walter le parece atractivo… pero él siempre está ocupado (el altavoz siempre lo llama en el peor momento). Con amistad, le da su número, y **mamá viene a la cafetería a hacer de casamentera**: según la amistad, la invita a almorzar el domingo o Walter la invita a salir el sábado.
 
 **Sala de espera y triaje**
 - Los pacientes entran caminando a urgencias y esperan frente a las sillas. Lucía los marca en rojo, amarillo o verde y Walter decide a quién pasa a cada camilla.
@@ -144,6 +154,7 @@ escenas/   menu.tscn · casa.tscn · hospital.tscn
 scripts/   juego.gd (autoload «Juego»: reloj, necesidades, dinero, amistad, guardado)
            casos.gd (casos clínicos, herramientas e insumos)
            eventos.gd (sucesos del día) · cinematicas.gd (cinemáticas, ceremonia y final con créditos)
+           minijuegos.gd (pulso, sutura y RCP) · rival.gd (el Dr. Bruno Vance)
            sala.gd (base de casa y hospital) · casa.gd · hospital.gd
            walter.gd · npc.gd (NPC que caminan y hablan) · personaje.gd (sprites MetroCity por capas) · hud.gd · interactuable.gd · fondo.gd · menu.gd
 pruebas/   prueba.tscn + corredor.gd (juega un día y medio automáticamente)
@@ -163,4 +174,4 @@ Las salas se construyen por código en `construir()` (muebles, zonas interactuab
 
 ## Pendiente para la versión 2
 
-- Estrés y horas extra.
+- Decisiones del Director y finales alternativos.

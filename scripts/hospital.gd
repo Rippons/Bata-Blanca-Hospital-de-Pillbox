@@ -177,7 +177,12 @@ var oscuridad: CanvasModulate
 var exterior: Exterior
 var eventos: EventosHospital
 var cin: Cinematicas
+var rival: RivalVance
 var recepcionista := "Erina"     # Brenda la reemplaza cuando Erina está de vacaciones
+var guardia_nocturna := false     # Walter se quedó a las horas extra
+var _pregunto_extra := false
+var nocturnos := 0                # pacientes atendidos en la guardia nocturna
+const LUZ_NOCHE := Color(0.7, 0.74, 0.95)
 
 # Escena de la ambulancia (ESC-02): Cristian Daniel trae a Andrés
 var ambulancia_hora := -1.0
@@ -203,6 +208,9 @@ func construir() -> void:
 	add_child(eventos)
 	cin = Cinematicas.new(self)
 	add_child(cin)
+	rival = RivalVance.new(self)
+	add_child(rival)
+	rival.construir()
 	origen = Vector2.ZERO
 	eventos.construir()
 	exterior = Exterior.new()
@@ -492,8 +500,21 @@ func _construir_vestidor() -> void:
 		["Cuatro horas de cirugía y la paciente salió perfecta. Esto es lo mejor del trabajo."],
 		["Si alguna vez quiere ver una operación, avíseme. Desde lejos, eso sí."],
 	])
+	var maniqui := Maniqui.new()
+	maniqui.position = origen + Vector2(240, 190)
+	mundo.add_child(maniqui)
+	zona("maniqui", "Practicar en el maniquí (sutura o RCP)", Rect2(210, 204, 60, 14))
 	var zac := persona("Dr. Zacarías Flores", 1, "uniforme", Personaje.PELOS, 6, Vector2(220, 170), Rect2(186, 150, 160, 56))
 	zac.dialogo_dinamico = _dialogo_zacarias
+
+
+## Maniquí de práctica acostado sobre la mesa del vestidor.
+class Maniqui extends Node2D:
+	func _draw() -> void:
+		draw_rect(Rect2(-16, -6, 32, 7), Color("e8d5c0"))
+		draw_circle(Vector2(-19, -3), 4.0, Color("e8d5c0"))
+		draw_line(Vector2(-10, -3), Vector2(10, -3), Color("c62828"), 1.0)
+		draw_circle(Vector2(-2, -3), 1.5, Color("ef5350"))
 
 
 ## Tablero eléctrico del pasillo (donde trabaja Paul Catelli).
@@ -565,6 +586,11 @@ func _construir_cafeteria() -> void:
 		["Coma bien, doctor. Con hambre nadie salva vidas."],
 	], true)
 	luz.mirada_base = Vector2.DOWN
+	luz.dialogo_dinamico = _dialogo_luz.bind(luz)
+	if Juego.dia >= 2:
+		var gi := persona("Gianna", 5, "casual_blanco", Personaje.PELO_GIANNA, 0, Vector2(272, 146), Rect2(), [], true)
+		gi.mirada_base = Vector2.DOWN
+		gi.dialogo_dinamico = _dialogo_gianna
 	mueble(HOME + "Kitchen-Sheet.png", Rect2(895, 29, 34, 22), Vector2(224, 160), true, 14)
 	mueble(HOME + "Kitchen-Sheet.png", Rect2(895, 29, 34, 22), Vector2(258, 160), true, 14)
 	deco(Rect2(424, 13, 16, 19), 216, 146, HOME + "Lights-Sheet.png")
@@ -606,6 +632,47 @@ func _construir_cafeteria() -> void:
 		var wilder := persona("Dr. Wilder Noctis", 1, "uniforme", Personaje.PELOS2, 3, Vector2(330, 186), Rect2(290, 176, 80, 14))
 		wilder.dialogo_dinamico = _dialogo_wilder
 		wilder.velocidad = 9.0
+
+
+## Doña Luz: lo de siempre, y si Gianna ya quiere a Walter, lo comenta.
+func _dialogo_luz(luz: NPC):
+	if npcs.has("Gianna") and Juego.get_amistad("Gianna") >= 4 and Juego.una_vez_hoy("luz_gianna"):
+		return ["(Bajito) Doctor, esa muchacha pregunta por usted todos los días.",
+			"«¿Ya almorzó el doctor? ¿Y si se desmaya?». Ay, el amor… digo, la juventud."]
+	var l: Array = luz.lineas[luz._turno % luz.lineas.size()]
+	luz._turno += 1
+	return l
+
+
+## Gianna, la chef que ayuda a Doña Luz. Le parece atractivo Walter… pero él siempre está ocupado.
+func _dialogo_gianna():
+	var a := Juego.get_amistad("Gianna")
+	var plato: Array = []
+	if Juego.una_vez_hoy_disponible("gianna_plato"):
+		plato = [{"texto": "Probar el plato del día de Gianna (15 min)", "amistad": 0, "efecto": "gianna:plato"}]
+	if a >= 7 and not Juego.flags.get("gianna_domingo", false) and not Juego.flags.get("gianna_cita", false) \
+			and Juego.dia - int(Juego.flags.get("gianna_cafe_dia", -10)) >= 3:
+		return {"lineas": ["Doctor… ¿le puedo preguntar algo?", "¿Algún día va a tener tiempo para un café? Conmigo, digo. Sin altavoces."],
+			"opciones": [
+				{"texto": "«El domingo. Te lo prometo.»", "amistad": 1, "efecto": "gianna:domingo", "respuesta": ["¿De verdad? …Lo anoto. Con lapicero, para que no se borre."]},
+				{"texto": "«Cuando termine esta guardia…»", "amistad": 0, "efecto": "gianna:cafe_no", "respuesta": ["Eso mismo me dijo la semana pasada, doctor."]},
+			]}
+	if a >= 5 and not Juego.flags.get("gianna_numero", false):
+		return {"lineas": ["Tome, doctor. Es mi número.", "Por si algún día… no está ocupado. (Se va rápido a la cocina)"],
+			"opciones": [{"texto": "«Gracias, Gianna. Te escribo.»", "amistad": 1, "efecto": "gianna:numero", "respuesta": ["(Desde la cocina) ¡Más le vale!"]}]}
+	if a >= 4:
+		var l: Array = [["Le guardé un postre, doctor. Es de maracuyá. No le diga a Doña Luz."],
+			["¿Otra vez corriendo? Algún día lo voy a hacer sentar a comer. Aunque sea amarrado."],
+			["Doña Luz dice que usted salva vidas. Yo solo hago sopa… pero la sopa también salva, ¿no?"]].pick_random()
+		return {"lineas": l, "opciones": [
+			{"texto": "«Gracias, Gianna. Eres un sol.»", "amistad": 1, "efecto": "gianna:altavoz", "respuesta": ["(Se sonroja) Ay, doctor… usted también es… es…"]},
+		] + plato + [{"texto": "«Ahora no puedo, me esperan en urgencias.»", "amistad": 0, "respuesta": ["Claro… a usted siempre lo esperan en algún lado."]}]}
+	return {"lineas": [["Hola, doctor. Soy Gianna, la que ayuda a Doña Luz. ¿Le sirvo algo?"],
+		["Usted es el doctor que siempre pasa corriendo, ¿cierto? Lo reconozco por la bata… y por el afán."],
+		["Doña Luz me enseña sus recetas y yo le enseño las mías. Hoy hice arroz con coco."]].pick_random(),
+		"opciones": [
+			{"texto": "«¡Qué rico huele, Gianna!»", "amistad": 1, "respuesta": ["Es el sofrito. El secreto es la paciencia… algo que a usted le falta, siempre va corriendo."]},
+		] + plato + [{"texto": "«Estoy de afán, perdón.»", "amistad": 0, "respuesta": ["(Suspira) Siempre de afán…"]}]}
 
 
 func _construir_direccion() -> void:
@@ -738,6 +805,7 @@ func _generar_agenda() -> void:
 		agenda.sort_custom(func(x, y): return x["hora"] < y["hora"])
 	_agenda_pawlak()
 	_planear_eventos()
+	rival.planear()
 
 
 # --- Bucle ---------------------------------------------------------------------
@@ -753,8 +821,52 @@ func _process(_delta: float) -> void:
 	if dm > 0.0:
 		_deterioro(dm * (1.4 if apagon else 1.0))   # sin luz los monitores no ayudan
 	_actualizar_lista()
-	if Juego.minutos >= Juego.FIN_TURNO:
+	if guardia_nocturna:
+		if Juego.minutos >= Juego.FIN_EXTRA:
+			_terminar_turno()
+	elif Juego.minutos >= Juego.FIN_TURNO and not _pregunto_extra:
+		_ofrecer_horas_extra()
+
+
+## A las 7:30 PM: ¿irse a casa o quedarse a la guardia nocturna (horas extra)?
+func _ofrecer_horas_extra() -> void:
+	_pregunto_extra = true
+	if Juego.energia < 25.0 or cinematica_activa:
+		if Juego.energia < 25.0:
+			hud.mostrar("Lucía: «Doctor, usted no se aguanta ni un minuto más. Váyase a descansar».", 3.0)
 		_terminar_turno()
+		return
+	var pago := pago_horas_extra(Juego.FIN_EXTRA - Juego.FIN_TURNO)
+	walter.bloqueado = true
+	var r: int = await hud.elegir("Fin del turno · 7:30 PM",
+		"¿Te quedas a la guardia nocturna? Horas extra hasta las 11:00 PM con pago doble (unos $%d).\nCansa y estresa más, y de noche llegan pacientes… raros." % pago,
+		["Irme a casa", "Quedarme a la guardia nocturna"])
+	walter.bloqueado = false
+	if r != 1:
+		_terminar_turno()
+		return
+	guardia_nocturna = true
+	Juego.flags["extra_dia_%d" % Juego.dia] = true
+	if not apagon:
+		create_tween().tween_property(oscuridad, "color", LUZ_NOCHE, 1.5)
+	var hora := Juego.minutos + randi_range(10, 20)
+	var nombres := ["Don Fabián", "Rocío", "Señor Benítez", "Yésica", "Don Aurelio", "Tatiana"]
+	nombres.shuffle()
+	for k in 4:
+		agenda.append({"hora": hora, "caso": Casos.caso_nocturno(), "nombre": nombres[k] + " (noche)"})
+		hora += randi_range(35, 50)
+	agenda.sort_custom(func(x, y): return x["hora"] < y["hora"])
+	await hud.dialogo("Lucía", ["¿Se queda a la guardia? Yo también doblo turno, doctor.", "De noche llega cada cosa… ayer vino un señor con una cuchara pegada en la nariz."])
+	hud.mostrar("Guardia nocturna hasta las 11:00 PM. Pago doble por hora.", 3.5)
+
+
+## Pago de horas extra: el doble de lo que vale cada hora del turno.
+func pago_horas_extra(minutos_extra: float) -> int:
+	return int(round(Juego.pago_por_turno() / 12.0 * 2.0 * minutos_extra / 60.0))
+
+
+func _luz_normal() -> Color:
+	return LUZ_NOCHE if guardia_nocturna else Color.WHITE
 
 
 func _llegadas() -> void:
@@ -841,6 +953,8 @@ func _pasar_a_camilla(e: Dictionary, i: int) -> void:
 	mundo.add_child(p)
 	pacientes[i] = p
 	interactuables["camilla%d" % i].etiqueta = "Atender a %s" % p.nombre
+	if p.caso["grave"]:
+		Juego.sumar_estres(3)
 	Juego.sonido("seleccion", 1.0, -10.0)
 	refrescar_aviso()
 
@@ -859,6 +973,7 @@ func _deterioro(dm: float) -> void:
 			espera.erase(e)
 			_quitar_npc(e["npc"])
 			transferidos += 1
+			Juego.sumar_estres(5)
 			Juego.sumar_reputacion(-5)
 			hud.mostrar("Lucía: «%s empeoró en la sala de espera; lo tomó el doctor de turno». (−5 reputación)" % e["nombre"], 4.0)
 	for i in 3:
@@ -873,6 +988,7 @@ func _deterioro(dm: float) -> void:
 			continue
 		if p.estabilidad <= 0.0:
 			transferidos += 1
+			Juego.sumar_estres(5)
 			Juego.sumar_reputacion(-5)
 			hud.mostrar("Lucía: «%s empeoró; lo está tomando el doctor de turno». (−5 reputación)" % p.nombre, 4.0)
 			_liberar(i)
@@ -906,7 +1022,7 @@ func _actualizar_lista() -> void:
 		tareas.append(["Espera: %s (%s)" % [e["nombre"], e["triaje"]], false])
 	if tareas.is_empty():
 		tareas.append(["Esperar pacientes", false])
-	tareas.append(["Turno hasta 7:30 PM", false])
+	tareas.append(["Guardia nocturna hasta 11:00 PM" if guardia_nocturna else "Turno hasta 7:30 PM", false])
 	hud.poner_lista("%s · guardia" % SALAS[sala_actual]["nombre"], tareas)
 
 
@@ -935,7 +1051,7 @@ func interactuar(id: String) -> void:
 		match id:
 			"ir_pasillo": await ir_a_sala("pasillo", Vector2(60, 180))
 			"ir_recepcion": await ir_a_sala("recepcion", Vector2(240, 92))
-			"calle": hud.mostrar("Tu turno termina a las 7:30 PM. Son las %s." % Juego.hora_texto())
+			"calle": hud.mostrar(("La guardia nocturna termina a las 11:00 PM. Son las %s." if guardia_nocturna else "Tu turno termina a las 7:30 PM. Son las %s.") % Juego.hora_texto())
 			"recepcionista": await hablar_con(recepcionista)
 			"botiquin": await _botiquin(Casos.insumos_botiquin(), "Botiquín")
 			"botiquin_rojo": await _botiquin_rojo()
@@ -947,6 +1063,7 @@ func interactuar(id: String) -> void:
 			"lucia": await hablar_con("Lucía")
 			"salgado": await hablar_con("Dr. Salgado")
 			"tablon": await _tablon()
+			"maniqui": await _practicar()
 			"escritorio_consultorio": await _revisar_historias()
 	walter.actualizar_aspecto()
 
@@ -1004,6 +1121,14 @@ func _camilla(i: int) -> void:
 			if h < HERRAMIENTAS.size():
 				Juego.pasar_tiempo(2)
 				if herr[h] == p.caso["herramienta"]:
+					if herr[h] == "Tensiómetro":
+						var ok_pulso: float = await Minijuego.jugar(self, "pulso", p.nombre)
+						if not is_instance_valid(p) or pacientes[i] != p:
+							return
+						if ok_pulso < 1.0:
+							Juego.sumar_estres(1)
+							hud.mostrar("Perdiste la cuenta de los latidos. Vuelve a tomarle el pulso a %s." % p.nombre, 3.5)
+							return
 					p.examinado = true
 					Juego.sonido("seleccion", 1.3, -10.0)
 				else:
@@ -1028,6 +1153,7 @@ func _camilla(i: int) -> void:
 		else:
 			p.fallos += 1
 			p.estabilidad = maxf(p.estabilidad - 10.0, 1.0)
+			Juego.sumar_estres(2)
 			Juego.sonido("error", 1.0, -8.0)
 			hud.mostrar("Eso no encaja con los signos. %s empeoró un poco. Revisa otra vez." % p.nombre)
 			_orientar_fallo(p)
@@ -1037,11 +1163,31 @@ func _camilla(i: int) -> void:
 		return
 	if Juego.insumo_cargado == p.caso["insumo"]:
 		var premio: int = int(p.caso["premio"]) if p.fallos == 0 else 0
+		var mini := _minijuego_de(p.caso["diagnostico"])
+		if mini != "":
+			walter.bloqueado = true
+			if mini == "rcp":
+				Juego.sonido("alarma", 0.8, -8.0)
+				await hud.dialogo("Lucía", ["¡Doctor! ¡%s entró en paro! ¡Empiece la RCP!" % p.nombre], -1.0, false)
+			var calidad: float = await Minijuego.jugar(self, mini, p.nombre)
+			walter.bloqueado = false
+			if not is_instance_valid(p) or pacientes[i] != p:
+				return
+			if calidad >= 1.0 and p.fallos == 0:
+				premio += 1
+				hud.mostrar("¡%s perfecta! El Dr. Brown asiente impresionado. (+1 reputación extra)" % ("Sutura" if mini == "sutura" else "Reanimación"), 3.5)
+			elif calidad < 0.6:
+				premio = 0
+				Juego.sumar_estres(5)
+				var linea := "La sutura quedó torcida. Yo la rehago, Pinkman." if mini == "sutura" else "Déjeme a mí, Pinkman. ¡Uno, dos, tres…!"
+				await hud.dialogo("Dr. Maximiliano Brown", [linea, "Practique más. Para eso está el maniquí del vestidor."], -1.0, false)
 		Juego.sumar_reputacion(premio)
 		Juego.insumo_cargado = ""
 		p.estado = "alta"
 		p.estabilidad = 100.0
 		atendidos += 1
+		if p.caso.get("nocturno", false):
+			nocturnos += 1
 		Juego.sonido("exito", 1.0, -8.0)
 		hud.mostrar("¡%s está estable! (+%d reputación)" % [p.nombre, premio])
 		eventos.paciente_curado(p.nombre)
@@ -1052,12 +1198,22 @@ func _camilla(i: int) -> void:
 			_liberar(i)
 	else:
 		Juego.sonido("error", 1.0, -8.0)
+		Juego.sumar_estres(2)
 		var quien: String = ["Lucía", "Dr. Maximiliano Brown"].pick_random()
 		hud.mostrar("%s: «Eso no era. Para %s se usa %s. Vuelva al botiquín»." % [quien, p.caso["diagnostico"].to_lower(), p.caso["insumo"].to_lower()], 4.5)
 		hud.mostrar("%s no sirve para %s. Se desperdició el insumo." % [Juego.insumo_cargado, p.caso["diagnostico"].to_lower()])
 		if Juego.insumo_cargado == "Epinefrina" and ambulancia_estado == "activa":
 			_epinefrina_perdida()
 		Juego.insumo_cargado = ""
+
+
+## Minijuego que pide el tratamiento: suturar heridas profundas y reanimar infartos.
+func _minijuego_de(diagnostico: String) -> String:
+	if diagnostico in ["Corte profundo", "Hemorragia grave"]:
+		return "sutura"
+	if diagnostico == "Infarto":
+		return "rcp"
+	return ""
 
 
 ## Lucía o Brown orientan a Walter cuando se equivoca de diagnóstico (sin darle la respuesta).
@@ -1097,6 +1253,11 @@ func _botiquin(insumos: Array, titulo: String) -> void:
 		hud.mostrar("No queda %s. Pídele a Cristian que traiga de la farmacia, o al Dr. Brown." % eventos.agotado.to_lower(), 3.5)
 		return
 	if r2 >= 0 and r2 < insumos.size():
+		if Juego.se_le_cae():
+			Juego.sonido("error", 1.6, -10.0)
+			Juego.pasar_tiempo(2)
+			hud.mostrar("Te tiemblan las manos y se te cae %s al piso. Respira y vuelve a intentarlo. (Estrés muy alto)" % insumos[r2].to_lower(), 3.5)
+			return
 		Juego.insumo_cargado = insumos[r2]
 		hud.mostrar("Tomaste: %s." % Juego.insumo_cargado, 2.0)
 
@@ -1126,7 +1287,8 @@ func _almorzar() -> void:
 		await _accion(20, "20 minutos después…")
 		Juego.hambre = minf(Juego.hambre + 45.0, 100.0)
 		Juego.energia = minf(Juego.energia + 5.0, 100.0)
-		hud.mostrar("Almorzaste bien. (+hambre, +energía)")
+		Juego.sumar_estres(-4)
+		hud.mostrar("Almorzaste bien. (+hambre, +energía, −estrés)")
 
 
 func _snacks() -> void:
@@ -1151,6 +1313,27 @@ func _energetica() -> void:
 	Juego.boost_hasta = Juego.minutos + 60.0
 	Juego.sonido("exito", 1.5, -8.0)
 	hud.mostrar("¡Glu, glu! Te sientes con energía. (+15 % energía, más velocidad por 1 minuto)", 3.0)
+
+
+## Practicar en el maniquí: 15 min, juega sutura o RCP. Si sale bien, cuenta como estudio.
+func _practicar() -> void:
+	var r: int = await hud.elegir("Maniquí de práctica", "Practica sin que nadie salga herido. Si te sale bien, suma 15 min de estudio (máx. 2 por día).",
+		["Practicar sutura (15 min)", "Practicar RCP (15 min)", "Cancelar"])
+	if r < 0 or r > 1:
+		return
+	walter.bloqueado = true
+	var calidad: float = await Minijuego.jugar(self, "sutura" if r == 0 else "rcp", "el maniquí")
+	walter.bloqueado = false
+	Juego.pasar_tiempo(15)
+	var n := int(Juego.flags.get("maniqui_%d" % Juego.dia, 0))
+	if calidad >= 0.6 and n < 2:
+		Juego.flags["maniqui_%d" % Juego.dia] = n + 1
+		Juego.horas_estudio += 0.25
+		hud.mostrar("¡Bien hecho! (%d %%) Horas de estudio: %.2f." % [int(calidad * 100), Juego.horas_estudio], 3.5)
+	elif calidad >= 0.6:
+		hud.mostrar("¡Bien hecho! (%d %%) Por hoy ya practicaste suficiente." % int(calidad * 100), 3.0)
+	else:
+		hud.mostrar("Te salió al %d %%. Con práctica mejora. El maniquí no se queja." % int(calidad * 100), 3.0)
 
 
 func _pendientes() -> int:
@@ -1361,6 +1544,9 @@ func _eventos() -> void:
 	if ambulancia_estado == "activa":
 		_vigilar_ambulancia()
 	eventos.revisar()
+	rival.revisar()
+	if Juego.estres >= Juego.ESTRES_MAXIMO and not cinematica_activa and Juego.una_vez_hoy("aviso_estres"):
+		hud.mostrar("Lucía: «Doctor, está pálido y le tiemblan las manos. Tómese un respiro: almuerce o hable con alguien». (Estrés muy alto)", 5.0)
 	if evento_pico > 0.0 and m >= evento_pico:
 		evento_pico = -1.0
 		Juego.sonido("altavoz", 0.9, -6.0)
@@ -1407,7 +1593,7 @@ func _llega_catelli() -> void:
 func _termina_arreglo() -> void:
 	catelli_estado = ""
 	apagon = false
-	create_tween().tween_property(oscuridad, "color", Color.WHITE, 0.8)
+	create_tween().tween_property(oscuridad, "color", _luz_normal(), 0.8)
 	Juego.sonido("exito", 0.8, -6.0)
 	hud.mostrar("Paul Catelli: «¡Listo! Luz como en Navidad. De nada, ¿eh? Nadie me da las gracias en este hospital»." , 4.5)
 	if npcs.has("Paul Catelli"):
@@ -1867,6 +2053,7 @@ var _foco: Array = []
 
 func _seguir_foco(delta: float) -> void:
 	var meta := Vector2(0, -12)
+	_foco = _foco.filter(func(n): return is_instance_valid(n))   # alguien del foco pudo desaparecer
 	if not _foco.is_empty():
 		var c := Vector2.ZERO
 		for n in _foco:
@@ -2510,6 +2697,8 @@ func efecto_npc(nombre: String, efecto: String) -> void:
 		else:
 			await hud.dialogo("Lucía", ["Lo siento, doctor, no puedo dejar la enfermería ahora."])
 			hud.mostrar("(Necesitas más amistad con Lucía para pedirle eso.)", 3.0)
+	elif efecto.begins_with("gianna:"):
+		await _efecto_gianna(efecto.substr(7))
 	elif efecto.begins_with("zac:"):
 		var partes := efecto.split(":")
 		if partes[1] == "1":
@@ -2577,6 +2766,28 @@ func efecto_npc(nombre: String, efecto: String) -> void:
 			await hud.dialogo("Cristian Daniel", ["¡Rápido como un rayo! Aquí tiene: %s." % todos[r].to_lower()])
 
 
+func _efecto_gianna(e: String) -> void:
+	match e:
+		"plato":
+			Juego.una_vez_hoy("gianna_plato")
+			await _accion(15, "Arroz con coco, pescado y patacón…\n15 minutos después")
+			Juego.hambre = minf(Juego.hambre + 35.0, 100.0)
+			Juego.sumar_estres(-8)
+			hud.mostrar("Comida hecha con cariño. (+hambre, −estrés)", 3.5)
+		"altavoz":
+			if randf() < 0.5 or Juego.auto_dialogo:
+				Juego.sonido("altavoz", 1.0, -6.0)
+				hud.mostrar("Altavoz: «Dr. Walter Pinkman, a urgencias, por favor».", 3.0)
+				await hud.dialogo("Gianna", ["…Claro. Vaya, doctor. El hospital lo necesita más que yo.", "(Bajito) Algún día ese altavoz me va a dejar terminar una frase."])
+		"domingo":
+			Juego.flags["gianna_domingo"] = true
+		"cafe_no":
+			Juego.flags["gianna_cafe_dia"] = Juego.dia
+		"numero":
+			Juego.flags["gianna_numero"] = true
+			Juego.mensaje("Gianna", "Hola, doctor. Soy Gianna (la de la sopa). Este es mi número. Coma bien, ¿sí?")
+
+
 func _terminar_turno() -> void:
 	_terminando = true
 	Juego.pausado = true
@@ -2585,12 +2796,22 @@ func _terminar_turno() -> void:
 	Juego.terminar_turno()
 	Juego.semana["atendidos"] += atendidos
 	Juego.semana["transferidos"] += transferidos
+	rival.fin_del_turno()
 	if Juego.es_viernes():
 		hud.mostrar("Altavoz: «Dr. Walter Pinkman, preséntese en dirección para su evaluación»." , 3.0)
 		await get_tree().create_timer(1.0).timeout
+		var atendidos_semana: int = Juego.semana["atendidos"]
 		await hud.dialogo("Dr. Salgado", Juego.evaluacion_semanal())
+		await rival.duelo_semanal(atendidos_semana)
 	var delta_rep := Juego.reputacion - _rep_inicio
 	var resumen := "Fin del turno · Atendiste %d · Transferidos %d · Reputación %+d" % [atendidos, transferidos, delta_rep]
+	if guardia_nocturna:
+		var pago := pago_horas_extra(Juego.minutos - Juego.FIN_TURNO)
+		Juego.dinero += pago
+		Juego.mensaje("Banco", "Pago de horas extra (guardia nocturna): +$%d. Saldo: $%d." % [pago, Juego.dinero])
+		resumen = "Fin de la guardia nocturna · Atendiste %d (%d de noche) · Horas extra +$%d · Reputación %+d" % [atendidos, nocturnos, pago, delta_rep]
+	if Juego.estres >= Juego.ESTRES_ALTO:
+		resumen += "\nEstás muy estresado: descansa, toca guitarra o sal el fin de semana."
 	if pendientes > 0:
 		resumen += "\n%d paciente(s) quedan con el turno de la noche." % pendientes
 	Juego.pasar_tiempo(Juego.MINUTOS_VIAJE)

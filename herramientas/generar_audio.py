@@ -238,6 +238,91 @@ def musica_barrio() -> np.ndarray:
     return _cerrar_ciclo(pasa_bajos(mezcla, 6000))
 
 
+def musica_villano() -> np.ndarray:
+    """Tema del Dr. Bruno Vance: villano de caricatura. 152 bpm, Re menor, bajo «oom-pah»,
+    melodía cromática a escondidas, castañuelas y un «¡muajaja!» de trombón al final de cada frase."""
+    bpm = 152
+    pulso = 60 / bpm
+    compas = 4 * pulso
+    progresion = [("D2", [0, 3, 7]), ("D2", [0, 3, 7]), ("A1", [0, 4, 7, 10]), ("D2", [0, 3, 7]),
+                  ("G2", [0, 3, 7]), ("D2", [0, 3, 7]), ("E2", [0, 3, 6]), ("A1", [0, 4, 7, 10])]
+    frases = [
+        ["D5", None, "A4", None, "D5", "E5", "F5", None],
+        ["E5", "D5", "C#5", None, "A4", None, None, None],
+        ["E5", None, "C#5", None, "E5", "F5", "G5", None],
+        ["F5", "E5", "D5", None, "A4", None, None, None],
+        ["G5", None, "A#5", None, "A5", "G5", "F5", None],
+        ["E5", "F5", "E5", "D5", "C#5", "D5", "E5", None],
+        ["G5", "F5", "E5", None, "A#4", None, "C#5", None],
+        ["E5", None, None, None, None, None, None, None],
+    ]
+    compases = 16
+    total = int(compases * compas * SR)
+    bajo = np.zeros(total)
+    acordes = np.zeros(total)
+    mel = np.zeros(total)
+    perc = np.zeros(total)
+    trombon = np.zeros(total)
+    for c in range(compases):
+        raiz, iv = progresion[c % 8]
+        frecs = acorde(raiz, iv)
+        t0 = c * compas
+        for k in range(4):     # oom-pah: bajo en 1 y 3, acorde picado en 2 y 4
+            if k % 2 == 0:
+                f = frecs[0] if k == 0 else frecs[0] * 1.5
+                nota_en(bajo, t0 + k * pulso, pulso * 0.45, f, "triangulo", 0.34, (0.003, 0.08, 0.3, 0.04))
+                nota_en(perc, t0 + k * pulso, 0.07, 90.0, "triangulo", 0.22, (0.001, 0.05, 0.0, 0.02))
+            else:
+                for f in frecs[1:]:
+                    nota_en(acordes, t0 + k * pulso, pulso * 0.22, f * 2, "cuadrada", 0.035, (0.002, 0.04, 0.2, 0.03), 0.25)
+                nota_en(perc, t0 + k * pulso, 0.05, 6000.0, "ruido", 0.05, (0.001, 0.02, 0.0, 0.01))
+        for k in range(8):     # castañuelas
+            if k in (1, 2, 5, 7):
+                nota_en(perc, t0 + k * pulso / 2, 0.025, 3200.0, "cuadrada", 0.025, (0.001, 0.01, 0.0, 0.01))
+        if c >= 1:
+            frase = frases[c % 8]
+            for k, nota in enumerate(frase):
+                largo = pulso / 2 * (0.45 if k < 7 and frase[min(k + 1, 7)] is not None else 0.8)
+                nota_en(mel, t0 + k * pulso / 2, largo, nota, "cuadrada", 0.09, (0.002, 0.05, 0.4, 0.03), 0.25)
+                nota_en(mel, t0 + k * pulso / 2, largo, nota, "triangulo", 0.08, (0.002, 0.05, 0.4, 0.03))
+        if c % 4 == 3:         # «¡muajaja!»: tres notas que bajan con vibrato, como un trombón
+            for j, (f0, f1) in enumerate([(hz("A3"), hz("G3")), (hz("G3"), hz("F3")), (hz("F3"), hz("D3"))]):
+                ini = t0 + 2 * pulso + j * pulso * 0.62
+                n = int(pulso * 0.58 * SR)
+                f = np.linspace(f0, f1, n) * (1 + 0.025 * np.sin(2 * np.pi * 6.5 * np.arange(n) / SR))
+                fase = np.cumsum(f) / SR
+                tono = (2 * (fase % 1.0) - 1) * envolvente(n, 0.02, 0.1, 0.7, 0.08) * 0.16
+                i0 = int(ini * SR)
+                trombon[i0:i0 + n] += tono[: max(0, min(n, total - i0))]
+    mezcla = bajo + pasa_bajos(acordes, 3500) + pasa_bajos(perc, 7000) + eco(pasa_bajos(mel, 5000), pulso * 0.5, 0.25, 0.18) + pasa_bajos(trombon, 1800)
+    return _cerrar_ciclo(pasa_bajos(mezcla, 6500))
+
+
+def sfx_guitarra() -> np.ndarray:
+    """Rasgueo de guitarra acústica (Karplus-Strong): Sol - Do - Re - Sol."""
+    x = np.zeros(int(4.2 * SR))
+    for k, (raiz, iv) in enumerate([("G2", [0, 7, 12, 16, 19, 24]), ("C3", [0, 4, 7, 12, 16]),
+                                     ("D3", [0, 7, 12, 16, 19]), ("G2", [0, 7, 12, 16, 19, 24])]):
+        for j, f in enumerate(acorde(raiz, iv)):
+            n = int(1.0 * SR)
+            periodo = int(SR / f)
+            buf = np.random.uniform(-1, 1, periodo)
+            out = np.zeros(n)
+            for i in range(n):
+                out[i] = buf[i % periodo]
+                buf[i % periodo] = 0.5 * (buf[i % periodo] + buf[(i + 1) % periodo]) * 0.996
+            i0 = int((k * 1.0 + j * 0.012) * SR)
+            x[i0:i0 + n] += out[: len(x) - i0] * 0.25
+    return x
+
+
+def sfx_aguja() -> np.ndarray:
+    x = np.zeros(int(0.12 * SR))
+    nota_en(x, 0.0, 0.05, "E7", "triangulo", 0.4, (0.001, 0.02, 0.2, 0.02))
+    nota_en(x, 0.03, 0.06, 4000.0, "ruido", 0.12, (0.001, 0.02, 0.0, 0.02))
+    return x
+
+
 def sfx_aplausos() -> np.ndarray:
     """Aplausos: muchos chasquidos cortos de ruido, 2.5 s."""
     rng = np.random.default_rng(11)
@@ -339,6 +424,9 @@ if __name__ == "__main__":
     guardar("musica_hospital.wav", musica_hospital(), 0.7)
     guardar("musica_casa.wav", musica_casa(), 0.7)
     guardar("musica_barrio.wav", musica_barrio(), 0.7)
+    guardar("musica_villano.wav", musica_villano(), 0.7)
+    guardar("guitarra.wav", sfx_guitarra(), 0.7)
+    guardar("aguja.wav", sfx_aguja(), 0.5)
     guardar("aplausos.wav", sfx_aplausos(), 0.8)
     guardar("llanto.wav", sfx_llanto(), 0.7)
     guardar("trueno.wav", sfx_trueno(), 0.9)

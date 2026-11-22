@@ -25,6 +25,7 @@ var prioridad: Callable             # diálogo de eventos que se pone antes que 
 var guion := false                  # en una cinemática: solo camina por su «ruta» y luego se queda quieto
 var _atascado := 0.0
 var _turno := 0
+var musica := ""                    # si tiene, suena mientras habla con Walter (p. ej. el tema del villano)
 
 
 func configurar(p_nombre: String, piel: int, ropa: String, pelo_hoja: String, pelo_fila: int) -> void:
@@ -114,6 +115,9 @@ func _nuevo_objetivo() -> void:
 ##   {"lineas": [...], "opciones": [{"texto": "...", "amistad": 1, "respuesta": [...], "efecto": "..."}]}
 func hablar(hud: HUD, walter_pos: Vector2) -> void:
 	hablando = true
+	var musica_antes: String = Juego._musica_actual
+	if musica != "":
+		Juego.musica(musica)
 	var dir := walter_pos - global_position
 	if dir.length() > 0.1:
 		figura.mirando = dir
@@ -152,6 +156,8 @@ func hablar(hud: HUD, walter_pos: Vector2) -> void:
 				await hud.dialogo(nombre, o["respuesta"])
 			if o.has("efecto"):
 				efecto_dialogo.emit(nombre, str(o["efecto"]))
+	if musica != "" and Juego._musica_actual == musica:
+		Juego.musica(musica_antes)
 	if quieto:
 		figura.mirando = mirada_base      # vuelve a mirar hacia su mostrador
 		figura.caminar(false, 0.0)

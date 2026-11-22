@@ -74,6 +74,11 @@ func planear() -> void:
 	if d >= 9 and h._pawlak_interes() == "si" and not Juego.flags.get("ev_pawlak_herida", false) and randf() < 0.4:
 		_programar("pawlak_herida", randi_range(10 * 60, 16 * 60))
 	# Cinemáticas de historia
+	if d >= 5 and Juego.get_amistad("Gianna") >= 4 and not Juego.flags.get("ev_mama_gianna", false) and randf() < 0.5:
+		_programar("mama_gianna", randi_range(12 * 60, 13 * 60 + 30))
+	if Juego.get_amistad("Gianna") >= 4 and not Juego.flags.get("msg_mama_gianna", false):
+		Juego.flags["msg_mama_gianna"] = true
+		Juego.mensaje("Mamá", "Mijo, Doña Luz me contó que hay una chef nueva que te mira mucho… ¿Gianna se llama? ¡Cuéntamelo todo!")
 	if Juego.flags.get("zac_novios", false) and not Juego.flags.get("ev_cita_zac", false) and randf() < 0.6:
 		_programar("cita_zac", randi_range(10 * 60, 16 * 60))
 	if Juego.flags.get("jinu_sheyla", false) and not Juego.flags.get("ev_graduacion_jinu", false) \
@@ -126,6 +131,9 @@ func revisar() -> void:
 			programados.erase(e)
 			iniciar(e)
 			return
+	if h.sala_actual == "cafeteria" and h.npcs.has("Gianna") and not Juego.flags.get("gianna_intro", false) and _puede():
+		iniciar("gianna_intro")
+		return
 	if incendio == "humo" and m >= incendio_limite:
 		_incendio_tarde()
 	if not fuga.is_empty() and m >= fuga_limite:
@@ -180,6 +188,8 @@ func iniciar(e: String) -> void:
 		"graduacion_jinu": await h.cin.graduacion_jinu()
 		"wilder_salva": await h.cin.wilder_salva()
 		"despedida_erina": await h.cin.despedida_erina()
+		"mama_gianna": await h.cin.mama_gianna()
+		"gianna_intro": await h.cin.gianna_intro()
 
 
 # --- Ganchos que usa el hospital ----------------------------------------------------

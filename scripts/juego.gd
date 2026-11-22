@@ -20,6 +20,10 @@ var minutos := 6.0 * 60.0        # minuto del día (puede pasar de 1440 de madru
 var higiene := 100.0
 var energia := 80.0
 var hambre := 60.0               # 100 = lleno, 0 = muerto de hambre
+var estres := 10.0               # 0 = tranquilo, 100 = a punto de explotar
+const ESTRES_ALTO := 60.0        # camina más lento
+const ESTRES_MAXIMO := 80.0      # además se le caen las cosas de las manos
+const FIN_EXTRA := 23 * 60       # la guardia nocturna (horas extra) termina a las 11:00 PM
 var ropa := "pijama"             # "pijama" | "uniforme"
 var turnos_bata := 0             # turnos desde la última lavada
 var reputacion := 0
@@ -123,6 +127,8 @@ func avanzar(mins: float) -> void:
 	higiene -= 0.05 * mins
 	if hambre < 25.0:
 		energia -= 0.10 * mins     # con hambre se cansa el doble
+	if fue_al_hospital and not turno_terminado:
+		estres += (0.045 if minutos >= FIN_TURNO else 0.02) * mins   # trabajar estresa (más de noche)
 	_limitar()
 
 
@@ -135,6 +141,7 @@ func _limitar() -> void:
 	higiene = clampf(higiene, 0.0, 100.0)
 	energia = clampf(energia, 0.0, 100.0)
 	hambre = clampf(hambre, 0.0, 100.0)
+	estres = clampf(estres, 0.0, 100.0)
 
 
 func hora_texto(m: float = -1.0) -> String:
@@ -184,9 +191,36 @@ func velocidad_walter() -> float:
 		v = 38.0
 	elif energia < 30.0:
 		v = 52.0
+	if estres >= ESTRES_MAXIMO:
+		v *= 0.72
+	elif estres >= ESTRES_ALTO:
+		v *= 0.86
 	if minutos < boost_hasta:
 		v *= 1.35
 	return v
+
+
+# --- Estrés ----------------------------------------------------------------------
+## Suma (o resta, con n negativo) estrés. Devuelve el cambio real.
+func sumar_estres(n: float) -> float:
+	var antes := estres
+	estres = clampf(estres + n, 0.0, 100.0)
+	return estres - antes
+
+
+func estado_estres() -> String:
+	if estres >= ESTRES_MAXIMO:
+		return "Agotado"
+	if estres >= ESTRES_ALTO:
+		return "Estresado"
+	if estres >= 30.0:
+		return "Tenso"
+	return "Tranquilo"
+
+
+## Con mucho estrés, a veces se le caen las cosas de las manos.
+func se_le_cae() -> bool:
+	return estres >= ESTRES_MAXIMO and not auto_dialogo and randf() < 0.25
 
 
 ## Requisitos de la capacitación: lista de [texto, cumplido].
@@ -295,6 +329,8 @@ func dormir(desmayado: bool = false) -> String:
 		recuperacion *= 1.25
 	energia = clampf(energia + recuperacion, 0.0, 100.0)
 	hambre = clampf(hambre - horas * 2.0, 0.0, 100.0)
+	var antes_estres := estres
+	estres = clampf(estres - horas * (3.0 if horas >= 7.0 else 1.5) - (8.0 if es_fin_de_semana() else 0.0), 0.0, 100.0)
 	higiene = clampf(higiene - 8.0, 0.0, 100.0)
 
 	dia += 1
@@ -320,6 +356,10 @@ func dormir(desmayado: bool = false) -> String:
 		t += " Sonó la alarma: %s." % hora_texto()
 	if not con_pijama:
 		t += " Dormir sin pijama no te dejó descansar bien."
+	if antes_estres - estres >= 15.0:
+		t += " Despertaste mucho más tranquilo."
+	elif estres >= ESTRES_ALTO:
+		t += " Todavía te sientes estresado."
 	return t + extra
 
 
@@ -482,6 +522,39 @@ func clima_de_hoy() -> Array:
 
 
 ## Respuestas a mensajes del celular.
+## Llamar por el celular (10 min). Hablar con mamá o con Gianna baja el estrés (una vez al día cada una).
+func contactos() -> Array:
+	var c: Array = ["Mamá"]
+	if flags.get("gianna_numero", false):
+		c.append("Gianna")
+	return c
+
+
+func llamar(quien: String) -> String:
+	if not una_vez_hoy("llamada_" + quien):
+		return "Ya hablaste hoy con %s." % quien
+	pasar_tiempo(10)
+	match quien:
+		"Mamá":
+			sumar_estres(-8)
+			var l: Array = ["¿Estás comiendo bien, mijo? Te oigo cansado. Respira hondo, que tú puedes con todo.",
+				"Tu tía Carmenza manda saludos. Y pregunta si ya eres director. Le dije que casi.",
+				"Hoy hice el sudado que te gusta. Te guardé un tupper. Ven el fin de semana."]
+			if flags.get("gianna_cita", false):
+				l = ["¿Y la cita con Gianna? ¡Cuéntame TODO! …¿Cómo que «mamá, estoy trabajando»?"]
+			elif flags.get("gianna_domingo", false):
+				l = ["¿Gianna sí viene el domingo? Voy a hacer mi lasaña. ¡Ponte la camisa azul!"]
+			return "Mamá: «%s» (−estrés)" % l.pick_random()
+		"Gianna":
+			sumar_estres(-6)
+			cambiar_amistad("Gianna", 1)
+			var lg: Array = ["¿Doctor? ¡Qué milagro! …No, no estaba esperando su llamada. Bueno, un poquito.",
+				"Hoy Doña Luz quemó el arroz y me echó la culpa a mí. ¿Usted me defiende?",
+				"¿Ya comió? No me mienta, se le nota en la voz."]
+			return "Gianna: «%s» (−estrés, +amistad)" % lg.pick_random()
+	return ""
+
+
 func efecto_mensaje(efecto: String) -> String:
 	match efecto:
 		"mama_dinero":
@@ -578,6 +651,7 @@ func nueva_partida() -> void:
 	higiene = 70.0
 	energia = 80.0
 	hambre = 55.0
+	estres = 10.0
 	ropa = "pijama"
 	turnos_bata = 0
 	reputacion = 0
@@ -621,7 +695,7 @@ func hay_partida_guardada() -> bool:
 func guardar() -> void:
 	var datos := {
 		"dia": dia, "minutos": minutos, "higiene": higiene, "energia": energia,
-		"hambre": hambre, "ropa": ropa, "turnos_bata": turnos_bata,
+		"hambre": hambre, "estres": estres, "ropa": ropa, "turnos_bata": turnos_bata,
 		"reputacion": reputacion, "rango": rango, "racha_puntual": racha_puntual,
 		"retrasos": retrasos, "hora_alarma": hora_alarma,
 		"amistad": amistad, "favores": favores, "flags": _flags_persistentes(),
@@ -660,6 +734,7 @@ func cargar() -> bool:
 	higiene = float(datos.get("higiene", 70.0))
 	energia = float(datos.get("energia", 80.0))
 	hambre = float(datos.get("hambre", 55.0))
+	estres = float(datos.get("estres", 10.0))
 	ropa = str(datos.get("ropa", "pijama"))
 	turnos_bata = int(datos.get("turnos_bata", 0))
 	reputacion = int(datos.get("reputacion", 0))

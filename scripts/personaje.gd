@@ -14,6 +14,7 @@ const PELOS2 := BASE + "metrocity2/Hair.png"              # 5 filas
 ## 0 Reyes (castaño) · 1 McClane (negro con canas) · 2 Mendoza (castaño) · 3 Pawlak (castaño claro, largo)
 const PELOS_LSPD := BASE + "propios/pelos_lspd.png"
 const PELO_STONE := BASE + "propios/pelo_stone.png"        # peinado antiguo de Walter en aguamarina
+const PELO_GIANNA := BASE + "propios/pelo_gianna.png"      # largo y castaño (Gianna, la chef)
 const TRAJES := BASE + "metrocity2/Suit1.png"             # 0 blanco · 1 rosa · 2 azul · 3 celeste · 4 fucsia
 const TRAJES_B := BASE + "metrocity2/Suit.png"            # 0 policía · 1 rojo · 2 overol · 3 naranja
 const OUTFIT := BASE + "metrocity1/Outfits/Outfit%d.png"  # 1..6, una fila

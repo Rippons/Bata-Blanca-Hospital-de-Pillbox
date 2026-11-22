@@ -77,6 +77,7 @@ func _process(_delta: float) -> void:
 	_poner_barra("Higiene", Juego.higiene)
 	_poner_barra("Energía", Juego.energia)
 	_poner_barra("Hambre", Juego.hambre)
+	_poner_barra("Estrés", Juego.estres)
 	# El aviso «E: …» se oculta mientras hay un diálogo o un menú abierto
 	lbl_aviso.visible = _aviso_texto != "" and not ocupado()
 
@@ -337,14 +338,14 @@ func _crear_barra_superior() -> void:
 
 func _crear_necesidades() -> void:
 	var p := _panel()
-	p.position = Vector2(3, 214)
+	p.position = Vector2(3, 205)
 	raiz.add_child(p)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 2)
 	p.add_child(grid)
-	var colores := {"Higiene": Color("5fb3e8"), "Energía": Color("f0c24a"), "Hambre": Color("e8835f")}
+	var colores := {"Higiene": Color("5fb3e8"), "Energía": Color("f0c24a"), "Hambre": Color("e8835f"), "Estrés": Color("b48ae8")}
 	for nombre in colores:
 		var l := _label(nombre, 7)
 		l.custom_minimum_size = Vector2(32, 0)
@@ -367,6 +368,9 @@ func _crear_necesidades() -> void:
 func _poner_barra(nombre: String, valor: float) -> void:
 	var b = barras[nombre]
 	b[0].value = valor
+	if nombre == "Estrés":   # al revés: lo malo es tenerlo alto
+		b[1].bg_color = Color("e04848") if valor >= Juego.ESTRES_MAXIMO else (Color("e8a04a") if valor >= Juego.ESTRES_ALTO else b[2])
+		return
 	b[1].bg_color = Color("e04848") if valor < 25.0 else b[2]
 
 

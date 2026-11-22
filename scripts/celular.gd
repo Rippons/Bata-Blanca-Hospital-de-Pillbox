@@ -17,6 +17,7 @@ const APPS := [
 	["transporte", "Viajes", Color("af52de")],
 	["agenda", "Agenda", Color("ff3b30")],
 	["clima", "Clima", Color("5ac8fa")],
+	["llamar", "Llamar", Color("30d158")],
 ]
 
 var sala               # la sala actual (para bloquear a Walter y mostrar avisos)
@@ -195,6 +196,7 @@ func _ir(p: String, conservar_aviso := false) -> void:
 		"transporte": _transporte()
 		"agenda": _agenda()
 		"clima": _clima()
+		"llamar": _llamar()
 	await get_tree().process_frame
 	_enfocar_primero()
 
@@ -355,6 +357,20 @@ func _agenda() -> void:
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_contenido.add_child(info)
 	_actualizar_dinamico()
+
+
+func _llamar() -> void:
+	_lbl_titulo.text = "Llamar"
+	_contenido.add_child(_texto("Hablar con alguien de confianza baja el estrés (10 min). Estrés: %d %% · %s." % [int(Juego.estres), Juego.estado_estres()]))
+	if _aviso != "":
+		_contenido.add_child(_burbuja(_aviso, false))
+	for c in Juego.contactos():
+		var b := _boton_fila(c, "Llamar (10 min)")
+		b.pressed.connect(func():
+			Juego.sonido("blip", 1.1, -10.0)
+			_aviso = Juego.llamar(c)
+			_ir("llamar", true))
+		_contenido.add_child(b)
 
 
 func _clima() -> void:
@@ -532,6 +548,11 @@ class IconoApp extends Control:
 				draw_rect(Rect2(c + Vector2(-6, -5), Vector2(12, 11)), b)
 				draw_rect(Rect2(c + Vector2(-6, -5), Vector2(12, 3)), Color(0, 0, 0, 0.25))
 				draw_string(ThemeDB.fallback_font, c + Vector2(-3, 5), str(Juego.dia % 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 7, color)
+			"llamar":
+				draw_rect(Rect2(c + Vector2(-3, -7), Vector2(6, 14)), b)
+				draw_rect(Rect2(c + Vector2(-2, -5), Vector2(4, 9)), color)
+				draw_arc(c + Vector2(4, -4), 3.0, -PI / 2, PI / 4, 6, b, 1.0)
+				draw_arc(c + Vector2(4, -4), 5.5, -PI / 2, PI / 4, 8, b, 1.0)
 			"clima":
 				draw_circle(c + Vector2(-2, -2), 4.0, Color("ffd60a"))
 				draw_circle(c + Vector2(2, 3), 3.5, b)

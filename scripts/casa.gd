@@ -77,6 +77,11 @@ func construir() -> void:
 	mueble(HOME + "Kitchen1-Sheet.png", Rect2(138, 12, 12, 20), Vector2(256, 190), false)
 	zona("escritorio", "Estudiar", Rect2(228, 160, 56, 40))
 	mueble(HOME + "Lights-Sheet.png", Rect2(152, 0, 16, 32), Vector2(132, 196), true, 6)
+	var guitarra := Guitarra.new()
+	guitarra.position = Vector2(180, 206)
+	mundo.add_child(guitarra)
+	solido_rect(Rect2(174, 198, 12, 8))
+	zona("guitarra", "Tocar guitarra (30 min, −estrés)", Rect2(164, 194, 32, 26))
 	cartel("CUARTO", Vector2(128, 238), Color(0, 0, 0, 0.45))
 
 	# --- Cocina ---
@@ -186,9 +191,34 @@ func interactuar(id: String) -> void:
 		"lavadora": await _lavar()
 		"cama": await _cama()
 		"escritorio": await _estudiar()
+		"guitarra": await _tocar_guitarra()
 		"puerta": await _puerta()
 	walter.actualizar_aspecto()
 	_actualizar_lista()
+
+
+func _tocar_guitarra() -> void:
+	var r: int = await hud.elegir("Guitarra", "Tocar un rato relaja la cabeza. Estrés: %d %% (%s)." % [int(Juego.estres), Juego.estado_estres()],
+		["Tocar (30 min)", "Cancelar"])
+	if r != 0:
+		return
+	Juego.sonido("guitarra", 1.0, -4.0)
+	await _accion(30, "Sol, Do, Re… Walter toca la canción que le enseñó su papá.\n30 minutos después")
+	Juego.sumar_estres(-12)
+	hud.mostrar("Tocaste guitarra un rato. Te sientes más tranquilo. (−estrés)", 3.5)
+
+
+## Guitarra acústica apoyada en su soporte.
+class Guitarra extends Node2D:
+	func _draw() -> void:
+		draw_line(Vector2(-4, 0), Vector2(0, -6), Color("3e2723"), 1.0)
+		draw_line(Vector2(4, 0), Vector2(0, -6), Color("3e2723"), 1.0)
+		draw_rect(Rect2(-1, -30, 2, 14), Color("5d4037"))
+		draw_rect(Rect2(-2, -33, 4, 4), Color("3e2723"))
+		draw_circle(Vector2(0, -12), 5.0, Color("c77d3a"))
+		draw_circle(Vector2(0, -6), 6.0, Color("c77d3a"))
+		draw_circle(Vector2(0, -9), 1.8, Color("3e2723"))
+		draw_line(Vector2(0, -30), Vector2(0, -3), Color(1, 1, 1, 0.5), 0.5)
 
 
 func _accion(minutos_accion: int, texto: String) -> void:

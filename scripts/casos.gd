@@ -162,3 +162,27 @@ static func casos_leves() -> Array:
 		l = l + ESPECIALIDAD[Juego.especialidad]["casos"]
 		l = l + ESPECIALIDAD[Juego.especialidad]["casos"]    # más probables
 	return l
+
+
+## Guardia nocturna: los mismos diagnósticos, pero con historias rarísimas.
+const NOCTURNOS := {
+	"Herida superficial": [["Me corté abriendo un coco con una cuchara. Era una apuesta.", "…Perdí la apuesta. Y el coco sigue cerrado."]],
+	"Picadura de abeja": [["Una abeja se metió en mi pizza. Yo la mordí… y ella me mordió a mí.", "Creo que quedamos empatados."]],
+	"Golpe en la cabeza": [["Estaba bailando con audífonos y me di contra el ventilador del techo.", "La canción era muy buena, doctor."]],
+	"Cuerpo extraño en el ojo": [["Soplé las velas de la torta y me cayó escarcha en el ojo.", "Ni siquiera era mi cumpleaños."]],
+	"Quemadura leve": [["Intenté planchar la camisa… con la camisa puesta. Tenía afán."]],
+	"Azúcar baja": [["Llevo doce horas jugando videojuegos y solo tomé agua.", "¡Pero llegué al jefe final!"]],
+	"Esguince de tobillo": [["Me caí del triciclo de mi sobrino. Tengo cuarenta y dos años."]],
+	"Otitis": [["Me metí un fríjol en el oído para ver si se oía el mar.", "No se oye el mar, doctor. Se oye fríjol."]],
+}
+
+
+static func caso_nocturno() -> Dictionary:
+	var diag: String = NOCTURNOS.keys().pick_random()
+	for c in CASOS:
+		if c["diagnostico"] == diag:
+			var copia: Dictionary = c.duplicate(true)
+			copia["historias"] = NOCTURNOS[diag]
+			copia["nocturno"] = true
+			return copia
+	return CASOS[0]

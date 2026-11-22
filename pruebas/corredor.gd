@@ -26,6 +26,25 @@ func vigilar_momento(hosp, nombre: String, archivo: String) -> void:
 		t += 0.1
 
 
+## Toma una captura cuando aparece un minijuego en pantalla.
+func vigilar_minijuego(tipo: String, archivo: String) -> void:
+	var t := 0.0
+	while t < 40.0:
+		if Minijuego.activo == tipo:
+			await esperar(0.5)
+			await captura(archivo)
+			return
+		await esperar(0.05)
+		t += 0.05
+
+
+func caso_de(diagnostico: String) -> Dictionary:
+	for c in Casos.CASOS:
+		if c["diagnostico"] == diagnostico:
+			return c
+	return {}
+
+
 func captura(nombre: String) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
@@ -864,6 +883,154 @@ func _ready() -> void:
 		if t_fi > 90.0:
 			break
 	ok(Juego.rango == "Director" and Juego.flags.get("final_visto", false), "final: Walter es Director del Hospital de Pillbox")
+
+	print("== Estrés")
+	Juego.estres = 10.0
+	var v_normal: float = Juego.velocidad_walter()
+	Juego.sumar_estres(75.0)
+	ok(Juego.estado_estres() == "Agotado" and Juego.velocidad_walter() < v_normal, "con estrés muy alto Walter camina más lento")
+	var llamada: String = Juego.llamar("Mamá")
+	ok(llamada.begins_with("Mamá") and Juego.estres < 85.0, "llamar a mamá baja el estrés")
+	ok(Juego.llamar("Mamá").begins_with("Ya hablaste"), "solo una llamada a mamá por día")
+	Juego.estres = 20.0
+
+	print("== Rival: Dr. Bruno Vance")
+	Juego.dia = 10
+	Juego.minutos = 9 * 60
+	Juego.rango = "Interno"
+	Juego.especialidad = ""
+	Juego.flags.erase("vance_intro")
+	await Juego.ir_a("res://escenas/hospital.tscn", "")
+	await esperar(2.0)
+	var h4 = get_tree().current_scene
+	ok(h4.npcs.has(RivalVance.NOMBRE) and h4.npcs[RivalVance.NOMBRE].musica == "villano", "Vance trabaja en urgencias y tiene su propio tema")
+	await h4.ir_a_sala("urgencias", Vector2(240, 200))
+	var musica_vance := [""]
+	var vigila_musica := func():
+		var tt := 0.0
+		while tt < 20.0 and musica_vance[0] == "":
+			if Juego._musica_actual == "villano":
+				musica_vance[0] = "villano"
+			await esperar(0.05)
+			tt += 0.05
+	vigila_musica.call()
+	vigilar_momento(h4, "vance", "v2_vance_llega")
+	Juego.respuestas_auto = [1]
+	await h4.rival.intro()
+	ok(Juego.flags.get("vance_intro", false) and musica_vance[0] == "villano" and Juego._musica_actual == "hospital", "Salgado presenta a Vance; suena su música y luego vuelve la del hospital")
+	vigilar_momento(h4, "vance", "v2_vance_burla")
+	Juego.respuestas_auto = [2]
+	await h4.rival.burla()
+	ok(Juego.flags.get("vance_apuesta", false) and not h4.cinematica_activa, "Vance se burla y Walter le apuesta quién atiende más")
+	h4._entra_a_espera({"nombre": "Prueba Robo", "caso": Casos.casos_leves()[0]})
+	await esperar(1.0)
+	var vs0 := int(Juego.flags.get("vance_semana", 0))
+	var robado: String = h4.rival._paciente_para_robar().get("nombre", "?")
+	await h4.rival.robar()
+	ok(robado != "?" and not h4.espera.any(func(e): return e["nombre"] == robado) and int(Juego.flags.get("vance_semana", 0)) == vs0 + 1, "Vance le roba un paciente de la sala de espera")
+	Juego.flags["vance_semana"] = 2
+	var rep_d: int = Juego.reputacion
+	await h4.rival.duelo_semanal(5)
+	ok(Juego.reputacion == rep_d + 4 and not Juego.flags.get("vance_apuesta", false), "viernes: Walter le gana el duelo a Vance (+2, +2 por la apuesta)")
+	Juego.respuestas_auto = [0]
+	await h4.rival.se_equivoca()
+	ok(RivalVance.respeto(), "Walter corrige a Vance en privado: rivalidad con respeto")
+
+	print("== Minijuegos clínicos")
+	h4.walter.position = h4.SALAS["urgencias"]["origen"] + Vector2(214, 150)
+	h4._entra_a_espera({"nombre": "Don Corazón", "caso": caso_de("Infarto")})
+	h4._pasar_a_camilla(h4.espera[-1], 0)
+	var pi = h4.pacientes[0]
+	vigilar_minijuego("pulso", "v2_minijuego_pulso")
+	Juego.respuestas_auto = ["Tensiómetro", "Infarto"]
+	await h4.interactuar("camilla0")
+	ok(pi.examinado and pi.estado == "tratar", "con el tensiómetro se toma el pulso (minijuego) y se diagnostica")
+	Juego.insumo_cargado = "Aspirina y oxígeno"
+	var rep_m: int = Juego.reputacion
+	vigilar_minijuego("rcp", "v2_minijuego_rcp")
+	Juego.respuestas_auto = ["mini:0.3"]
+	await h4.interactuar("camilla0")
+	ok(pi.estado == "alta" and Juego.reputacion == rep_m, "infarto: RCP fuera de ritmo; Brown toma el relevo y no suma reputación")
+	await esperar(3.0)
+	h4._entra_a_espera({"nombre": "Señor Sangre", "caso": caso_de("Hemorragia grave")})
+	h4._pasar_a_camilla(h4.espera[-1], 1)
+	var ps = h4.pacientes[1]
+	Juego.respuestas_auto = ["Tensiómetro", "Hemorragia grave"]
+	await h4.interactuar("camilla1")
+	Juego.insumo_cargado = "Suero y compresión"
+	rep_m = Juego.reputacion
+	vigilar_minijuego("sutura", "v2_minijuego_sutura")
+	Juego.respuestas_auto = ["mini:1.0"]
+	await h4.interactuar("camilla1")
+	ok(ps.estado == "alta" and Juego.reputacion == rep_m + 5, "hemorragia: sutura perfecta (+4 y +1 extra)")
+	await esperar(3.0)
+	h4._entra_a_espera({"nombre": "Doña Seca", "caso": caso_de("Deshidratación")})
+	h4._pasar_a_camilla(h4.espera[-1], 2)
+	var pd = h4.pacientes[2]
+	Juego.respuestas_auto = [0, "Tensiómetro", "mini:0"]
+	await h4.interactuar("camilla2")
+	ok(not pd.examinado, "si pierde la cuenta del pulso, hay que volver a tomarlo")
+	h4._liberar(2)
+	Juego.respuestas_auto = ["Practicar sutura (15 min)"]
+	var est_antes: float = Juego.horas_estudio
+	await h4._practicar()
+	ok(Juego.horas_estudio == est_antes + 0.25, "practicar en el maniquí del vestidor suma estudio")
+
+	print("== Gianna y mamá")
+	Juego.flags.erase("gianna_intro")
+	vigilar_momento(h4, "gianna", "v2_gianna_llega")
+	await h4.ir_a_sala("cafeteria", Vector2(206, 196))
+	var t_g := 0.0
+	while (not Juego.flags.get("gianna_intro", false) or h4.cinematica_activa) and t_g < 20.0:
+		await esperar(0.2)
+		t_g += 0.2
+	ok(h4.npcs.has("Gianna") and h4.npcs["Gianna"].figura.piel == 5 and Juego.flags.get("gianna_intro", false), "Doña Luz presenta a Gianna (morena, pelo castaño largo)")
+	Juego.amistad["Gianna"] = 7
+	Juego.respuestas_auto = [0]
+	vigilar_momento(h4, "mama_gianna", "v2_mama_gianna")
+	await h4.eventos.iniciar("mama_gianna")
+	ok(Juego.flags.get("gianna_cita", false) and h4.sala_actual == "urgencias", "mamá conoce a Gianna, Walter la invita… y el altavoz lo llama a urgencias")
+	Juego.respuestas_auto = [0]
+	await h4.hablar_con("Gianna")
+	ok(Juego.flags.get("gianna_numero", false) and Juego.contactos().has("Gianna"), "Gianna le da su número")
+	Juego.estres = 40.0
+	Juego.respuestas_auto = ["Probar el plato del día de Gianna (15 min)"]
+	await h4.hablar_con("Gianna")
+	await esperar(3.5)
+	ok(Juego.estres <= 32.5, "el plato de Gianna baja el estrés")
+
+	print("== Horas extra")
+	await h4.ir_a_sala("urgencias", Vector2(240, 200))
+	Juego.minutos = Juego.FIN_TURNO - 0.3
+	Juego.respuestas_auto = ["Quedarme a la guardia nocturna"]
+	await esperar(2.0)
+	ok(h4.guardia_nocturna and h4.agenda.any(func(a): return str(a["nombre"]).ends_with("(noche)")), "Walter se queda a la guardia nocturna con pacientes raros")
+	var noche: Array = h4.agenda.filter(func(a): return str(a["nombre"]).ends_with("(noche)"))
+	Juego.minutos = noche[0]["hora"] + 1.0
+	await esperar(2.5)
+	await captura("v2_guardia_nocturna")
+	var din_e: int = Juego.dinero
+	Juego.minutos = Juego.FIN_EXTRA + 0.5
+	await esperar(3.0)
+	ok(get_tree().current_scene.scene_file_path.ends_with("frente_casa.tscn") and Juego.dinero == din_e + 35, "a las 11 PM termina la guardia: +$35 de horas extra (Interno)")
+
+	print("== Fin de semana con Gianna y guitarra")
+	Juego.dia = 13
+	Juego.minutos = 10 * 60
+	Juego.dinero = 200
+	Juego.respuestas_auto = ["Salir con Gianna (2 h, $30)"]
+	await get_tree().current_scene.interactuar("calle")
+	ok(Juego.flags.get("gianna_cita_hecha", false) and Juego.dinero == 170, "el sábado Walter sale con Gianna")
+	await Juego.ir_a("res://escenas/casa.tscn", "")
+	await esperar(1.5)
+	var casa_v2 = get_tree().current_scene
+	casa_v2.walter.position = Vector2(180, 222)
+	await esperar(0.5)
+	await captura("v2_guitarra")
+	Juego.estres = 50.0
+	Juego.respuestas_auto = ["Tocar (30 min)"]
+	await casa_v2.interactuar("guitarra")
+	ok(Juego.estres == 38.0, "tocar guitarra en casa baja el estrés")
 
 	print("RESULTADO: %d fallo(s)" % fallos)
 	get_tree().quit(1 if fallos > 0 else 0)

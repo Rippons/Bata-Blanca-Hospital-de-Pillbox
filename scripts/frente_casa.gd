@@ -309,12 +309,18 @@ func _salir_fin_de_semana() -> void:
 	if h >= 20 * 60 or h < 6 * 60:
 		hud.mostrar("Ya es tarde para salir. Mañana será otro día.")
 		return
-	var r: int = await hud.elegir("Día libre", "Hoy es %s. ¿Qué quieres hacer? (Saldo: $%d)" % [Juego.nombre_dia(), Juego.dinero], [
+	var opciones: Array = [
 		"Ir al mercado: 6 comidas por $70 (1 h)",
-		"Pasear por el parque (1 h, +energía)",
-		"Visitar a mamá (2 h, comes rico y te da comida)",
+		"Pasear por el parque (1 h, +energía, −estrés)",
+		"Visitar a mamá (2 h, comes rico y te da comida)" if not _almuerzo_con_gianna() else "Almuerzo en casa de mamá… con Gianna (2 h)",
 		"Ir a la playa en auto (4 h, $20, +30 energía)" if Juego.auto else "Ir a la playa (necesitas un auto)",
-		"Quedarme en casa"])
+		"Quedarme en casa"]
+	if _cita_con_gianna():
+		opciones.insert(4, "Salir con Gianna (2 h, $30)")
+	var r: int = await hud.elegir("Día libre", "Hoy es %s. ¿Qué quieres hacer? (Saldo: $%d)" % [Juego.nombre_dia(), Juego.dinero], opciones)
+	if r == 4 and _cita_con_gianna():
+		await _salir_con_gianna()
+		return
 	match r:
 		0:
 			if Juego.dinero < 70:
@@ -327,10 +333,15 @@ func _salir_fin_de_semana() -> void:
 		1:
 			await _accion(60, "Paseando por el parque de Pillbox…\n1 hora después")
 			Juego.energia = minf(Juego.energia + 15.0, 100.0)
-			hud.mostrar("El aire libre te hizo bien. (+energía)", 3.0)
+			Juego.sumar_estres(-12)
+			hud.mostrar("El aire libre te hizo bien. (+energía, −estrés)", 3.0)
 		2:
+			if _almuerzo_con_gianna():
+				await _almuerzo_gianna()
+				return
 			await _accion(120, "En casa de mamá…\n2 horas después")
 			Juego.hambre = minf(Juego.hambre + 50.0, 100.0)
+			Juego.sumar_estres(-15)
 			Juego.comida += 3
 			hud.mostrar("Mamá: «¡Estás muy flaco, mijo! Llévate este tupper». (+hambre, +3 comidas)", 4.5)
 		3:
@@ -343,4 +354,47 @@ func _salir_fin_de_semana() -> void:
 			await _accion(240, "En la playa de Pillbox…\n4 horas después")
 			Juego.dinero -= 20
 			Juego.energia = minf(Juego.energia + 30.0, 100.0)
+			Juego.sumar_estres(-20)
 			hud.mostrar("Sol, arena y cero pacientes. Volviste como nuevo. (+energía, −$20)", 4.0)
+
+
+# --- Gianna los fines de semana ------------------------------------------------------------
+func _almuerzo_con_gianna() -> bool:
+	return Juego.flags.get("gianna_domingo", false) and not Juego.flags.get("gianna_almuerzo", false) and Juego.nombre_dia() == "Domingo"
+
+
+func _cita_con_gianna() -> bool:
+	return Juego.flags.get("gianna_cita", false) and not Juego.flags.get("gianna_cita_hecha", false) and Juego.nombre_dia() == "Sábado"
+
+
+func _almuerzo_gianna() -> void:
+	await _accion(120, "Domingo en casa de mamá. Huele a lasaña…\n2 horas después")
+	Juego.flags["gianna_almuerzo"] = true
+	await hud.dialogo("Mamá", ["¡Gianna trajo postre de maracuyá! Mijo, ¿ya viste? Es-pec-ta-cu-lar."])
+	await hud.dialogo("Gianna", ["Su mamá me mostró sus fotos de bebé, doctor. Todas. Hasta la de la bañera.",
+		"…Fue el mejor almuerzo en mucho tiempo. Y nadie lo llamó por altavoz."])
+	var r: int = await hud.elegir("Gianna te sonríe", "", ["«Gracias por venir, Gianna. De verdad.»", "«Mamá, ¡las fotos no!»"])
+	if r == 0:
+		await hud.dialogo("Gianna", ["(Bajito) La próxima vez… invito yo. Solo nosotros dos."])
+		Juego.flags["gianna_cita"] = true
+	else:
+		await hud.dialogo("Mamá", ["¡Ay, pero si eras un bebé precioso!"])
+	Juego.cambiar_amistad("Gianna", 2)
+	Juego.hambre = minf(Juego.hambre + 50.0, 100.0)
+	Juego.sumar_estres(-18)
+	Juego.comida += 3
+	hud.mostrar("Almuerzo en familia… con Gianna. (+hambre, −estrés, +3 comidas)", 4.0)
+
+
+func _salir_con_gianna() -> void:
+	if Juego.dinero < 30:
+		hud.mostrar("No te alcanza para invitarla ($30). Tienes $%d." % Juego.dinero, 3.5)
+		return
+	await _accion(120, "Un café, un helado y una caminata por el malecón de Pillbox…\n2 horas después")
+	Juego.dinero -= 30
+	Juego.flags["gianna_cita_hecha"] = true
+	await hud.dialogo("Gianna", ["Dos horas, doctor. Dos horas sin que lo llamen. Creo que es un récord.",
+		"…Me gustó mucho. ¿Lo repetimos? Cuando usted pueda. Yo… lo espero."])
+	Juego.cambiar_amistad("Gianna", 2)
+	Juego.sumar_estres(-20)
+	hud.mostrar("Saliste con Gianna. (−$30, −estrés)", 4.0)
