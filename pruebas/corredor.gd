@@ -985,6 +985,11 @@ func _ready() -> void:
 		await esperar(0.2)
 		t_g += 0.2
 	ok(h4.npcs.has("Gianna") and h4.npcs["Gianna"].figura.piel == 5 and Juego.flags.get("gianna_intro", false), "Doña Luz presenta a Gianna (morena, pelo castaño largo)")
+	var am_luz: int = Juego.get_amistad("Doña Luz")
+	h4.npcs["Doña Luz"]._turno = 0
+	Juego.respuestas_auto = ["¡Huele delicioso, Doña Luz!"]
+	await h4.hablar_con("Doña Luz")
+	ok(Juego.get_amistad("Doña Luz") == am_luz + 1, "Doña Luz sí conversa con Walter (con Gianna en la cafetería)")
 	Juego.amistad["Gianna"] = 7
 	Juego.respuestas_auto = [0]
 	vigilar_momento(h4, "mama_gianna", "v2_mama_gianna")

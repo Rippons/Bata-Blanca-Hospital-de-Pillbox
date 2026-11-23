@@ -639,9 +639,9 @@ func _dialogo_luz(luz: NPC):
 	if npcs.has("Gianna") and Juego.get_amistad("Gianna") >= 4 and Juego.una_vez_hoy("luz_gianna"):
 		return ["(Bajito) Doctor, esa muchacha pregunta por usted todos los días.",
 			"«¿Ya almorzó el doctor? ¿Y si se desmaya?». Ay, el amor… digo, la juventud."]
-	var l: Array = luz.lineas[luz._turno % luz.lineas.size()]
+	var entrada = luz.lineas[luz._turno % luz.lineas.size()]   # conversación normal (diccionario con opciones)
 	luz._turno += 1
-	return l
+	return entrada
 
 
 ## Gianna, la chef que ayuda a Doña Luz. Le parece atractivo Walter… pero él siempre está ocupado.
